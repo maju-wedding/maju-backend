@@ -201,6 +201,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+
 .venv
 env/
 venv/
@@ -239,3 +241,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 *.db
+

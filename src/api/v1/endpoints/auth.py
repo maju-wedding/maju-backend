@@ -121,3 +121,26 @@ async def kakao_login(
         is_new_user=is_new_user,
         user_nickname=user.nickname,
     )
+
+
+@router.post("/anonymous-login")
+async def anonymous_login(session: SessionDep):
+    user = await users_crud.create_user(
+        session=session,
+        user_create=UserCreate(
+            email="", phone_number="", social_provider=SocialProviderEnum.anonymous
+        ),
+    )
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    jwt_token = security.create_access_token(
+        user.email, expires_delta=access_token_expires
+    )
+
+    return AuthToken(
+        access_token=jwt_token,
+        token_type="bearer",
+        is_new_user=True,
+        user_nickname=user.nickname,
+    )
+

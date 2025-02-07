@@ -26,6 +26,9 @@ sentry-sdk = { extras = ["fastapi"], version = "^1.40.6" }
 pyjwt = "^2.8.0"
 aiohttp = "^3.9.5"
 python-dateutil = "^2.9.0.post0"
+fastcrud = "^0.15.5"
+aiosqlite = "^0.21.0"
+greenlet = "^3.1.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.2.2"

@@ -1,25 +1,18 @@
-from sqlalchemy import Engine, QueuePool, create_engine
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from core.config import settings
 
-if settings.ENVIRONMENT == "local":
-    engine = create_engine(
-        "sqlite:///test.db", connect_args={"check_same_thread": False}
-    )
-else:
-    dbschema = "db,public"
+async_engine = create_async_engine(
+    settings.SQLALCHEMY_DATABASE_URI, echo=False, future=True
+)
 
-    engine = create_engine(
-        str(settings.SQLALCHEMY_DATABASE_URI),
-        poolclass=QueuePool,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-        pool_recycle=3600,
-        connect_args={"options": f"-c search_path={dbschema}"},
-    )
+async_session = sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
-async def init_db(session: Session, engine: Engine) -> None:
-    pass
+async def get_session() -> AsyncSession:
+    async with async_session() as session:
+        yield session

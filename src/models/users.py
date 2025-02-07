@@ -19,6 +19,10 @@ class UserBase(SQLModel):
     joined_datetime: datetime
 
 
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+
 class UserCreate(SQLModel):
     email: EmailStr = Field(..., max_length=255)
     phone_number: str = Field(..., max_length=20)
@@ -27,7 +31,7 @@ class UserCreate(SQLModel):
     joined_datetime: datetime = Field(default_factory=utc_now)
 
 
-class UserUpdateMe(SQLModel):
+class UserUpdate(SQLModel):
     nickname: str | None = Field(default=None, max_length=20)
     service_policy_agreement: bool | None = Field(default=None)
     privacy_policy_agreement: bool | None = Field(default=None)
@@ -35,18 +39,9 @@ class UserUpdateMe(SQLModel):
     updated_datetime: datetime = Field(default_factory=utc_now)
 
 
-class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-
-
-class UserPublic(UserBase):
+class UserRead(UserBase):
     id: int
 
 
-class UsersPublic(SQLModel):
-    data: list[UserPublic]
-    count: int
-
-
-class CheckNicknamePublic(SQLModel):
-    is_valid: bool
+class UserDelete(SQLModel):
+    id: int

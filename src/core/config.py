@@ -1,4 +1,3 @@
-import secrets
 from pathlib import Path
 from typing import Literal
 
@@ -17,7 +16,7 @@ class BaseAppSettings(BaseSettings):
     PROJECT_NAME: str = "Reborn"
 
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str = "secret"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     ENVIRONMENT: Literal["test", "local", "staging", "production"]
 
@@ -28,15 +27,11 @@ class BaseAppSettings(BaseSettings):
     KAKAO_CLIENT_SECRET_ID: str = ""
 
 
-
-
-
-
 class LocalSettings(BaseAppSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
     ENVIRONMENT: Literal["test", "local", "staging", "production"] = "local"
 
-    SQLALCHEMY_DATABASE_URI: str = "sqlite:///./test.db"
+    SQLALCHEMY_DATABASE_URI: str = "sqlite+aiosqlite:///./test.db"
 
 
 class TestSettings(BaseAppSettings):
@@ -60,8 +55,6 @@ class ProductionSettings(BaseAppSettings):
     POSTGRES_DB: str = ""
 
 
-
-
 def get_settings():
     env = Path(ROOT_DIR / ".env").read_text().strip()
     configs = {
@@ -72,7 +65,6 @@ def get_settings():
     }
     config_class = configs.get(env, LocalSettings)
     return config_class()
-
 
 
 settings = get_settings()

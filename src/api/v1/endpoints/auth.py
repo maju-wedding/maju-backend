@@ -1,12 +1,15 @@
 from datetime import timedelta
 
-from api.v1.deps import SessionDep, get_oauth_client
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.v1.deps import get_oauth_client
 from core import security
 from core.config import settings
+from core.db import get_session
 from core.exceptions import InvalidAuthorizationCode, InvalidToken
 from core.oauth_client import OAuthClient
-from cruds import users as users_crud
-from fastapi import APIRouter, Depends, HTTPException
+from cruds.crud_users import users_crud
 from models.auth import AuthToken, KakaoLoginData, NaverLoginData
 from models.users import SocialProviderEnum, UserCreate
 
@@ -16,7 +19,7 @@ router = APIRouter()
 @router.post("/naver-login")
 async def naver_login(
     login_data: NaverLoginData,
-    session: SessionDep,
+    session: AsyncSession = Depends(get_session),
     oauth_client: OAuthClient = Depends(get_oauth_client),
 ):
     try:
@@ -45,7 +48,7 @@ async def naver_login(
 
     is_new_user = False
     if not user:
-        user = await users_crud.create_user(
+        user = await users_crud.create(
             session=session,
             user_create=UserCreate(
                 email=user_data["email"],
@@ -71,7 +74,7 @@ async def naver_login(
 @router.post("/kakao-login")
 async def kakao_login(
     login_data: KakaoLoginData,
-    session: SessionDep,
+    session: AsyncSession = Depends(get_session),
     oauth_client: OAuthClient = Depends(get_oauth_client),
 ):
     try:
@@ -100,7 +103,7 @@ async def kakao_login(
 
     is_new_user = False
     if not user:
-        user = await users_crud.create_user(
+        user = await users_crud.create(
             session=session,
             user_create=UserCreate(
                 email=user_data["email"],
@@ -124,11 +127,15 @@ async def kakao_login(
 
 
 @router.post("/anonymous-login")
-async def anonymous_login(session: SessionDep):
-    user = await users_crud.create_user(
-        session=session,
-        user_create=UserCreate(
-            email="", phone_number="", social_provider=SocialProviderEnum.anonymous
+async def anonymous_login(
+    session: AsyncSession = Depends(get_session),
+):
+    user = await users_crud.create(
+        session,
+        UserCreate(
+            email="1233@example.com",
+            phone_number="",
+            social_provider=SocialProviderEnum.anonymous,
         ),
     )
 
@@ -143,4 +150,3 @@ async def anonymous_login(session: SessionDep):
         is_new_user=True,
         user_nickname=user.nickname,
     )
-

@@ -1,11 +1,11 @@
 from fastcrud import FastCRUD
 
-from models.users import User
+from models import Category
 
 
-class UserCRUD(FastCRUD):
+class CategoryCRUD(FastCRUD):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
-user_crud = UserCRUD(User)
+category_crud = CategoryCRUD(Category)

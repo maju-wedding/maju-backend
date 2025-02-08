@@ -8,7 +8,7 @@ from utils.utils import utc_now
 
 
 class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    email: EmailStr = Field(index=True, max_length=255)
     phone_number: str = Field(..., max_length=20)
     is_active: bool = Field(default=True)
     service_policy_agreement: bool = Field(default=False)

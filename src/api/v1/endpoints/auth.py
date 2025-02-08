@@ -9,7 +9,7 @@ from core.config import settings
 from core.db import get_session
 from core.exceptions import InvalidAuthorizationCode, InvalidToken
 from core.oauth_client import OAuthClient
-from cruds.crud_users import users_crud
+from cruds.crud_users import user_crud
 from models.auth import AuthToken, KakaoLoginData, NaverLoginData
 from models.users import SocialProviderEnum, UserCreate
 
@@ -44,11 +44,11 @@ async def naver_login(
     except InvalidToken:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    user = await users_crud.get_user_by_email(session=session, email=user_data["email"])
+    user = await user_crud.get(session=session, email=user_data["email"])
 
     is_new_user = False
     if not user:
-        user = await users_crud.create(
+        user = await user_crud.create(
             session=session,
             user_create=UserCreate(
                 email=user_data["email"],
@@ -99,11 +99,11 @@ async def kakao_login(
     except InvalidToken:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    user = await users_crud.get_user_by_email(session=session, email=user_data["email"])
+    user = await user_crud.get(session=session, email=user_data["email"])
 
     is_new_user = False
     if not user:
-        user = await users_crud.create(
+        user = await user_crud.create(
             session=session,
             user_create=UserCreate(
                 email=user_data["email"],
@@ -130,7 +130,7 @@ async def kakao_login(
 async def anonymous_login(
     session: AsyncSession = Depends(get_session),
 ):
-    user = await users_crud.create(
+    user = await user_crud.create(
         session,
         UserCreate(
             email="1233@example.com",

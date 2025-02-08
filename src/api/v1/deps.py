@@ -11,7 +11,7 @@ from core import security
 from core.config import settings
 from core.db import get_session
 from core.oauth_client import OAuthClient, kakao_client, naver_client
-from cruds.crud_users import users_crud
+from cruds.crud_users import user_crud
 from models.auth import AuthTokenPayload
 from models.users import User
 
@@ -37,7 +37,7 @@ async def get_current_user(
             detail="Could not validate credentials",
         )
 
-    user = await users_crud.get_user_by_email(session, email=token_data.sub)
+    user = await user_crud.get(session, email=token_data.sub)
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

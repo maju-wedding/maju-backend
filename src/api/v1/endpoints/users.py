@@ -5,7 +5,7 @@ from starlette import status
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from cruds.crud_users import users_crud
+from cruds.crud_users import user_crud
 from models.users import UserUpdate, User
 
 router = APIRouter()
@@ -32,7 +32,7 @@ async def update_user_me(
     """
     내 정보 업데이트
     """
-    updated_user = await users_crud.update(
+    updated_user = await user_crud.update(
         session, user_update.dict(exclude_unset=True), id=current_user.id
     )
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -31,7 +32,7 @@ class LocalSettings(BaseAppSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
     ENVIRONMENT: Literal["test", "local", "staging", "production"] = "local"
 
-    SQLALCHEMY_DATABASE_URI: str = "sqlite+aiosqlite:///./test.db"
+    DATABASE_URI: str = "sqlite+aiosqlite:///./test.db"
 
 
 class TestSettings(BaseAppSettings):
@@ -45,7 +46,7 @@ class StagingSettings(BaseAppSettings):
 
 
 class ProductionSettings(BaseAppSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.production")
+    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.prod")
     ENVIRONMENT: Literal["test", "local", "staging", "production"] = "production"
 
     POSTGRES_SERVER: str
@@ -53,6 +54,10 @@ class ProductionSettings(BaseAppSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str = ""
+
+    @computed_field
+    def DATABASE_URI(self) -> str:
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 def get_settings():

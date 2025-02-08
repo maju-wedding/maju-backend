@@ -2,8 +2,8 @@ from sqlmodel import Field, SQLModel
 
 
 class CategoryBase(SQLModel):
-    name: str
-    display_name: str
+    name: str = Field(unique=True, index=True, max_length=20)
+    display_name: str = Field(max_length=10)
 
 
 class Category(CategoryBase, table=True):
@@ -16,9 +16,9 @@ class CategoryCreate(SQLModel):
 
 
 class CategoryUpdate(SQLModel):
-    name: str | None
-    display_name: str | None
+    name: str | None = None
+    display_name: str | None = None
 
 
-class CategoryPublic(CategoryBase):
+class CategoryRead(CategoryBase):
     id: int

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.params import Query
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,11 +14,21 @@ router = APIRouter()
 @router.get("/", response_model=list[CategoryRead])
 async def read_categories(
     session: AsyncSession = Depends(get_session),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
     """
     카테고리 목록 조회
     """
-    return await category_crud.get_multi(session)
+    categories = await category_crud.get_multi(
+        session,
+        limit=limit,
+        offset=offset,
+        return_as_model=True,
+        schema_to_select=CategoryRead,
+    )
+
+    return categories.get("data", [])
 
 
 @router.get("/{category_id}", response_model=CategoryRead)
@@ -30,7 +41,9 @@ async def read_category(
     """
 
     try:
-        category = await category_crud.get(session, id=category_id)
+        category = await category_crud.get(
+            session, id=category_id, return_as_model=True, schema_to_select=CategoryRead
+        )
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Category not found")
 
@@ -46,7 +59,12 @@ async def create_category(
     카테고리 생성
     """
     try:
-        category = await category_crud.create(session, category_create)
+        category = await category_crud.create(
+            session,
+            category_create,
+            return_as_model=True,
+            schema_to_select=CategoryRead,
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

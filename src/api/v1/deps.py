@@ -48,6 +48,17 @@ async def get_current_user(
     return user
 
 
+async def get_current_admin(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
+    return current_user
+
+
 def get_oauth_client(provider: str = Query(..., regex="naver|kakao")) -> OAuthClient:
     if provider == "naver":
         return naver_client

@@ -27,12 +27,25 @@ class BaseAppSettings(BaseSettings):
     KAKAO_CLIENT_ID: str = ""
     KAKAO_CLIENT_SECRET_ID: str = ""
 
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str = ""
+
+    @computed_field
+    def DATABASE_URI(self) -> str:
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
 
 class LocalSettings(BaseAppSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
     ENVIRONMENT: Literal["test", "local", "staging", "production"] = "local"
 
-    DATABASE_URI: str = "sqlite+aiosqlite:///./test.db"
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_USER: str = "reborn"
+    POSTGRES_PASSWORD: str = "reborn"
+    POSTGRES_DB: str = "reborn"
 
 
 class TestSettings(BaseAppSettings):
@@ -48,16 +61,6 @@ class StagingSettings(BaseAppSettings):
 class ProductionSettings(BaseAppSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.prod")
     ENVIRONMENT: Literal["test", "local", "staging", "production"] = "production"
-
-    POSTGRES_SERVER: str
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str = ""
-
-    @computed_field
-    def DATABASE_URI(self) -> str:
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 def get_settings():

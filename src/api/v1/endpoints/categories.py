@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.params import Query
+from fastapi.params import Query, Path, Body
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.deps import get_current_admin
 from core.db import get_session
 from cruds.crud_categories import category_crud
+from models import User
 from models.categories import CategoryUpdate, CategoryCreate, CategoryRead
 from models.common import ResponseWithStatusMessage
 
@@ -33,7 +35,7 @@ async def read_categories(
 
 @router.get("/{category_id}", response_model=CategoryRead)
 async def read_category(
-    category_id: int,
+    category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
 ):
     """
@@ -52,8 +54,9 @@ async def read_category(
 
 @router.post("/", response_model=CategoryRead)
 async def create_category(
-    category_create: CategoryCreate,
+    category_create: CategoryCreate = Body(...),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
 ):
     """
     카테고리 생성
@@ -73,9 +76,10 @@ async def create_category(
 
 @router.put("/{category_id}", response_model=CategoryRead)
 async def update_category(
-    category_id: int,
-    category_update: CategoryUpdate,
+    category_id: int = Path(...),
+    category_update: CategoryUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
 ):
     """
     카테고리 수정
@@ -97,8 +101,9 @@ async def update_category(
 
 @router.delete("/{category_id}", response_model=ResponseWithStatusMessage)
 async def delete_category(
-    category_id: int,
+    category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
 ):
     """
     카테고리 삭제

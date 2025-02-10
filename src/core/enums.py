@@ -4,4 +4,8 @@ from enum import Enum
 class SocialProviderEnum(Enum):
     naver = "naver"
     kakao = "kakao"
-    anonymous = "anonymous"
+
+class UserTypeEnum(Enum):
+    guest = "guest"
+    local = "local"
+    social = "social"

@@ -34,7 +34,7 @@ async def update_user_me(
     내 정보 업데이트
     """
     updated_user = await user_crud.update(
-        session, user_update.dict(exclude_unset=True), id=current_user.id
+        session, user_update.model_dump(exclude_unset=True), id=current_user.id
     )
 
     return {
@@ -47,37 +47,23 @@ async def update_user_me(
 @router.get("/", response_model=list[UserRead])
 async def list_users(
     session: AsyncSession = Depends(get_session),
-    email: str | None = None,
-    is_active: bool | None = None,
-    is_deleted: bool | None = None,
     current_user: User = Depends(get_current_admin),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
     """관리자용 사용자 목록 조회"""
-    return await user_crud.get_multi(
-        db=session,
-        email=email,
-        is_active=is_active,
-        is_deleted=is_deleted,
+    users = await user_crud.get_multi(
+        session,
+        offset=offset,
+        limit=limit,
+        is_active=True,
+        is_deleted=False,
     )
 
-
-@router.put("/users/{user_id}/activate", response_model=UserRead)
-async def activate_user(
-    user_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """사용자 활성화/비활성화"""
-    user = await user_crud.get(session, id=user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return await user_crud.update(
-        session, {"is_active": not user.is_active}, id=user_id
-    )
+    return users.get("data", [])
 
 
-@router.delete("/users/{user_id}", response_model=UserRead)
+@router.delete("/{user_id}", response_model=UserRead)
 async def delete_user(
     user_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
@@ -91,22 +77,6 @@ async def delete_user(
     if user.is_superuser:
         raise HTTPException(status_code=400, detail="Cannot delete superuser")
 
-    return await user_crud.update(session, {"is_deleted": True}, id=user_id)
+    await user_crud.update(session, {"is_deleted": True}, id=user_id)
 
-
-@router.post("/superuser", response_model=UserRead)
-async def create_superuser(
-    email: str = Query(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """새로운 관리자 생성"""
-    existing_user = await user_crud.get(session, email=email)
-    if existing_user:
-        if existing_user.is_superuser:
-            raise HTTPException(status_code=400, detail="User is already a superuser")
-        return await user_crud.update(
-            session, db_obj=existing_user, obj_in={"is_superuser": True}
-        )
-
-    raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": "", "data": None}

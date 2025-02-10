@@ -1,14 +1,15 @@
+from datetime import datetime
+
+from pydantic import EmailStr
 from sqlmodel import SQLModel
 
+from core.enums import UserTypeEnum, SocialProviderEnum
 
-class NaverLoginData(SQLModel):
+
+class SocialLoginData(SQLModel):
     code: str
     state: str
-
-
-class KakaoLoginData(SQLModel):
-    code: str
-    state: str
+    provider: SocialProviderEnum
 
 
 class AuthToken(SQLModel):
@@ -19,5 +20,13 @@ class AuthToken(SQLModel):
 
 
 class AuthTokenPayload(SQLModel):
-    sub: str | None = None
-    exp: int | None = None
+    sub: str
+    exp: datetime
+    type: UserTypeEnum
+    iat: datetime
+    nickname: str | None = None
+
+
+class LoginRequest(SQLModel):
+    email: EmailStr
+    password: str

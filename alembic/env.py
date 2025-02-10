@@ -13,6 +13,7 @@ sys.path.append(BASE_DIR + "/src")
 
 from core.config import settings
 from models import *  # noqa
+import alembic_postgresql_enum  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

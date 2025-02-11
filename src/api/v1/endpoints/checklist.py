@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, Query, Path, Body
+from datetime import timedelta, datetime
+
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from cruds.crud_checklist import default_checklist_item_crud, user_checklist_crud
+from cruds.crud_checklist import user_checklist_crud, suggest_checklist_item_crud
 from models import User
-from models.checklist import DefaultChecklistItem, UserChecklist
+from models.checklist import UserChecklist, SuggestChecklist
 
 router = APIRouter()
 
 
 @router.get("/default-items")
-async def list_default_items(
+async def list_default_checklists(
     category_id: int | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
@@ -20,10 +22,10 @@ async def list_default_items(
     if category_id:
         query["category_id"] = category_id
 
-    default_checklist = await default_checklist_item_crud.get(
+    default_checklist = await suggest_checklist_item_crud.get(
         session,
         query,
-        schema_to_select=DefaultChecklistItem,
+        schema_to_select=SuggestChecklist,
         return_as_model=True,
     )
 
@@ -45,19 +47,44 @@ async def list_user_checklists(
     return user_checklist.get("data")
 
 
-@router.post("/user-checklist/{checklist_id}/items")
-async def add_checklist_item(
-    checklist_id: int = Path(...),
-    default_item_id: int = Body(...),
+@router.post("/user-checklists")
+async def create_user_checklists(
+    suggest_item_ids: list[int] = Body(...),
+    wedding_date: datetime = Body(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ):
-    return {"message": "Hello World"}
+    # 선택된 기본 체크리스트 항목들 조회
+    suggest_items = await suggest_checklist_item_crud.get(
+        session,
+        id__in=suggest_item_ids,
+        schema_to_select=SuggestChecklist,
+        return_as_model=True,
+    )
 
+    if not suggest_items.get("data"):
+        raise HTTPException(status_code=404, detail="Selected items not found")
 
-@router.patch("/{checklist_id}")
-async def update_checklist(checklist_id: int):
-    return {"message": "Hello World"}
+    # 선택한 항목들을 유저 체크리스트로 변환
+    user_checklist_items = []
+    for suggest_item in suggest_items.get("data"):
+        deadline = None
+        if suggest_item.recommended_timeline:
+            deadline = wedding_date - timedelta(days=suggest_item.recommended_timeline)
 
+        user_checklist_item = UserChecklist(
+            title=suggest_item.title,
+            description=suggest_item.description,
+            default_item_id=suggest_item.id,
+            user_id=current_user.id,
+            deadline=deadline,
+            category_id=suggest_item.category_id,
+        )
+        user_checklist_items.append(user_checklist_item)
 
-@router.delete("/{checklist_id}")
-async def delete_checklist(checklist_id: int):
-    return {"message": "Hello World"}
+        await user_checklist_crud.create(
+            session,
+            user_checklist_item,
+        )
+
+    return user_checklist_items

@@ -1,6 +1,6 @@
 from fastcrud import FastCRUD
 
-from models.checklist import DefaultChecklistItem, CustomChecklistItem, UserChecklist
+from models.checklist import UserChecklist, SuggestChecklist
 
 
 class ChecklistCRUD(FastCRUD):
@@ -8,6 +8,5 @@ class ChecklistCRUD(FastCRUD):
         super().__init__(*args, **kwargs)
 
 
-default_checklist_item_crud = ChecklistCRUD(DefaultChecklistItem)
-custom_checklist_item_crud = ChecklistCRUD(CustomChecklistItem)
+suggest_checklist_item_crud = ChecklistCRUD(SuggestChecklist)
 user_checklist_crud = ChecklistCRUD(UserChecklist)

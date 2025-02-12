@@ -12,9 +12,11 @@ from models.checklist import UserChecklist, SuggestChecklist
 router = APIRouter()
 
 
-@router.get("/default-items")
-async def list_default_checklists(
+@router.get("/suggest-items")
+async def list_suggest_checklists(
     category_id: int | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
     query = {}
@@ -22,14 +24,14 @@ async def list_default_checklists(
     if category_id:
         query["category_id"] = category_id
 
-    default_checklist = await suggest_checklist_item_crud.get(
+    suggest_checklist = await suggest_checklist_item_crud.get_multi(
         session,
-        query,
-        schema_to_select=SuggestChecklist,
-        return_as_model=True,
+        offset=offset,
+        limit=limit,
+        **query,
     )
 
-    return default_checklist.get("data")
+    return suggest_checklist.get("data")
 
 
 @router.get("/user-checklist")
@@ -37,7 +39,7 @@ async def list_user_checklists(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    user_checklist = await user_checklist_crud.get(
+    user_checklist = await user_checklist_crud.get_multi(
         session,
         user_id=current_user.id,
         schema_to_select=UserChecklist,
@@ -55,7 +57,7 @@ async def create_user_checklists(
     session: AsyncSession = Depends(get_session),
 ):
     # 선택된 기본 체크리스트 항목들 조회
-    suggest_items = await suggest_checklist_item_crud.get(
+    suggest_items = await suggest_checklist_item_crud.get_multi(
         session,
         id__in=suggest_item_ids,
         schema_to_select=SuggestChecklist,
@@ -75,7 +77,7 @@ async def create_user_checklists(
         user_checklist_item = UserChecklist(
             title=suggest_item.title,
             description=suggest_item.description,
-            default_item_id=suggest_item.id,
+            suggest_item_id=suggest_item.id,
             user_id=current_user.id,
             deadline=deadline,
             category_id=suggest_item.category_id,

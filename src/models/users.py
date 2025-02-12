@@ -1,12 +1,14 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
+import sqlmodel
 from pydantic import EmailStr, SecretStr
 from sqlalchemy import Column
 from sqlalchemy.dialects import postgresql
 from sqlmodel import Field, SQLModel
 
 from core.enums import SocialProviderEnum, UserTypeEnum
+from utils.utils import utc_now
 
 
 class UserBase(SQLModel):
@@ -32,7 +34,10 @@ class UserBase(SQLModel):
     third_party_information_agreement: bool = Field(default=False)
 
     # 시간 관련
-    joined_datetime: datetime
+    joined_datetime: datetime = Field(
+        default_factory=utc_now,
+        sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True), default=utc_now),
+    )
 
 
 class User(UserBase, table=True):
@@ -58,7 +63,7 @@ class UserCreate(SQLModel):
     is_active: bool = Field(default=True)
     user_type: UserTypeEnum = Field(default=UserTypeEnum.guest)
     social_provider: SocialProviderEnum | None = None
-    joined_datetime: datetime = Field(default_factory=datetime.utcnow)
+    joined_datetime: datetime = Field(default_factory=utc_now)
 
 
 class UserCreateLocal(UserCreate):
@@ -88,7 +93,7 @@ class UserUpdate(SQLModel):
     service_policy_agreement: bool | None = Field(default=None)
     privacy_policy_agreement: bool | None = Field(default=None)
     third_party_information_agreement: bool | None = Field(default=None)
-    updated_datetime: datetime = Field(default_factory=datetime.utcnow)
+    updated_datetime: datetime = Field(default_factory=utc_now)
 
 
 class UserRead(UserBase):

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import jwt
@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 
 from core.config import settings
 from core.enums import UserTypeEnum
+from utils.utils import utc_now
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -41,13 +42,13 @@ def create_access_token(
         user_type: Type of user (e.g., "guest", "social", "local")
         extra_claims: Additional claims to include in token
     """
-    expire = datetime.utcnow() + expires_delta
+    expire = utc_now() + expires_delta
 
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "type": user_type.value,
-        "iat": datetime.utcnow(),
+        "iat": utc_now(),
     }
 
     if extra_claims:

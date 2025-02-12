@@ -1,5 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
+import sqlmodel
 from sqlmodel import SQLModel, Field
 
 
@@ -21,9 +23,13 @@ class UserChecklist(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     description: str | None = None
-    default_item_id: int = Field(foreign_key="suggestchecklist.id")
-    user_id: int
-    deadline: datetime | None = None
+    suggest_item_id: int = Field(foreign_key="suggestchecklist.id")
+    user_id: UUID = Field(foreign_key="user.id")
+    deadline: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
     is_completed: bool = Field(default=False)
-    completed_at: datetime | None = None
+    completed_at: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
     category_id: int | None = Field(default=None, foreign_key="category.id")

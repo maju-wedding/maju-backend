@@ -28,6 +28,7 @@ class Product(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
     )
+    is_deleted: bool = Field(default=False)
 
     # Relationships
     category: "Category" = Relationship(back_populates="products")

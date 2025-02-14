@@ -1,6 +1,6 @@
 from fastcrud import FastCRUD
 
-from models import Product
+from models import Product, ProductHall
 
 
 class ProductCRUD(FastCRUD):
@@ -9,3 +9,4 @@ class ProductCRUD(FastCRUD):
 
 
 products_crud = ProductCRUD(Product)
+products_halls_crud = ProductCRUD(ProductHall)

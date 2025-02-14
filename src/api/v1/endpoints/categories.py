@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_admin
 from core.db import get_session
-from cruds.crud_categories import category_crud
+from cruds.categories import categories_crud
 from models import User
 from models.categories import CategoryUpdate, CategoryCreate, CategoryRead
-from models.common import ResponseWithStatusMessage
+from schemes.common import ResponseWithStatusMessage
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ async def read_categories(
     """
     카테고리 목록 조회
     """
-    categories = await category_crud.get_multi(
+    categories = await categories_crud.get_multi(
         session,
         limit=limit,
         offset=offset,
@@ -43,7 +43,7 @@ async def read_category(
     """
 
     try:
-        category = await category_crud.get(
+        category = await categories_crud.get(
             session, id=category_id, return_as_model=True, schema_to_select=CategoryRead
         )
     except NoResultFound:
@@ -62,7 +62,7 @@ async def create_category(
     카테고리 생성
     """
     try:
-        category = await category_crud.create(
+        category = await categories_crud.create(
             session,
             category_create,
             return_as_model=True,
@@ -86,7 +86,7 @@ async def update_category(
     """
 
     try:
-        category = await category_crud.update(
+        category = await categories_crud.update(
             session,
             category_update,
             id=category_id,
@@ -110,7 +110,7 @@ async def delete_category(
     """
 
     try:
-        is_deleted = await category_crud.delete(session, id=category_id)
+        is_deleted = await categories_crud.delete(session, id=category_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Category not found")
 

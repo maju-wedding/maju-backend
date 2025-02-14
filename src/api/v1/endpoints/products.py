@@ -3,8 +3,10 @@ from fastcrud import JoinConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import get_session
-from cruds.crud_products import product_crud
+
+from cruds.products import products_crud, products_halls_crud
 from models import ProductHall, Product, Category
+from models.product_halls import ProductHallCreate, ProductHallCreateInternal
 
 router = APIRouter()
 
@@ -24,7 +26,7 @@ product_detail_join_config = [
 ]
 
 
-@router.get("/")
+@router.get("")
 async def list_products(
     category_id: int = Query(None),
     limit: int = Query(10, ge=1, le=100),
@@ -35,7 +37,7 @@ async def list_products(
     if category_id:
         query["category_id"] = category_id
 
-    products = await product_crud.get_multi_joined(
+    products = await products_crud.get_multi_joined(
         session,
         limit=limit,
         offset=offset,
@@ -52,7 +54,7 @@ async def get_product(
     product_id: int,
     session: AsyncSession = Depends(get_session),
 ):
-    product = await product_crud.get_joined(
+    product = await products_crud.get_joined(
         session,
         joins_config=product_detail_join_config,
         nest_joins=True,
@@ -63,3 +65,34 @@ async def get_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     return product
+
+
+@router.post("/wedding-halls")
+async def create_wedding_halls(
+    product_hall_create: ProductHallCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        product = await products_crud.create(
+            session,
+            product_hall_create,
+            commit=False,
+        )
+
+        await session.flush()
+
+        product_hall = await products_halls_crud.create(
+            session,
+            ProductHallCreateInternal(
+                product_id=product.id,
+                **product_hall_create.model_dump(),
+            ),
+            commit=False,
+        )
+
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return product_hall

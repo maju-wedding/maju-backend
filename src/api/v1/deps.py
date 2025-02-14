@@ -13,7 +13,7 @@ from core.db import get_session
 from core.enums import UserTypeEnum
 from core.oauth_client import OAuthClient, kakao_client, naver_client
 from core.security import oauth2_scheme
-from cruds.crud_users import user_crud
+from cruds.users import users_crud
 from models.auth import AuthTokenPayload
 from models.users import User
 
@@ -43,7 +43,7 @@ async def get_current_user(
         # 게스트 사용자는 UUID로 조회
         try:
             user_id = UUID(token_data.sub)
-            user = await user_crud.get(
+            user = await users_crud.get(
                 session, id=user_id, schema_to_select=User, return_as_model=True
             )
         except ValueError:
@@ -53,7 +53,7 @@ async def get_current_user(
             )
     else:
         # 일반/소셜 사용자는 이메일로 조회
-        user = await user_crud.get(
+        user = await users_crud.get(
             session, email=token_data.sub, schema_to_select=User, return_as_model=True
         )
 

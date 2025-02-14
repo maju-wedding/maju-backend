@@ -8,6 +8,8 @@ from starlette.middleware.cors import CORSMiddleware
 
 from api.v1.router import api_router
 from core.config import settings
+from core.exceptions import exception_handlers
+from middleswares.logging import LoggingMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,6 +59,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
+    exception_handlers=exception_handlers,
 )
 
 app.openapi = custom_openapi
@@ -68,5 +71,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.add_middleware(LoggingMiddleware)
 app.include_router(api_router, prefix=settings.API_V1_STR)

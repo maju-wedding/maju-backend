@@ -27,3 +27,7 @@ class ProductHallCreate(ProductCreate):
     min_capacity: int
     max_capacity: int
     parking_capacity: int
+
+
+class ProductHallCreateInternal(ProductHallCreate):
+    product_id: int

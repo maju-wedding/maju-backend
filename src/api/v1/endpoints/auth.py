@@ -13,7 +13,7 @@ from core.db import get_session
 from core.enums import UserTypeEnum
 from core.exceptions import InvalidAuthorizationCode, InvalidToken
 from core.oauth_client import OAuthClient
-from cruds.crud_users import user_crud
+from cruds.users import users_crud
 from models.auth import AuthToken, SocialLoginData
 from models.users import (
     SocialProviderEnum,
@@ -38,7 +38,7 @@ async def register(
     - 회원가입 성공시 자동으로 로그인되어 토큰이 반환됩니다.
     """
     # 이메일 중복 체크
-    existing_user = await user_crud.get(session, email=user_data.email)
+    existing_user = await users_crud.get(session, email=user_data.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -49,7 +49,7 @@ async def register(
     hashed_password = security.get_password_hash(user_data.password.get_secret_value())
 
     # 사용자 생성
-    user = await user_crud.create(
+    user = await users_crud.create(
         session,
         User(
             hashed_password=hashed_password,
@@ -86,7 +86,7 @@ async def login(
     - **username**: 사용자 이메일
     - **password**: 사용자 비밀번호
     """
-    user = await user_crud.get(
+    user = await users_crud.get(
         session, email=form_data.username, schema_to_select=User, return_as_model=True
     )
 
@@ -205,11 +205,11 @@ async def social_login(
             "gender": user_info.get("gender"),
         }
 
-    user = await user_crud.get(session, email=user_data["email"])
+    user = await users_crud.get(session, email=user_data["email"])
 
     is_new_user = False
     if not user:
-        user = await user_crud.create(
+        user = await users_crud.create(
             session,
             UserCreateSocial(
                 email=user_data["email"],
@@ -239,7 +239,7 @@ async def social_login(
 async def guest_login(
     session: AsyncSession = Depends(get_session),
 ):
-    user = await user_crud.create(
+    user = await users_crud.create(
         session,
         UserCreateGuest(
             nickname="guest",

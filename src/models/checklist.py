@@ -37,3 +37,4 @@ class UserChecklist(SQLModel, table=True):
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
     category_id: int | None = Field(default=None, foreign_key="categories.id")
+    is_deleted: bool = Field(default=False)

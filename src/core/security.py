@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Any
 
 import jwt
-from fastapi.security import OAuth2PasswordBearer, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 from core.config import settings
@@ -15,15 +15,9 @@ ALGORITHM = "HS256"
 
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="api/v1/auth/login",  # 로그인 엔드포인트 경로
-    scheme_name="User Login",  # 스웨거에 표시될 이름
-    description="Use email and password to login",  # 스웨거에 표시될 설명
-)
-
-# Bearer 토큰을 위한 스키마 (기존 코드)
-bearer_scheme = HTTPBearer(
-    auto_error=True,
-    description="JWT token from social/guest login",
+    tokenUrl="api/v1/auth/login",
+    scheme_name="User Login",
+    description="Use email and password to login",
 )
 
 

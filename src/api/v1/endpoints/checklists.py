@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from cruds.crud_checklists import user_checklist_crud, suggest_checklist_item_crud
+
+from cruds.checklists import user_checklists_crud, suggest_checklists_crud
 from models import User
 from models.checklist import UserChecklist, SuggestChecklist
 
@@ -24,7 +25,7 @@ async def list_suggest_checklists(
     if category_id:
         query["category_id"] = category_id
 
-    suggest_checklist = await suggest_checklist_item_crud.get_multi(
+    suggest_checklist = await suggest_checklists_item_crud.get_multi(
         session,
         offset=offset,
         limit=limit,
@@ -39,7 +40,7 @@ async def list_user_checklists(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    user_checklist = await user_checklist_crud.get_multi(
+    user_checklist = await user_checklists_crud.get_multi(
         session,
         user_id=current_user.id,
         schema_to_select=UserChecklist,
@@ -57,7 +58,7 @@ async def create_user_checklists(
     session: AsyncSession = Depends(get_session),
 ):
     # 선택된 기본 체크리스트 항목들 조회
-    suggest_items = await suggest_checklist_item_crud.get_multi(
+    suggest_items = await suggest_checklists_crud.get_multi(
         session,
         id__in=suggest_item_ids,
         schema_to_select=SuggestChecklist,
@@ -84,7 +85,7 @@ async def create_user_checklists(
         )
         user_checklist_items.append(user_checklist_item)
 
-        await user_checklist_crud.create(
+        await user_checklists_crud.create(
             session,
             user_checklist_item,
         )

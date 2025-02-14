@@ -43,6 +43,8 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     """데이터베이스 모델"""
 
+    __tablename__ = "users"
+
     id: UUID = Field(
         default_factory=uuid4,
         primary_key=True,

@@ -8,5 +8,5 @@ class ChecklistCRUD(FastCRUD):
         super().__init__(*args, **kwargs)
 
 
-suggest_checklist_item_crud = ChecklistCRUD(SuggestChecklist)
-user_checklist_crud = ChecklistCRUD(UserChecklist)
+suggest_checklists_crud = ChecklistCRUD(SuggestChecklist)
+user_checklists_crud = ChecklistCRUD(UserChecklist)

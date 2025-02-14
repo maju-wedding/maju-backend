@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from cruds.crud_checklist import user_checklist_crud, suggest_checklist_item_crud
+from cruds.crud_checklists import user_checklist_crud, suggest_checklist_item_crud
 from models import User
 from models.checklist import UserChecklist, SuggestChecklist
 

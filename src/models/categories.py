@@ -1,15 +1,29 @@
-from sqlmodel import Field, SQLModel
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Column
+from sqlalchemy.dialects import postgresql
+from sqlmodel import Field, SQLModel, Relationship
+
+from core.enums import CategoryTypeEnum
+
+if TYPE_CHECKING:
+    from models import Product
 
 
 class CategoryBase(SQLModel):
     name: str = Field(unique=True, index=True, max_length=20)
     display_name: str = Field(max_length=10)
+    type: CategoryTypeEnum = Field(sa_column=Column(postgresql.ENUM(CategoryTypeEnum)))
     is_ready: bool = Field(default=False)
     order: int = Field(default=0, ge=0)
 
 
 class Category(CategoryBase, table=True):
+    __tablename__ = "categories"
+
     id: int | None = Field(default=None, primary_key=True)
+
+    products: list["Product"] = Relationship(back_populates="category")
 
 
 class CategoryCreate(SQLModel):

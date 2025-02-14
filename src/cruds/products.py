@@ -1,11 +1,11 @@
 from fastcrud import FastCRUD
 
-from models.users import User
+from models import Product
 
 
-class UserCRUD(FastCRUD):
+class ProductCRUD(FastCRUD):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
-user_crud = UserCRUD(User)
+products_crud = ProductCRUD(Product)

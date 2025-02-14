@@ -42,11 +42,11 @@ async def read_category(
     카테고리 상세 조회
     """
 
-    try:
-        category = await categories_crud.get(
-            session, id=category_id, return_as_model=True, schema_to_select=CategoryRead
-        )
-    except NoResultFound:
+    category = await categories_crud.get(
+        session, id=category_id, return_as_model=True, schema_to_select=CategoryRead
+    )
+
+    if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
     return category

@@ -1,5 +1,3 @@
-from datetime import timedelta, datetime
-
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +23,7 @@ async def list_suggest_checklists(
     if category_id:
         query["category_id"] = category_id
 
-    suggest_checklist = await suggest_checklists_item_crud.get_multi(
+    suggest_checklist = await suggest_checklists_crud.get_multi(
         session,
         offset=offset,
         limit=limit,
@@ -53,7 +51,6 @@ async def list_user_checklists(
 @router.post("/user-checklists")
 async def create_user_checklists(
     suggest_item_ids: list[int] = Body(...),
-    wedding_date: datetime = Body(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -71,16 +68,11 @@ async def create_user_checklists(
     # 선택한 항목들을 유저 체크리스트로 변환
     user_checklist_items = []
     for suggest_item in suggest_items.get("data"):
-        deadline = None
-        if suggest_item.recommended_timeline:
-            deadline = wedding_date - timedelta(days=suggest_item.recommended_timeline)
-
         user_checklist_item = UserChecklist(
             title=suggest_item.title,
             description=suggest_item.description,
             suggest_item_id=suggest_item.id,
             user_id=current_user.id,
-            deadline=deadline,
             category_id=suggest_item.category_id,
         )
         user_checklist_items.append(user_checklist_item)

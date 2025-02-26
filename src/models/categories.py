@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import Column, String
 from sqlmodel import Field, SQLModel, Relationship
 
 from core.enums import CategoryTypeEnum
@@ -13,7 +12,7 @@ if TYPE_CHECKING:
 class CategoryBase(SQLModel):
     name: str = Field(unique=True, index=True, max_length=20)
     display_name: str = Field(max_length=10)
-    type: CategoryTypeEnum = Field(sa_column=Column(postgresql.ENUM(CategoryTypeEnum)))
+    type: CategoryTypeEnum = Field(sa_column=Column(String))
     is_ready: bool = Field(default=False)
     order: int = Field(default=0, ge=0)
 

@@ -14,6 +14,7 @@ class SuggestChecklist(SQLModel, table=True):
     title: str
     description: str | None = None
     category_id: int | None = Field(default=None, foreign_key="categories.id")
+    order: int = Field(default=0)  # 추천 항목 정렬용
 
 
 class UserChecklist(SQLModel, table=True):
@@ -24,7 +25,9 @@ class UserChecklist(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     description: str | None = None
-    suggest_item_id: int = Field(foreign_key="suggest_checklist.id")
+    suggest_item_id: int | None = Field(
+        default=None, foreign_key="suggest_checklist.id"
+    )
     user_id: UUID = Field(foreign_key="users.id")
     is_completed: bool = Field(default=False)
     completed_at: datetime | None = Field(
@@ -32,3 +35,42 @@ class UserChecklist(SQLModel, table=True):
     )
     category_id: int | None = Field(default=None, foreign_key="categories.id")
     is_deleted: bool = Field(default=False)
+    order: int = Field(default=0)  # 사용자 정의 정렬용
+
+
+class UserChecklistCreate(SQLModel):
+    """사용자 정의 체크리스트 항목 생성 스키마"""
+
+    title: str
+    description: str | None = None
+    category_id: int | None = None
+
+
+class UserChecklistUpdate(SQLModel):
+    """체크리스트 항목 업데이트 스키마"""
+
+    title: str | None = None
+    description: str | None = None
+    category_id: int | None = None
+    is_completed: bool | None = None
+
+
+class ChecklistOrderUpdate(SQLModel):
+    """체크리스트 항목 순서 업데이트 스키마"""
+
+    id: int
+    order: int
+
+
+class UserChecklistResponse(SQLModel):
+    """체크리스트 항목 응답 스키마"""
+
+    id: int
+    title: str
+    description: str | None = None
+    suggest_item_id: int | None = None
+    user_id: UUID
+    is_completed: bool
+    completed_at: datetime | None = None
+    category_id: int | None = None
+    order: int = 0

@@ -3,8 +3,7 @@ from uuid import UUID, uuid4
 
 import sqlmodel
 from pydantic import EmailStr, SecretStr
-from sqlalchemy import Column
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import Column, String
 from sqlmodel import Field, SQLModel
 
 from core.enums import SocialProviderEnum, UserTypeEnum
@@ -21,12 +20,15 @@ class UserBase(SQLModel):
     # 상태 관련 필드
     is_active: bool = Field(default=True)
 
-    # 사용자 타입 구분
+    # 사용자 타입 구분 - PostgreSQL ENUM을 String으로 변경
     user_type: UserTypeEnum = Field(
         default=UserTypeEnum.guest,
-        sa_column=Column(postgresql.ENUM(UserTypeEnum)),
+        sa_column=Column(String, default=UserTypeEnum.guest.value),
     )
-    social_provider: SocialProviderEnum | None = Field(default=None)
+    # 소셜 제공자 타입도 String으로 변경
+    social_provider: SocialProviderEnum | None = Field(
+        default=None, sa_column=Column(String, nullable=True)
+    )
 
     # 동의 관련 필드
     service_policy_agreement: bool = Field(default=False)

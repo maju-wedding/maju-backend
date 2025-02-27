@@ -36,4 +36,4 @@ EXPOSE 8000
 ENV ENVIRONMENT=production
 
 # prestart.sh 스크립트 실행 후 FastAPI 실행
-CMD ["/bin/bash", "-c", "/app/scripts/prestart.sh && poetry run uvicorn main:app --host 0.0.0.0 --port 8000"]
+CMD ["/bin/bash", "-c", "/app/scripts/prestart.sh && poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000"]

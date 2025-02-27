@@ -10,19 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+COPY . .
+
 # Poetry 설치
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:${PATH}"
 
+
 # Poetry 설정: 가상환경 생성하지 않기
 RUN poetry config virtualenvs.create false
-
 # 의존성 파일 복사 및 설치
-COPY pyproject.toml poetry.lock* ./
-RUN poetry install --no-dev --no-interaction --no-ansi
-
-# 애플리케이션 코드 복사
-COPY . .
+RUN poetry install --no-interaction --no-ansi
 
 # 스크립트에 실행 권한 부여
 RUN chmod +x /app/scripts/prestart.sh

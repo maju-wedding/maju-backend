@@ -12,8 +12,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR + "/src")
 
 from core.config import settings
-from models import *  # noqa
-import alembic_postgresql_enum  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -28,8 +26,8 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+from models import *  # noqa
+
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -19,13 +20,40 @@ class BaseAppSettings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "secret"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-    ENVIRONMENT: Literal["test", "local", "staging", "production"]
+    ENVIRONMENT: Literal["test", "local", "production"]
 
     NAVER_CLIENT_ID: str = ""
     NAVER_CLIENT_SECRET_ID: str = ""
 
     KAKAO_CLIENT_ID: str = ""
     KAKAO_CLIENT_SECRET_ID: str = ""
+
+
+class LocalSettings(BaseAppSettings):
+    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
+    ENVIRONMENT: Literal["test", "local", "production"] = "local"
+
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "reborn"
+    POSTGRES_PASSWORD: str = "reborn"
+    POSTGRES_DB: str = "reborn"
+
+    @computed_field
+    def DATABASE_URI(self) -> str:
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+
+class TestSettings(BaseAppSettings):
+    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.test")
+    ENVIRONMENT: Literal["test", "local", "production"] = "test"
+
+    DATABASE_URI: str = "sqlite+aiosqlite:///:memory:"
+
+
+class ProductionSettings(BaseAppSettings):
+    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.prod")
+    ENVIRONMENT: Literal["test", "local", "staging", "production"] = "production"
 
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
@@ -38,40 +66,13 @@ class BaseAppSettings(BaseSettings):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
-class LocalSettings(BaseAppSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
-    ENVIRONMENT: Literal["test", "local", "staging", "production"] = "local"
-
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "reborn"
-    POSTGRES_PASSWORD: str = "reborn"
-    POSTGRES_DB: str = "reborn"
-
-
-class TestSettings(BaseAppSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.test")
-    ENVIRONMENT: Literal["test", "local", "staging", "production"] = "test"
-
-
-class StagingSettings(BaseAppSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.staging")
-    ENVIRONMENT: Literal["test", "local", "staging", "production"] = "staging"
-
-
-class ProductionSettings(BaseAppSettings):
-    model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.prod")
-    ENVIRONMENT: Literal["test", "local", "staging", "production"] = "production"
-
-
 def get_settings():
-    env = Path(ROOT_DIR / ".env").read_text().strip()
     configs = {
         "local": LocalSettings,
         "test": TestSettings,
-        "staging": StagingSettings,
         "production": ProductionSettings,
     }
-    config_class = configs.get(env, LocalSettings)
+    config_class = configs.get(os.getenv("ENVIRONMENT"), LocalSettings)
     return config_class()
 
 

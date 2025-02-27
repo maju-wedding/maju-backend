@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 6f4a4e7199b9
+Revision ID: 63f7d6563dc0
 Revises: 
-Create Date: 2025-02-14 14:49:28.021469
+Create Date: 2025-02-27 16:29:59.594847
 
 """
 from typing import Sequence, Union
@@ -10,10 +10,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlmodel
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision: str = '6f4a4e7199b9'
+revision: str = '63f7d6563dc0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,7 +24,7 @@ def upgrade() -> None:
     op.create_table('categories',
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False),
     sa.Column('display_name', sqlmodel.sql.sqltypes.AutoString(length=10), nullable=False),
-    sa.Column('type', postgresql.ENUM('hall', 'studio', 'dress', 'makeup', name='categorytypeenum', create_type=False), nullable=True),
+    sa.Column('type', sa.String(), nullable=True),
     sa.Column('is_ready', sa.Boolean(), nullable=False),
     sa.Column('order', sa.Integer(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
@@ -36,8 +36,8 @@ def upgrade() -> None:
     sa.Column('phone_number', sqlmodel.sql.sqltypes.AutoString(length=20), nullable=False),
     sa.Column('nickname', sqlmodel.sql.sqltypes.AutoString(length=20), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('user_type', postgresql.ENUM('guest', 'local', 'social', name='usertypeenum', create_type=False), nullable=True),
-    sa.Column('social_provider', postgresql.ENUM('naver', 'kakao', name='socialproviderenum', create_type=False), nullable=True),
+    sa.Column('user_type', sa.String(), nullable=True),
+    sa.Column('social_provider', sa.String(), nullable=True),
     sa.Column('service_policy_agreement', sa.Boolean(), nullable=False),
     sa.Column('privacy_policy_agreement', sa.Boolean(), nullable=False),
     sa.Column('third_party_information_agreement', sa.Boolean(), nullable=False),
@@ -65,8 +65,8 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('recommended_timeline', sa.Integer(), nullable=True),
     sa.Column('category_id', sa.Integer(), nullable=True),
+    sa.Column('order', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -87,13 +87,13 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('suggest_item_id', sa.Integer(), nullable=False),
+    sa.Column('suggest_item_id', sa.Integer(), nullable=True),
     sa.Column('user_id', sqlmodel.sql.sqltypes.GUID(), nullable=False),
-    sa.Column('deadline', sa.DateTime(timezone=True), nullable=True),
     sa.Column('is_completed', sa.Boolean(), nullable=False),
-    sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('completed_datetime', sa.DateTime(timezone=True), nullable=True),
     sa.Column('category_id', sa.Integer(), nullable=True),
     sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('order', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.ForeignKeyConstraint(['suggest_item_id'], ['suggest_checklist.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),

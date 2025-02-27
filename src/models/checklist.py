@@ -30,7 +30,7 @@ class UserChecklist(SQLModel, table=True):
     )
     user_id: UUID = Field(foreign_key="users.id")
     is_completed: bool = Field(default=False)
-    completed_at: datetime | None = Field(
+    completed_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
     category_id: int | None = Field(default=None, foreign_key="categories.id")
@@ -71,6 +71,6 @@ class UserChecklistResponse(SQLModel):
     suggest_item_id: int | None = None
     user_id: UUID
     is_completed: bool
-    completed_at: datetime | None = None
+    completed_datetime: datetime | None = None
     category_id: int | None = None
     order: int = 0

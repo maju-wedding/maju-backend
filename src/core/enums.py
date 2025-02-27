@@ -1,18 +1,18 @@
 from enum import Enum
 
 
-class SocialProviderEnum(Enum):
+class SocialProviderEnum(str, Enum):
     naver = "naver"
     kakao = "kakao"
 
 
-class UserTypeEnum(Enum):
+class UserTypeEnum(str, Enum):
     guest = "guest"
     local = "local"
     social = "social"
 
 
-class CategoryTypeEnum(Enum):
+class CategoryTypeEnum(str, Enum):
     hall = "hall"
     studio = "studio"
     dress = "dress"

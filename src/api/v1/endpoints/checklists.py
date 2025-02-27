@@ -75,6 +75,8 @@ async def create_user_checklists(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    suggest_item_ids = list(set(suggest_item_ids))
+
     # 선택된 기본 체크리스트 항목들 조회
     suggest_items = await suggest_checklists_crud.get_multi(
         session,
@@ -118,67 +120,10 @@ async def create_custom_checklist(
         description=checklist.description,
         user_id=current_user.id,
         category_id=checklist.category_id,
-        suggest_item_id=0,  # 사용자 정의 항목은 0 또는 null로 표시
     )
 
     result = await user_checklists_crud.create(session, new_checklist)
     return result
-
-
-@router.put("/user-checklists/{checklist_id}", response_model=UserChecklistResponse)
-async def update_user_checklist(
-    checklist_id: int = Path(...),
-    checklist_update: UserChecklistUpdate = Body(...),
-    current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-):
-    """사용자 체크리스트 항목 업데이트 (완료/미완료 상태 포함)"""
-    # 체크리스트가 사용자의 것인지 확인
-    existing_checklist = await user_checklists_crud.get(
-        session, id=checklist_id, user_id=current_user.id
-    )
-
-    if not existing_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
-        )
-
-    update_data = {k: v for k, v in checklist_update.dict().items() if v is not None}
-
-    # 완료 상태 변경 시 completed_at 업데이트
-    if (
-        "is_completed" in update_data
-        and update_data["is_completed"] != existing_checklist["is_completed"]
-    ):
-        update_data["completed_at"] = (
-            datetime.now() if update_data["is_completed"] else None
-        )
-
-    return await user_checklists_crud.update(session, existing_checklist, update_data)
-
-
-@router.delete("/user-checklists/{checklist_id}", response_model=UserChecklistResponse)
-async def delete_user_checklist(
-    checklist_id: int = Path(...),
-    current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-):
-    """사용자 체크리스트 항목 삭제 (소프트 삭제)"""
-    existing_checklist = await user_checklists_crud.get(
-        session, id=checklist_id, user_id=current_user.id
-    )
-
-    if not existing_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
-        )
-
-    # 소프트 삭제
-    return await user_checklists_crud.update(
-        session, existing_checklist, {"is_deleted": True}
-    )
 
 
 @router.put("/user-checklists/order", response_model=list[UserChecklistResponse])
@@ -188,10 +133,14 @@ async def update_checklists_order(
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 체크리스트 항목 순서 업데이트"""
-    # 모든 체크리스트 ID가 사용자의 것인지 확인
+
     checklist_ids = [item.id for item in order_data]
     user_checklists = await user_checklists_crud.get_multi(
-        session, id__in=checklist_ids, user_id=current_user.id
+        session,
+        id__in=checklist_ids,
+        user_id=current_user.id,
+        return_as_model=True,
+        schema_to_select=UserChecklist,
     )
 
     if len(user_checklists.get("data", [])) != len(checklist_ids):
@@ -203,10 +152,84 @@ async def update_checklists_order(
     # 각 체크리스트 항목의 순서 업데이트
     results = []
     for item in order_data:
-        existing_item = await user_checklists_crud.get(session, id=item.id)
+        existing_item = await user_checklists_crud.get(
+            session, id=item.id, return_as_model=True, schema_to_select=UserChecklist
+        )
         updated_item = await user_checklists_crud.update(
-            session, existing_item, {"order": item.order}
+            session,
+            {"order": item.order},
+            id=existing_item.id,
+            return_as_model=True,
+            schema_to_select=UserChecklist,
         )
         results.append(updated_item)
 
     return results
+
+
+@router.put("/user-checklists/{checklist_id}", response_model=UserChecklistResponse)
+async def update_user_checklist(
+    checklist_id: int = Path(...),
+    checklist_update: UserChecklistUpdate = Body(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """사용자 체크리스트 항목 업데이트 (완료/미완료 상태 포함)"""
+
+    existing_checklist = await user_checklists_crud.get(
+        session,
+        id=checklist_id,
+        user_id=current_user.id,
+        return_as_model=True,
+        schema_to_select=UserChecklist,
+    )
+
+    if not existing_checklist:
+        raise HTTPException(
+            status_code=404,
+            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
+        )
+
+    update_data = checklist_update.model_dump(exclude_none=True)
+
+    if (
+        "is_completed" in update_data
+        and update_data["is_completed"] != existing_checklist.is_completed
+    ):
+        update_data["completed_datetime"] = (
+            datetime.now() if update_data["is_completed"] else None
+        )
+
+    return await user_checklists_crud.update(
+        session,
+        update_data,
+        id=existing_checklist.id,
+        return_as_model=True,
+        schema_to_select=UserChecklist,
+    )
+
+
+@router.delete("/user-checklists/{checklist_id}")
+async def delete_user_checklist(
+    checklist_id: int = Path(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    existing_checklist = await user_checklists_crud.get(
+        session,
+        id=checklist_id,
+        user_id=current_user.id,
+        return_as_model=True,
+        schema_to_select=UserChecklist,
+    )
+
+    if not existing_checklist:
+        raise HTTPException(
+            status_code=404,
+            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
+        )
+
+    await user_checklists_crud.delete(
+        session,
+        id=existing_checklist.id,
+    )

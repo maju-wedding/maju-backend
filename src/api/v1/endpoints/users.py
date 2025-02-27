@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path
-from fastapi.encoders import jsonable_encoder
 from fastapi.params import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -22,11 +21,7 @@ async def read_user_me(current_user: User = Depends(get_current_user)):
     """
     내 정보 조회
     """
-    return {
-        "success": True,
-        "message": "",
-        "data": jsonable_encoder(current_user),
-    }
+    return current_user
 
 
 @router.patch("/me", status_code=status.HTTP_200_OK)
@@ -42,11 +37,7 @@ async def update_user_me(
         session, user_update.model_dump(exclude_unset=True), id=current_user.id
     )
 
-    return {
-        "success": True,
-        "message": "",
-        "data": jsonable_encoder(updated_user),
-    }
+    return updated_user
 
 
 @router.get("/me/wishlist")

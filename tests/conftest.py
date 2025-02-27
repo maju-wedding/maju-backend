@@ -1,16 +1,16 @@
 import asyncio
 import uuid
 from datetime import timedelta
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import StaticPool
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlmodel import SQLModel
 
+from core.config import settings
 from core.db import get_session
 from core.enums import UserTypeEnum, CategoryTypeEnum, SocialProviderEnum
 from core.security import create_access_token, get_password_hash
@@ -19,28 +19,17 @@ from models import Category
 from models.checklist import SuggestChecklist, UserChecklist
 from models.users import User
 
-# SQLite 메모리 DB 사용 (테스트용)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
 # 테스트용 엔진 및 세션 생성
 test_engine = create_async_engine(
-    TEST_DATABASE_URL,
+    settings.DATABASE_URI,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
     echo=False,
 )
 
-TestSessionLocal = sessionmaker(
+TestSessionLocal = async_sessionmaker(
     bind=test_engine, class_=AsyncSession, expire_on_commit=False
 )
-
-
-async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with TestSessionLocal() as session:
-        yield session
-
-
-app.dependency_overrides[get_session] = override_get_session
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -65,14 +54,17 @@ async def setup_database():
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
-        # 변경 사항 롤백
-        await session.rollback()
 
 
 @pytest_asyncio.fixture(scope="function")
-async def async_client(setup_database) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(setup_database, db_session) -> AsyncGenerator[AsyncClient, None]:
+    def get_session_override():
+        return db_session
+
     async with AsyncClient(app=app, base_url="http://test") as client:
+        app.dependency_overrides[get_session] = get_session_override
         yield client
+        app.dependency_overrides.clear()
 
 
 # 테스트 유저 생성
@@ -274,7 +266,7 @@ async def user_checklists(
             suggest_item_id=suggest.id,
             user_id=test_user.id,
             category_id=suggest.category_id,
-            is_completed=i % 2 == 0,  # 짝수 번째 항목은 완료 상태로
+            is_completed=False,  # 짝수 번째 항목은 완료 상태로
             order=i,
         )
         checklists.append(checklist)

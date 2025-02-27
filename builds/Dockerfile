@@ -27,6 +27,7 @@ RUN chmod +x /app/scripts/prestart.sh
 
 # 필요한 환경 변수 설정
 ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

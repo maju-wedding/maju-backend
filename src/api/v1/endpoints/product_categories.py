@@ -5,15 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_admin
 from core.db import get_session
-from cruds.categories import categories_crud
+from cruds.product_categories import product_categories_crud
 from models import User
-from models.categories import CategoryUpdate, CategoryCreate, CategoryRead
+from models.product_categories import (
+    ProductCategoryRead,
+    ProductCategoryCreate,
+    ProductCategoryUpdate,
+)
 from schemes.common import ResponseWithStatusMessage
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[CategoryRead])
+@router.get("/", response_model=list[ProductCategoryRead])
 async def read_categories(
     session: AsyncSession = Depends(get_session),
     limit: int = Query(10, ge=1, le=100),
@@ -22,18 +26,18 @@ async def read_categories(
     """
     카테고리 목록 조회
     """
-    categories = await categories_crud.get_multi(
+    categories = await product_categories_crud.get_multi(
         session,
         limit=limit,
         offset=offset,
         return_as_model=True,
-        schema_to_select=CategoryRead,
+        schema_to_select=ProductCategoryRead,
     )
 
     return categories.get("data", [])
 
 
-@router.get("/{category_id}", response_model=CategoryRead)
+@router.get("/{category_id}", response_model=ProductCategoryRead)
 async def read_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
@@ -42,8 +46,11 @@ async def read_category(
     카테고리 상세 조회
     """
 
-    category = await categories_crud.get(
-        session, id=category_id, return_as_model=True, schema_to_select=CategoryRead
+    category = await product_categories_crud.get(
+        session,
+        id=category_id,
+        return_as_model=True,
+        schema_to_select=ProductCategoryRead,
     )
 
     if not category:
@@ -52,9 +59,9 @@ async def read_category(
     return category
 
 
-@router.post("/", response_model=CategoryRead)
+@router.post("/", response_model=ProductCategoryRead)
 async def create_category(
-    category_create: CategoryCreate = Body(...),
+    category_create: ProductCategoryCreate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
@@ -62,11 +69,11 @@ async def create_category(
     카테고리 생성
     """
     try:
-        category = await categories_crud.create(
+        category = await product_categories_crud.create(
             session,
             category_create,
             return_as_model=True,
-            schema_to_select=CategoryRead,
+            schema_to_select=ProductCategoryRead,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -74,10 +81,10 @@ async def create_category(
     return category
 
 
-@router.put("/{category_id}", response_model=CategoryRead)
+@router.put("/{category_id}", response_model=ProductCategoryRead)
 async def update_category(
     category_id: int = Path(...),
-    category_update: CategoryUpdate = Body(...),
+    category_update: ProductCategoryUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
@@ -86,12 +93,12 @@ async def update_category(
     """
 
     try:
-        category = await categories_crud.update(
+        category = await product_categories_crud.update(
             session,
             category_update,
             id=category_id,
             return_as_model=True,
-            schema_to_select=CategoryRead,
+            schema_to_select=ProductCategoryRead,
         )
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -110,7 +117,7 @@ async def delete_category(
     """
 
     try:
-        is_deleted = await categories_crud.delete(session, id=category_id)
+        is_deleted = await product_categories_crud.delete(session, id=category_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Category not found")
 

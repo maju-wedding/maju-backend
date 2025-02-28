@@ -1,4 +1,4 @@
-from .categories import Category
+from .product_categories import ProductCategory
 from .checklist import UserChecklist, SuggestChecklist
 from .product_halls import ProductHall
 from .products import Product
@@ -7,7 +7,7 @@ from .users import User
 
 all_models = [
     User,
-    Category,
+    ProductCategory,
     UserChecklist,
     SuggestChecklist,
     Product,

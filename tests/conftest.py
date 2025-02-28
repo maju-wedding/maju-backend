@@ -265,7 +265,7 @@ async def user_checklists(
             description=suggest.description,
             suggest_item_id=suggest.id,
             user_id=test_user.id,
-            category_id=suggest.category_id,
+            category_id=suggest.checklist_category_id,
             is_completed=False,  # 짝수 번째 항목은 완료 상태로
             order=i,
         )
@@ -311,7 +311,7 @@ async def guest_checklists(
             description=suggest.description,
             suggest_item_id=suggest.id,
             user_id=test_guest_user.id,
-            category_id=suggest.category_id,
+            category_id=suggest.checklist_category_id,
             is_completed=False,
             order=i,
         )

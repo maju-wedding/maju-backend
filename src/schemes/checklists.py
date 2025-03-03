@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
+
+from utils.utils import utc_now
 
 
 class ChecklistCategoryCreateBySystem(SQLModel):
@@ -23,6 +25,7 @@ class InternalChecklistCategoryCreate(SQLModel):
     display_name: str
     is_system_category: bool
     user_id: UUID | None = None
+    created_datetime: datetime | None = Field(default_factory=utc_now)
 
 
 class ChecklistCategoryUpdate(SQLModel):

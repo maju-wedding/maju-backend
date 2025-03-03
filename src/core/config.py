@@ -19,7 +19,7 @@ class BaseAppSettings(BaseSettings):
 
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "secret"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 3  # 3 days
     ENVIRONMENT: Literal["test", "local", "production"]
 
     NAVER_CLIENT_ID: str = ""

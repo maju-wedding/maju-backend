@@ -1,7 +1,7 @@
 import asyncio
 import uuid
-from datetime import timedelta
 from collections.abc import AsyncGenerator
+from datetime import timedelta
 
 import pytest
 import pytest_asyncio
@@ -16,7 +16,7 @@ from core.enums import UserTypeEnum, CategoryTypeEnum, SocialProviderEnum
 from core.security import create_access_token, get_password_hash
 from main import app
 from models import Category
-from models.checklist import SuggestChecklist, UserChecklist
+from models.checklists import SuggestChecklist, Checklist
 from models.users import User
 
 # 테스트용 엔진 및 세션 생성
@@ -255,12 +255,12 @@ async def user_checklists(
     db_session: AsyncSession,
     test_user: User,
     suggest_checklists: list[SuggestChecklist],
-) -> list[UserChecklist]:
+) -> list[Checklist]:
     checklists = []
 
     # 추천 체크리스트 기반 항목 추가
     for i, suggest in enumerate(suggest_checklists[:3]):  # 처음 3개만 추가
-        checklist = UserChecklist(
+        checklist = Checklist(
             title=suggest.title,
             description=suggest.description,
             suggest_item_id=suggest.id,
@@ -273,7 +273,7 @@ async def user_checklists(
 
     # 사용자 정의 체크리스트 추가
     for i in range(2):
-        checklist = UserChecklist(
+        checklist = Checklist(
             title=f"사용자 정의 체크리스트 {i+1}",
             description=f"사용자 정의 체크리스트 {i+1}에 대한 설명",
             user_id=test_user.id,
@@ -301,12 +301,12 @@ async def guest_checklists(
     db_session: AsyncSession,
     test_guest_user: User,
     suggest_checklists: list[SuggestChecklist],
-) -> list[UserChecklist]:
+) -> list[Checklist]:
     checklists = []
 
     # 게스트 사용자를 위한 체크리스트 생성
     for i, suggest in enumerate(suggest_checklists[:2]):  # 처음 2개만 추가
-        checklist = UserChecklist(
+        checklist = Checklist(
             title=suggest.title,
             description=suggest.description,
             suggest_item_id=suggest.id,

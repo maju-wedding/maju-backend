@@ -14,8 +14,8 @@ from core.enums import UserTypeEnum
 from core.oauth_client import OAuthClient, kakao_client, naver_client
 from core.security import oauth2_scheme
 from cruds.users import users_crud
-from models.auth import AuthTokenPayload
 from models.users import User
+from schemes.auth import AuthTokenPayload
 
 
 def verify_jwt_token(token: str = Security(oauth2_scheme)) -> str:

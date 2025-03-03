@@ -7,7 +7,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
-    from models import Category
+    from models import ProductCategory
     from models.product_halls import ProductHall
     from models.user_wishlist import UserWishlist
 
@@ -16,7 +16,7 @@ class Product(SQLModel, table=True):
     __tablename__ = "products"
 
     id: int | None = Field(default=None, primary_key=True)
-    category_id: int = Field(foreign_key="categories.id")
+    product_category_id: int = Field(foreign_key="product_categories.id")
     name: str
     description: str
     available: bool = True
@@ -31,7 +31,7 @@ class Product(SQLModel, table=True):
     is_deleted: bool = Field(default=False)
 
     # Relationships
-    category: "Category" = Relationship(back_populates="products")
+    category: "ProductCategory" = Relationship(back_populates="products")
     wishlists: list["UserWishlist"] = Relationship(back_populates="product")
     wedding_hall_detail: Optional["ProductHall"] = Relationship(
         back_populates="product"
@@ -40,9 +40,3 @@ class Product(SQLModel, table=True):
     # studio_detail: Optional["StudioDetail"] = Relationship(back_populates="product")
     # dress_detail: Optional["DressDetail"] = Relationship(back_populates="product")
     # makeup_detail: Optional["MakeupDetail"] = Relationship(back_populates="product")
-
-
-class ProductCreate(SQLModel):
-    category_id: int
-    name: str
-    description: str

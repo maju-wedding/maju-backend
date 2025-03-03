@@ -7,17 +7,17 @@ from api.v1.deps import get_current_admin
 from core.db import get_session
 from cruds.product_categories import product_categories_crud
 from models import User
-from models.product_categories import (
+from schemes.common import ResponseWithStatusMessage
+from schemes.product_categories import (
     ProductCategoryRead,
     ProductCategoryCreate,
     ProductCategoryUpdate,
 )
-from schemes.common import ResponseWithStatusMessage
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[ProductCategoryRead])
+@router.get("", response_model=list[ProductCategoryRead])
 async def read_categories(
     session: AsyncSession = Depends(get_session),
     limit: int = Query(10, ge=1, le=100),
@@ -59,7 +59,7 @@ async def read_category(
     return category
 
 
-@router.post("/", response_model=ProductCategoryRead)
+@router.post("", response_model=ProductCategoryRead)
 async def create_category(
     category_create: ProductCategoryCreate = Body(...),
     session: AsyncSession = Depends(get_session),

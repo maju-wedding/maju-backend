@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field, Relationship
 
-from models.products import Product, ProductCreate
+from models.products import Product
 
 
 class ProductHall(SQLModel, table=True):
@@ -18,16 +18,3 @@ class ProductHall(SQLModel, table=True):
 
     # Relationship
     product: Product = Relationship(back_populates="wedding_hall_detail")
-
-
-class ProductHallCreate(ProductCreate):
-    address: str
-    latitude: float
-    longitude: float
-    min_capacity: int
-    max_capacity: int
-    parking_capacity: int
-
-
-class ProductHallCreateInternal(ProductHallCreate):
-    product_id: int

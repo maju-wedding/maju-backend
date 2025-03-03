@@ -28,12 +28,3 @@ class UserWishlist(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="unique_user_product"),
     )
-
-
-class WishlistCreate(SQLModel):
-    product_id: int
-
-
-class WishlistCreateInternal(SQLModel):
-    user_id: UUID
-    product_id: int

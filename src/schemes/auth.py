@@ -15,8 +15,7 @@ class SocialLoginData(SQLModel):
 class AuthToken(SQLModel):
     access_token: str
     token_type: str = "bearer"
-    is_new_user: bool | None
-    user_nickname: str | None
+    nickname: str | None
 
 
 class AuthTokenPayload(SQLModel):

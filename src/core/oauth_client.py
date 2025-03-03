@@ -1,9 +1,11 @@
 import ssl
+from typing import Any
 
 import aiohttp
 import certifi
 
 from core.config import settings
+from core.enums import SocialProviderEnum
 from core.exceptions import InvalidAuthorizationCode, InvalidToken
 
 
@@ -89,6 +91,37 @@ class OAuthClient:
             headers=headers,
         )
         return res is not None
+
+
+def extract_user_data(
+    provider: SocialProviderEnum, raw_user_info: dict[str, Any]
+) -> dict[str, Any]:
+    """Extract standardized user data from provider-specific response"""
+    if provider == SocialProviderEnum.kakao:
+        return {
+            "email": raw_user_info["kakao_account"]["email"],
+            "id": raw_user_info["id"],
+            "mobile": raw_user_info.get("mobile", ""),
+            "name": raw_user_info.get("name"),
+            "profile_image": raw_user_info.get("profile_image"),
+            "age": raw_user_info.get("age"),
+            "birthday": raw_user_info.get("birthday"),
+            "gender": raw_user_info.get("gender"),
+        }
+    elif provider == SocialProviderEnum.naver:
+        user_info = raw_user_info["response"]
+        return {
+            "email": user_info["email"],
+            "id": user_info["id"],
+            "mobile": user_info.get("mobile", ""),
+            "name": user_info.get("name"),
+            "profile_image": user_info.get("profile_image"),
+            "age": user_info.get("age"),
+            "birthday": user_info.get("birthday"),
+            "gender": user_info.get("gender"),
+        }
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
 
 
 naver_client = OAuthClient(

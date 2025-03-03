@@ -5,266 +5,183 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user, get_current_admin
 from core.db import get_session
-from cruds.checklists import user_checklists_crud, suggest_checklists_crud
-from models import User
-from models.checklist import (
-    UserChecklist,
-    SuggestChecklist,
-    UserChecklistResponse,
-    UserChecklistCreate,
-    ChecklistOrderUpdate,
-    UserChecklistUpdate,
-    SuggestChecklistCreate,
-    SuggestChecklistUpdate,
-    ChecklistCategory,
-    ChecklistCategoryCreate,
-    ChecklistCategoryCreateBySystem,
-    InternalChecklistCategoryCreate,
-    ChecklistCategoryUpdate,
+from cruds.checklists import (
+    checklists_crud,
+    checklist_categories_crud,
 )
+from models import User
+from models.checklists import Checklist, ChecklistCategory
+from schemes.checklists import (
+    ChecklistRead,
+    ChecklistCreate,
+    ChecklistOrderUpdate,
+    ChecklistUpdate,
+    SuggestChecklistRead,
+    InternalChecklistCreate,
+)
+from schemes.common import ResponseWithStatusMessage
 
 router = APIRouter()
 
 
-@router.get("/system-checklist-categories", response_model=list[ChecklistCategory])
-async def list_checklist_categories(
-    session: AsyncSession = Depends(get_session),
-):
-    """체크리스트 카테고리 목록 조회"""
-    return await suggest_checklists_crud.get_multi(
-        session,
-        schema_to_select=ChecklistCategory,
-        return_as_model=True,
-    )
-
-
-@router.get(
-    "/system-checklist-categories/{category_id}", response_model=ChecklistCategory
-)
-async def get_checklist_category(
-    category_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-):
-    """체크리스트 카테고리 상세 조회"""
-    return await suggest_checklists_crud.get(
-        session,
-        id=category_id,
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.post("/system-checklist-categories", response_model=ChecklistCategory)
-async def create_system_checklist_category(
-    checklist_category_create: ChecklistCategoryCreateBySystem = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """체크리스트 카테고리 생성 (시스템 카테고리)"""
-    return await suggest_checklists_crud.create(
-        session,
-        InternalChecklistCategoryCreate(
-            display_name=checklist_category_create.display_name,
-            is_system_category=True,
-            user_id=current_user.id,
-        ),
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.put(
-    "/system-checklist-categories/{category_id}", response_model=ChecklistCategory
-)
-async def update_checklist_category(
-    category_id: int = Path(...),
-    checklist_category_update: ChecklistCategoryUpdate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """체크리스트 카테고리 업데이트"""
-    return await suggest_checklists_crud.update(
-        session,
-        checklist_category_update,
-        id=category_id,
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.delete("/system-checklist-categories/{category_id}")
-async def delete_checklist_category(
-    category_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """체크리스트 카테고리 삭제"""
-    return await suggest_checklists_crud.delete(session, id=category_id)
-
-
-@router.get("/checklist-categories", response_model=list[ChecklistCategory])
-async def list_user_checklist_categories(
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """사용자 체크리스트 카테고리 목록 조회"""
-    return await suggest_checklists_crud.get_multi(
-        session,
-        user_id=current_user.id,
-        schema_to_select=ChecklistCategory,
-        return_as_model=True,
-    )
-
-
-@router.get("/checklist-categories/{category_id}", response_model=ChecklistCategory)
-async def get_user_checklist_category(
-    category_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """사용자 체크리스트 카테고리 상세 조회"""
-    return await suggest_checklists_crud.get(
-        session,
-        id=category_id,
-        user_id=current_user.id,
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.post("/checklist-categories", response_model=ChecklistCategory)
-async def create_checklist_category(
-    checklist_category_create: ChecklistCategoryCreate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """체크리스트 카테고리 생성"""
-    return await suggest_checklists_crud.create(
-        session,
-        InternalChecklistCategoryCreate(
-            display_name=checklist_category_create.display_name,
-            is_system_category=False,
-            user_id=current_user.id,
-        ),
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.put("/checklist-categories/{category_id}", response_model=ChecklistCategory)
-async def update_user_checklist_category(
-    category_id: int = Path(...),
-    checklist_category_update: ChecklistCategoryUpdate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """사용자 체크리스트 카테고리 업데이트"""
-    return await suggest_checklists_crud.update(
-        session,
-        checklist_category_update,
-        id=category_id,
-        user_id=current_user.id,
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
-    )
-
-
-@router.delete("/checklist-categories/{category_id}")
-async def delete_user_checklist_category(
-    category_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """사용자 체크리스트 카테고리 삭제"""
-    return await suggest_checklists_crud.delete(
-        session,
-        id=category_id,
-        user_id=current_user.id,
-    )
-
-
-@router.get("/suggest-items")
-async def list_suggest_checklists(
+@router.get("/system", response_model=list[SuggestChecklistRead])
+async def list_system_checklists(
     checklist_category_id: int | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
-    query = {}
+    query = {"is_system_checklist": True, "is_deleted": False}
 
     if checklist_category_id:
         query["checklist_category_id"] = checklist_category_id
 
-    suggest_checklist = await suggest_checklists_crud.get_multi(
+    system_checklists = await checklists_crud.get_multi(
         session,
         offset=offset,
         limit=limit,
+        schema_to_select=ChecklistRead,
+        return_as_model=True,
         **query,
     )
 
-    return suggest_checklist.get("data")
+    return system_checklists.get("data")
 
 
-@router.get("/suggest-items/{checklist_id}", response_model=SuggestChecklist)
-async def get_suggest_checklist(
+@router.get("/system/{checklist_id}", response_model=SuggestChecklistRead)
+async def get_system_checklist(
     checklist_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 제공 기본 체크리스트 항목 조회"""
-    return await suggest_checklists_crud.get(
+    system_checklist = await checklists_crud.get(
         session,
         id=checklist_id,
+        is_deleted=False,
+        is_system_checklist=True,
         return_as_model=True,
-        schema_to_select=SuggestChecklist,
+        schema_to_select=SuggestChecklistRead,
     )
 
+    if not system_checklist:
+        raise HTTPException(status_code=404, detail="Suggest checklist not found")
 
-@router.post("/suggest-items", response_model=SuggestChecklist)
-async def create_suggest_checklist(
-    suggest_checklist_create: SuggestChecklistCreate = Body(...),
+    return system_checklist
+
+
+@router.post("/system", response_model=SuggestChecklistRead)
+async def create_system_checklist(
+    system_checklist_create: ChecklistCreate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 생성"""
-    return await suggest_checklists_crud.create(
+    system_checklist_category = await checklist_categories_crud.get(
         session,
-        suggest_checklist_create,
-        return_as_model=True,
-        schema_to_select=SuggestChecklist,
+        id=system_checklist_create.checklist_category_id,
+        is_system_category=True,
+        is_deleted=False,
+    )
+
+    if not system_checklist_category:
+        raise HTTPException(
+            status_code=400,
+            detail="System checklist category not found",
+        )
+
+    return await checklists_crud.create(
+        session,
+        InternalChecklistCreate(
+            title=system_checklist_create.title,
+            description=system_checklist_create.description,
+            checklist_category_id=system_checklist_create.checklist_category_id,
+            is_system_checklist=True,
+        ),
     )
 
 
-@router.put("/suggest-items/{checklist_id}", response_model=SuggestChecklist)
-async def update_suggest_checklist(
+@router.put("/system/{checklist_id}", response_model=SuggestChecklistRead)
+async def update_system_checklist(
     checklist_id: int = Path(...),
-    suggest_checklist_update: SuggestChecklistUpdate = Body(...),
+    system_checklist_update: ChecklistUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 업데이트"""
-    return await suggest_checklists_crud.update(
+    system_checklist = await checklists_crud.get(
         session,
-        suggest_checklist_update,
         id=checklist_id,
+        is_deleted=False,
+        is_system_checklist=True,
+    )
+
+    if not system_checklist:
+        raise HTTPException(
+            status_code=404,
+            detail="Suggest checklist not found",
+        )
+
+    if system_checklist_update.checklist_category_id:
+        system_checklist_category = await checklist_categories_crud.get(
+            session,
+            id=system_checklist_update.checklist_category_id,
+            is_system_category=True,
+            is_deleted=False,
+        )
+
+        if not system_checklist_category:
+            raise HTTPException(
+                status_code=400,
+                detail="System checklist category not found",
+            )
+
+    return await checklists_crud.update(
+        session,
+        system_checklist_update,
+        id=checklist_id,
+        is_system_checklist=True,
+        is_deleted=False,
         return_as_model=True,
-        schema_to_select=SuggestChecklist,
+        schema_to_select=SuggestChecklistRead,
     )
 
 
-@router.delete("/suggest-items/{checklist_id}")
-async def delete_suggest_checklist(
+@router.delete("/system/{checklist_id}", response_model=ResponseWithStatusMessage)
+async def delete_system_checklist(
     checklist_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 삭제"""
-    return await suggest_checklists_crud.delete(session, id=checklist_id)
+    system_checklist = await checklists_crud.get(
+        session,
+        id=checklist_id,
+        is_deleted=False,
+        is_system_checklist=True,
+    )
+
+    if not system_checklist:
+        raise HTTPException(
+            status_code=404,
+            detail="Suggest checklist not found",
+        )
+
+    await checklists_crud.delete(
+        session,
+        id=checklist_id,
+        is_system_checklist=True,
+        is_deleted=False,
+    )
+
+    return ResponseWithStatusMessage(
+        status="success", message="Suggest checklist deleted"
+    )
 
 
-@router.get("/user-checklist", response_model=list[UserChecklistResponse])
-async def list_user_checklists(
+@router.get("", response_model=list[ChecklistRead])
+async def list_checklists(
     checklist_category_id: int | None = Query(None),
-    completed_only: bool = Query(False),
+    completed_only: bool | None = Query(None),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -276,138 +193,179 @@ async def list_user_checklists(
         query["checklist_category_id"] = checklist_category_id
 
     # 완료된 항목만 조회
-    if completed_only:
+    if completed_only is not None:
         query["is_completed"] = True
 
-    user_checklist = await user_checklists_crud.get_multi(
+    checklist = await checklists_crud.get_multi(
         session,
-        schema_to_select=UserChecklist,
+        schema_to_select=ChecklistRead,
         return_as_model=True,
         **query,
     )
 
-    return user_checklist.get("data")
+    return checklist.get("data")
 
 
-@router.post("/user-checklists")
-async def create_user_checklists(
-    suggest_item_ids: list[int] = Body(...),
+@router.post("", response_model=list[ChecklistRead])
+async def create_checklists(
+    system_checklist_ids: list[int] = Body(..., embed=True),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    suggest_item_ids = list(set(suggest_item_ids))
+    """시스템 제공 기본 체크리스트 항목들을 사용자 체크리스트로 생성"""
+    system_checklist_ids = list(set(system_checklist_ids))
 
     # 선택된 기본 체크리스트 항목들 조회
-    suggest_items = await suggest_checklists_crud.get_multi(
+    results = await checklists_crud.get_multi(
         session,
-        id__in=suggest_item_ids,
-        schema_to_select=SuggestChecklist,
+        id__in=system_checklist_ids,
+        is_system_checklist=True,
+        is_deleted=False,
+        schema_to_select=ChecklistRead,
         return_as_model=True,
     )
 
-    if not suggest_items.get("data"):
-        raise HTTPException(status_code=404, detail="Selected items not found")
+    system_checklists = results.get("data")
+
+    if not system_checklists:
+        raise HTTPException(status_code=404, detail="System checklists not found")
 
     # 선택한 항목들을 유저 체크리스트로 변환
-    user_checklist_items = []
-    for suggest_item in suggest_items.get("data"):
-        user_checklist_item = UserChecklist(
-            title=suggest_item.title,
-            description=suggest_item.description,
-            suggest_item_id=suggest_item.id,
+    checklist_items = []
+    for system_checklist in system_checklists:
+        checklist_item = Checklist(
+            title=system_checklist.title,
+            description=system_checklist.description,
             user_id=current_user.id,
-            checklist_category_id=suggest_item.checklist_category_id,
+            checklist_category_id=system_checklist.checklist_category_id,
         )
-        user_checklist_items.append(user_checklist_item)
+        checklist_items.append(checklist_item)
 
-        await user_checklists_crud.create(
+        await checklists_crud.create(
             session,
-            user_checklist_item,
+            checklist_item,
         )
 
-    return user_checklist_items
+    return checklist_items
 
 
-@router.post("/custom-checklists", response_model=UserChecklistResponse)
+@router.post("/custom", response_model=ChecklistRead)
 async def create_custom_checklist(
-    checklist: UserChecklistCreate,
+    checklist: ChecklistCreate = Body(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 정의 체크리스트 항목 생성 (추천에서 가져오지 않는 경우)"""
-    new_checklist = UserChecklist(
-        title=checklist.title,
-        description=checklist.description,
-        user_id=current_user.id,
-        checklist_category_id=checklist.checklist_category_id,
+    checklist_category = await checklist_categories_crud.get(
+        session,
+        id=checklist.checklist_category_id,
+        is_deleted=False,
+        schema_to_select=ChecklistCategory,
+        return_as_model=True,
     )
 
-    result = await user_checklists_crud.create(session, new_checklist)
-    return result
+    if not checklist_category:
+        raise HTTPException(
+            status_code=400,
+            detail="Checklist category not found",
+        )
+
+    if (
+        not checklist_category.is_system_category
+        and checklist_category.user_id != current_user.id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to create checklist in this category",
+        )
+
+    return await checklists_crud.create(
+        session,
+        InternalChecklistCreate(
+            title=checklist.title,
+            description=checklist.description,
+            checklist_category_id=checklist.checklist_category_id,
+            user_id=current_user.id,
+            is_system_checklist=False,
+        ),
+    )
 
 
-@router.put("/user-checklists/order", response_model=list[UserChecklistResponse])
+@router.put("/reorder", response_model=list[ChecklistRead])
 async def update_checklists_order(
-    order_data: list[ChecklistOrderUpdate] = Body(...),
+    checklist_order_data: list[ChecklistOrderUpdate] = Body(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 체크리스트 항목 순서 업데이트"""
-
-    checklist_ids = [item.id for item in order_data]
-    user_checklists = await user_checklists_crud.get_multi(
+    checklist_ids = [item.id for item in checklist_order_data]
+    results = await checklists_crud.get_multi(
         session,
         id__in=checklist_ids,
         user_id=current_user.id,
+        is_deleted=False,
         return_as_model=True,
-        schema_to_select=UserChecklist,
+        schema_to_select=Checklist,
     )
 
-    if len(user_checklists.get("data", [])) != len(checklist_ids):
-        raise HTTPException(
-            status_code=400,
-            detail="하나 이상의 체크리스트 항목이 사용자의 것이 아닙니다",
-        )
+    checklists = results.get("data")
+
+    for checklist in checklists:
+        if checklist.user_id != current_user.id:
+            raise HTTPException(
+                status_code=400,
+                detail="Checklists are not owned by the user",
+            )
 
     # 각 체크리스트 항목의 순서 업데이트
     results = []
-    for item in order_data:
-        existing_item = await user_checklists_crud.get(
-            session, id=item.id, return_as_model=True, schema_to_select=UserChecklist
-        )
-        updated_item = await user_checklists_crud.update(
+    for item in checklist_order_data:
+        existing_item = await checklists_crud.get(
             session,
-            {"display_order": item.display_order},
-            id=existing_item.id,
+            id=item.id,
+            is_deleted=False,
             return_as_model=True,
-            schema_to_select=UserChecklist,
+            schema_to_select=Checklist,
+        )
+        updated_item = await checklists_crud.update(
+            session,
+            id=existing_item.id,
+            display_order=item.display_order,
+            return_as_model=True,
+            schema_to_select=Checklist,
         )
         results.append(updated_item)
 
     return results
 
 
-@router.put("/user-checklists/{checklist_id}", response_model=UserChecklistResponse)
-async def update_user_checklist(
+@router.put("/{checklist_id}", response_model=ChecklistRead)
+async def update_checklist(
     checklist_id: int = Path(...),
-    checklist_update: UserChecklistUpdate = Body(...),
+    checklist_update: ChecklistUpdate = Body(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 체크리스트 항목 업데이트 (완료/미완료 상태 포함)"""
-
-    existing_checklist = await user_checklists_crud.get(
+    existing_checklist = await checklists_crud.get(
         session,
         id=checklist_id,
         user_id=current_user.id,
+        is_deleted=False,
         return_as_model=True,
-        schema_to_select=UserChecklist,
+        schema_to_select=Checklist,
     )
 
     if not existing_checklist:
         raise HTTPException(
             status_code=404,
-            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
+            detail="Checklist not found",
+        )
+
+    if existing_checklist.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to update this checklist",
         )
 
     update_data = checklist_update.model_dump(exclude_none=True)
@@ -420,27 +378,28 @@ async def update_user_checklist(
             datetime.now() if update_data["is_completed"] else None
         )
 
-    return await user_checklists_crud.update(
+    return await checklists_crud.update(
         session,
         update_data,
         id=existing_checklist.id,
         return_as_model=True,
-        schema_to_select=UserChecklist,
+        schema_to_select=Checklist,
     )
 
 
-@router.delete("/user-checklists/{checklist_id}")
-async def delete_user_checklist(
+@router.delete("/{checklist_id}", response_model=ResponseWithStatusMessage)
+async def delete_checklist(
     checklist_id: int = Path(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> None:
-    existing_checklist = await user_checklists_crud.get(
+):
+    existing_checklist = await checklists_crud.get(
         session,
         id=checklist_id,
         user_id=current_user.id,
+        is_deleted=False,
         return_as_model=True,
-        schema_to_select=UserChecklist,
+        schema_to_select=Checklist,
     )
 
     if not existing_checklist:
@@ -449,7 +408,11 @@ async def delete_user_checklist(
             detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
         )
 
-    await user_checklists_crud.delete(
+    await checklists_crud.delete(
         session,
         id=existing_checklist.id,
+        user_id=current_user.id,
+        is_deleted=True,
     )
+
+    return ResponseWithStatusMessage(status="success", message="Checklist deleted")

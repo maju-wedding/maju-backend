@@ -10,13 +10,16 @@ from core.db import get_session
 from cruds.products import products_crud
 from cruds.user_wishlists import user_wishlists_crud
 from cruds.users import users_crud
-from models.user_wishlist import WishlistCreate, WishlistCreateInternal, UserWishlist
-from models.users import UserUpdate, User, UserRead
+from models.user_wishlist import UserWishlist
+from models.users import User
+from schemes.common import ResponseWithStatusMessage
+from schemes.user_wishlist import WishlistCreate, WishlistCreateInternal
+from schemes.users import UserUpdate, UserRead
 
 router = APIRouter()
 
 
-@router.get("/me", status_code=status.HTTP_200_OK)
+@router.get("/me", status_code=status.HTTP_200_OK, response_model=UserRead)
 async def read_user_me(current_user: User = Depends(get_current_user)):
     """
     내 정보 조회
@@ -24,7 +27,7 @@ async def read_user_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.patch("/me", status_code=status.HTTP_200_OK)
+@router.patch("/me", status_code=status.HTTP_200_OK, response_model=UserRead)
 async def update_user_me(
     user_update: UserUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
@@ -34,13 +37,19 @@ async def update_user_me(
     내 정보 업데이트
     """
     updated_user = await users_crud.update(
-        session, user_update.model_dump(exclude_unset=True), id=current_user.id
+        session,
+        user_update.model_dump(exclude_unset=True),
+        id=current_user.id,
+        return_as_model=True,
+        schema_to_select=UserRead,
     )
 
     return updated_user
 
 
-@router.get("/me/wishlist")
+@router.get(
+    "/me/wishlist", status_code=status.HTTP_200_OK, response_model=list[UserWishlist]
+)
 async def list_wishlist(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -48,14 +57,18 @@ async def list_wishlist(
     """
     내 위시리스트 조회
     """
-    wishlists = await user_wishlists_crud.get_multi(
+    results = await user_wishlists_crud.get_multi(
         session,
         user_id=current_user.id,
+        return_as_model=True,
+        schema_to_select=UserWishlist,
     )
-    return wishlists
+    return results.get("data", [])
 
 
-@router.post("/me/wishlist")
+@router.post(
+    "/me/wishlist", status_code=status.HTTP_201_CREATED, response_model=UserWishlist
+)
 async def add_to_wishlist(
     wishlist_create: WishlistCreate,
     session: AsyncSession = Depends(get_session),
@@ -81,11 +94,17 @@ async def add_to_wishlist(
         WishlistCreateInternal(
             user_id=current_user.id, product_id=wishlist_create.product_id
         ),
+        return_as_model=True,
+        schema_to_select=UserWishlist,
     )
     return wishlist
 
 
-@router.delete("/me/wishlist/{product_id}")
+@router.delete(
+    "/me/wishlist/{product_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ResponseWithStatusMessage,
+)
 async def remove_from_wishlist(
     product_id: int,
     session: AsyncSession = Depends(get_session),
@@ -103,29 +122,39 @@ async def remove_from_wishlist(
         raise HTTPException(status_code=404, detail="Product not in wishlist")
 
     await user_wishlists_crud.delete(session, id=wishlist.id)
-    return {"success": True, "message": "", "data": None}
+
+    return ResponseWithStatusMessage(
+        status="success",
+        message="Product removed from wishlist",
+    )
 
 
-@router.get("/", response_model=list[UserRead])
+@router.get("", status_code=status.HTTP_200_OK, response_model=list[User])
 async def list_users(
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_admin),
 ):
     """관리자용 사용자 목록 조회"""
-    users = await users_crud.get_multi(
+    results = await users_crud.get_multi(
         session,
         offset=offset,
         limit=limit,
         is_active=True,
         is_deleted=False,
+        return_as_model=True,
+        schema_to_select=User,
     )
 
-    return users.get("data", [])
+    return results.get("data", [])
 
 
-@router.delete("/{user_id}", response_model=UserRead)
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ResponseWithStatusMessage,
+)
 async def delete_user(
     user_id: UUID = Path(...),
     session: AsyncSession = Depends(get_session),
@@ -141,4 +170,7 @@ async def delete_user(
 
     await users_crud.delete(session, id=user_id)
 
-    return {"success": True, "message": "", "data": None}
+    return ResponseWithStatusMessage(
+        status="success",
+        message="User deleted",
+    )

@@ -1,0 +1,62 @@
+from datetime import datetime
+from uuid import UUID
+
+import sqlmodel
+from sqlmodel import SQLModel, Field
+
+from utils.utils import utc_now
+
+
+class ChecklistCategory(SQLModel, table=True):
+    """체크리스트 카테고리"""
+
+    __tablename__ = "checklist_categories"
+
+    id: int | None = Field(default=None, primary_key=True)
+    display_name: str
+    is_system_category: bool = Field(default=False)
+    user_id: UUID | None = Field(default=None, nullable=True, foreign_key="users.id")
+    is_deleted: bool = Field(default=False)
+    created_datetime: datetime = Field(
+        default_factory=utc_now,
+        sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
+    )
+    updated_datetime: datetime = Field(
+        default_factory=utc_now,
+        sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
+    )
+    deleted_datetime: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
+
+
+class Checklist(SQLModel, table=True):
+    """사용자 체크리스트"""
+
+    __tablename__ = "checklists"
+
+    id: int | None = Field(default=None, primary_key=True)
+    title: str
+    description: str | None = None
+    checklist_category_id: int | None = Field(
+        default=None, foreign_key="checklist_categories.id"
+    )
+    is_system_checklist: bool = Field(default=False)
+    user_id: UUID | None = Field(foreign_key="users.id")
+    is_completed: bool = Field(default=False)
+    completed_datetime: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
+    is_deleted: bool = Field(default=False)
+    display_order: int = Field(default=0)  # 사용자 정의 정렬용
+    created_datetime: datetime = Field(
+        default_factory=utc_now,
+        sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
+    )
+    updated_datetime: datetime = Field(
+        default_factory=utc_now,
+        sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
+    )
+    deleted_datetime: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )

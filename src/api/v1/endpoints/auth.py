@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
@@ -12,23 +12,22 @@ from core.config import settings
 from core.db import get_session
 from core.enums import UserTypeEnum
 from core.exceptions import InvalidAuthorizationCode, InvalidToken
-from core.oauth_client import OAuthClient
+from core.oauth_client import OAuthClient, extract_user_data
 from cruds.users import users_crud
-from models.auth import AuthToken, SocialLoginData
-from models.users import (
-    SocialProviderEnum,
-    UserCreateSocial,
-    UserCreateGuest,
-    UserCreateLocal,
-    User,
+from models.users import SocialProviderEnum, User
+from schemes.auth import AuthToken, SocialLoginData
+from schemes.users import (
+    UserCreate,
+    InternalUserCreate,
 )
+from utils.utils import generate_guest_nickname
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=AuthToken)
 async def register(
-    user_data: UserCreateLocal,
+    user_data: UserCreate,
     session: AsyncSession = Depends(get_session),
 ):
     """
@@ -45,15 +44,27 @@ async def register(
             detail="Email already registered",
         )
 
+    existing_phone_number = await users_crud.get(
+        session, phone_number=user_data.phone_number
+    )
+    if existing_phone_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number already registered",
+        )
+
     # 비밀번호 해싱
     hashed_password = security.get_password_hash(user_data.password.get_secret_value())
 
     # 사용자 생성
     user = await users_crud.create(
         session,
-        User(
-            hashed_password=hashed_password,
-            **user_data.model_dump(exclude={"password"}),
+        InternalUserCreate(
+            email=user_data.email,
+            phone_number=user_data.phone_number,
+            nickname=user_data.nickname,
+            password=hashed_password,
+            user_type=UserTypeEnum.local,
         ),
     )
 
@@ -69,8 +80,7 @@ async def register(
     return AuthToken(
         access_token=jwt_token,
         token_type="bearer",
-        is_new_user=True,
-        user_nickname=user.nickname,
+        nickname=user.nickname,
     )
 
 
@@ -125,40 +135,8 @@ async def login(
     return AuthToken(
         access_token=jwt_token,
         token_type="bearer",
-        is_new_user=False,
-        user_nickname=user.nickname,
+        nickname=user.nickname,
     )
-
-
-def extract_user_data(
-    provider: SocialProviderEnum, raw_user_info: dict[str, Any]
-) -> dict[str, Any]:
-    """Extract standardized user data from provider-specific response"""
-    if provider == SocialProviderEnum.kakao:
-        return {
-            "email": raw_user_info["kakao_account"]["email"],
-            "id": raw_user_info["id"],
-            "mobile": raw_user_info.get("mobile", ""),
-            "name": raw_user_info.get("name"),
-            "profile_image": raw_user_info.get("profile_image"),
-            "age": raw_user_info.get("age"),
-            "birthday": raw_user_info.get("birthday"),
-            "gender": raw_user_info.get("gender"),
-        }
-    elif provider == SocialProviderEnum.naver:
-        user_info = raw_user_info["response"]
-        return {
-            "email": user_info["email"],
-            "id": user_info["id"],
-            "mobile": user_info.get("mobile", ""),
-            "name": user_info.get("name"),
-            "profile_image": user_info.get("profile_image"),
-            "age": user_info.get("age"),
-            "birthday": user_info.get("birthday"),
-            "gender": user_info.get("gender"),
-        }
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
 
 
 @router.post("/social-login")
@@ -167,7 +145,7 @@ async def social_login(
     session: AsyncSession = Depends(get_session),
     oauth_client: OAuthClient = Depends(get_oauth_client),
 ):
-    """Unified social login endpoint supporting multiple providers"""
+    """소셜 로그인 (카카오, 네이버)"""
     try:
         token_data = await oauth_client.get_tokens(login_data.code, login_data.state)
     except InvalidAuthorizationCode:
@@ -181,43 +159,21 @@ async def social_login(
     except InvalidToken:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    if login_data.provider == SocialProviderEnum.kakao:
-        user_data = {
-            "email": raw_user_info["kakao_account"]["email"],
-            "id": raw_user_info["id"],
-            "mobile": raw_user_info.get("mobile", ""),
-            "name": raw_user_info.get("name"),
-            "profile_image": raw_user_info.get("profile_image"),
-            "age": raw_user_info.get("age"),
-            "birthday": raw_user_info.get("birthday"),
-            "gender": raw_user_info.get("gender"),
-        }
-    else:
-        user_info = raw_user_info["response"]
-        user_data = {
-            "email": user_info["email"],
-            "id": user_info["id"],
-            "mobile": user_info.get("mobile", ""),
-            "name": user_info.get("name"),
-            "profile_image": user_info.get("profile_image"),
-            "age": user_info.get("age"),
-            "birthday": user_info.get("birthday"),
-            "gender": user_info.get("gender"),
-        }
+    user_data = extract_user_data(login_data.provider, raw_user_info)
 
     user = await users_crud.get(session, email=user_data["email"])
 
-    is_new_user = False
     if not user:
         user = await users_crud.create(
             session,
-            UserCreateSocial(
+            InternalUserCreate(
                 email=user_data["email"],
                 phone_number=user_data["mobile"],
                 social_provider=login_data.provider,
+                nickname=user_data["name"],
+                user_type=UserTypeEnum.social,
             ),
         )
-        is_new_user = True
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(
@@ -230,8 +186,7 @@ async def social_login(
     return AuthToken(
         access_token=jwt_token,
         token_type="bearer",
-        is_new_user=is_new_user,
-        user_nickname=user.nickname,
+        nickname=user.nickname,
     )
 
 
@@ -239,10 +194,12 @@ async def social_login(
 async def guest_login(
     session: AsyncSession = Depends(get_session),
 ):
+    """게스트 로그인 (비회원)"""
     user = await users_crud.create(
         session,
-        UserCreateGuest(
-            nickname="guest",
+        InternalUserCreate(
+            nickname=generate_guest_nickname(),
+            user_type=UserTypeEnum.guest,
         ),
     )
 
@@ -257,6 +214,5 @@ async def guest_login(
     return AuthToken(
         access_token=jwt_token,
         token_type="bearer",
-        is_new_user=True,
-        user_nickname=user.nickname,
+        nickname=user.nickname,
     )

@@ -3,17 +3,16 @@ from fastcrud import JoinConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import get_session
-
 from cruds.products import products_crud, products_halls_crud
-from models import ProductHall, Product, Category
-from models.product_halls import ProductHallCreate, ProductHallCreateInternal
+from models import ProductHall, Product, ProductCategory
+from schemes.product_halls import ProductHallCreate, ProductHallCreateInternal
 
 router = APIRouter()
 
 product_detail_join_config = [
     JoinConfig(
-        model=Category,
-        join_on=Product.category_id == Category.id,
+        model=ProductCategory,
+        join_on=Product.product_category_id == ProductCategory.id,
         join_type="inner",
         join_prefix="category_",
     ),

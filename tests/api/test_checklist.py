@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from core.enums import UserTypeEnum
 from core.security import create_access_token
 from models import User
-from models.checklist import UserChecklist
+from models.checklists import Checklist
 
 BASE_URL = "/api/v1/checklist"
 
@@ -202,7 +202,7 @@ async def test_delete_user_checklist(
     assert response.status_code == status.HTTP_200_OK
 
     # DB에서 소프트 삭제 확인
-    result = await db_session.get(UserChecklist, checklist_id)
+    result = await db_session.get(Checklist, checklist_id)
     assert result.is_deleted == True
 
     # 삭제된 항목이 목록에서 제외되는지 확인
@@ -302,7 +302,7 @@ async def test_update_other_users_checklist(
     await db_session.commit()
 
     # 다른 사용자의 체크리스트 생성
-    other_checklist = UserChecklist(
+    other_checklist = Checklist(
         title="다른 사용자의 체크리스트",
         description="이 체크리스트는 다른 사용자의 것입니다",
         user_id=other_user.id,

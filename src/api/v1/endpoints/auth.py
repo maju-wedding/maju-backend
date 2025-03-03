@@ -63,7 +63,7 @@ async def register(
             email=user_data.email,
             phone_number=user_data.phone_number,
             nickname=user_data.nickname,
-            password=hashed_password,
+            hashed_password=hashed_password,
             user_type=UserTypeEnum.local,
         ),
     )

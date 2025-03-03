@@ -39,7 +39,7 @@ class InternalUserCreate(SQLModel):
     nickname: str = Field(max_length=20)
     email: EmailStr | None = Field(None, max_length=255)
     phone_number: str | None = Field(None, max_length=20)
-    password: str | None = Field(None)
+    hashed_password: str | None = Field(None)
     is_active: bool = Field(default=True)
 
     joined_datetime: datetime = Field(default_factory=utc_now)

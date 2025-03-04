@@ -33,7 +33,7 @@ class LocalSettings(BaseAppSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env.local")
     ENVIRONMENT: Literal["test", "local", "production"] = "local"
 
-    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_SERVER: str = "postgres-container.orb.local"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "reborn"
     POSTGRES_PASSWORD: str = "reborn"

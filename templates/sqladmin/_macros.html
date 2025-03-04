@@ -1,27 +1,22 @@
 {% macro menu_category(menu, request) %}
 {% if menu.is_active(request) %}
-<div x-data="{ open: true }" class="mb-2">
-  <button @click="open = !open" class="flex w-full items-center justify-between rounded-md px-4 py-2 text-left text-white hover:bg-indigo-600">
+<div x-data="{ open: true }" class="mb-1">
+  <button @click="open = !open" class="flex w-full items-center justify-between py-2 px-3 text-sm rounded-md hover:bg-sidebar-darker transition-colors duration-200">
     <div class="flex items-center">
       {% if menu.icon %}
-      <i class="{{ menu.icon }} mr-3 w-5"></i>
+      <i class="{{ menu.icon }} w-5 h-5 mr-3 text-gray-400"></i>
       {% endif %}
       <span>{{ menu.display_name }}</span>
     </div>
-    <i :class="open ? 'fa-chevron-down' : 'fa-chevron-right'" class="fas"></i>
+    <i :class="open ? 'fa-chevron-down' : 'fa-chevron-right'" class="fas text-xs"></i>
   </button>
 
-  <div x-show="open" class="mt-2 space-y-1 pl-4">
+  <div x-show="open" class="mt-1 space-y-1 pl-11">
     {% for sub_menu in menu.children %}
     {% if sub_menu.is_visible(request) and sub_menu.is_accessible(request) %}
     <a href="{{ sub_menu.url(request) }}"
-       class="block rounded-md px-4 py-2 text-indigo-100 hover:bg-indigo-600 hover:text-white {{ 'bg-indigo-600 text-white' if sub_menu.is_active(request) else '' }}">
-      <div class="flex items-center">
-        {% if sub_menu.icon %}
-        <i class="{{ sub_menu.icon }} mr-3 w-5"></i>
-        {% endif %}
-        <span>{{ sub_menu.display_name }}</span>
-      </div>
+       class="block py-2 px-3 text-sm text-gray-400 hover:text-white hover:bg-sidebar-darker rounded-md transition-colors duration-200 {{ 'bg-sidebar-darker text-white' if sub_menu.is_active(request) else '' }}">
+      {{ sub_menu.display_name }}
     </a>
     {% endif %}
     {% endfor %}
@@ -33,9 +28,9 @@
 {% macro menu_item(menu, request) %}
 {% if menu.is_visible(request) and menu.is_accessible(request) %}
 <a href="{{ menu.url(request) }}"
-   class="mb-2 flex items-center rounded-md px-4 py-2 text-white hover:bg-indigo-600 {{ 'bg-indigo-600' if menu.is_active(request) else '' }}">
+   class="flex items-center py-3 px-3 text-sm rounded-md hover:bg-gray-100 hover:text-primary transition-colors duration-200 sidebar-menu-item {{ 'active' if menu.is_active(request) else '' }}">
   {% if menu.icon %}
-  <i class="{{ menu.icon }} mr-3 w-5"></i>
+  <i class="{{ menu.icon }} w-5 h-5 mr-3 text-gray-400 form-selectgroup-item"></i>
   {% endif %}
   <span>{{ menu.display_name }}</span>
 </a>
@@ -43,7 +38,7 @@
 {% endmacro %}
 
 {% macro display_menu(menu, request) %}
-<div class="space-y-2">
+<div class="space-y-1 text-black">
   {% for item in menu.items %}
   {% if item.type_ == "View" %}
   {{ menu_item(item, request) }}
@@ -56,12 +51,12 @@
 
 {% macro render_field(field, kwargs={}) %}
 <div class="mb-4">
-  <label for="{{ field.id }}" class="mb-2 block text-sm font-medium text-gray-700">{{ field.label.text }}</label>
+  <label for="{{ field.id }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label.text }}</label>
   <div>
     {% if field.errors %}
     {{ field(class_="w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm") }}
     {% else %}
-    {{ field(class_="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50") }}
+    {{ field(class_="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50") }}
     {% endif %}
 
     {% for error in field.errors %}
@@ -87,4 +82,30 @@
 {% for f in form if f.widget.input_type != 'hidden' %}
 {{ render_field(f, kwargs) }}
 {% endfor %}
+{% endmacro %}
+
+{% macro stat_card(title, value, change=None, icon=None, is_positive=true) %}
+<div class="dashboard-card">
+  <div class="flex items-center gap-4">
+    {% if icon %}
+    <div class="flex items-center justify-center h-12 w-12 rounded-full bg-primary-light bg-opacity-20 text-primary">
+      <i class="{{ icon }} text-xl"></i>
+    </div>
+    {% endif %}
+    <div>
+      <p class="text-sm text-gray-500 font-medium">{{ title }}</p>
+      <h3 class="text-2xl font-bold mt-1">{{ value }}</h3>
+
+      {% if change %}
+      <p class="mt-1 text-sm {{ 'text-green-600' if is_positive else 'text-red-600' }}">
+        <span class="flex items-center">
+          <i class="fas fa-arrow-{{ 'up' if is_positive else 'down' }} mr-1"></i>
+          {{ change }}
+        </span>
+      </p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
 {% endmacro %}

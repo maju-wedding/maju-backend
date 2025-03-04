@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
+from sqladmin import Admin
 from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.middleware.sessions import SessionMiddleware
-from sqladmin import Admin
 
 from admin.auth import AdminAuth
 from admin.models import (
@@ -26,7 +26,7 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
         app,
         engine,
         authentication_backend=authentication_backend,
-        title=f"{settings.PROJECT_NAME} Admin",
+        title=f"{settings.PROJECT_NAME}",
         templates_dir="templates",
     )
 

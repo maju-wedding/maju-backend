@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% endblock %} - {{ admin.title }}</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+
+  <!-- Alpine.js for interactions -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Select2 for advanced selects -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+  <!-- Flatpickr for date pickers -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <!-- Custom Styles -->
+  <style>
+    [x-cloak] { display: none !important; }
+
+    /* Select2 Tailwind Integration */
+    .select2-container--default .select2-selection--single {
+      @apply h-10 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50;
+    }
+
+    /* Flatpickr Tailwind Integration */
+    .flatpickr-input {
+      @apply rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50;
+    }
+  </style>
+
+  {% if admin.favicon_url %}
+  <link rel="icon" href="{{ admin.favicon_url }}">
+  {% endif %}
+
+  {% block head_css %}{% endblock %}
+  {% block head_js %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900" x-data="adminApp">
+  {% block body %}
+  <main>
+    {% block main %}
+    {% endblock %}
+  </main>
+  {% endblock %}
+
+  <!-- Core Scripts -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <!-- Custom Scripts -->
+  <script>
+    // Initialize Select2
+    $(document).ready(function() {
+      $('.select2').select2({
+        theme: 'classic',
+        width: '100%'
+      });
+
+      // Initialize Flatpickr
+      $(".datepicker").flatpickr({
+        dateFormat: "Y-m-d",
+        allowInput: true
+      });
+
+      $(".datetimepicker").flatpickr({
+        dateFormat: "Y-m-d H:i:S",
+        enableTime: true,
+        allowInput: true,
+        time_24hr: true
+      });
+    });
+  </script>
+
+  {% block js %}{% endblock %}
+</body>
+</html>

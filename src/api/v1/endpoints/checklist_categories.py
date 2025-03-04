@@ -5,7 +5,7 @@ from api.v1.deps import get_current_admin, get_current_user
 from core.db import get_session
 from cruds.checklists import checklist_categories_crud
 from models import User
-from models.checklists import ChecklistCategory
+from models.checklist_categories import ChecklistCategory
 from schemes.checklists import (
     ChecklistCategoryRead,
     ChecklistCategoryCreateBySystem,

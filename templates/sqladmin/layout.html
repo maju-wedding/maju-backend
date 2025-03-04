@@ -1,0 +1,71 @@
+{% extends "sqladmin/base.html" %}
+{% from 'sqladmin/_macros.html' import display_menu %}
+
+{% block body %}
+<div x-data="{ sidebarOpen: false }" class="min-h-screen">
+  <!-- Mobile sidebar overlay -->
+  <div
+    x-show="sidebarOpen"
+    @click="sidebarOpen = false"
+    class="fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity md:hidden"
+    x-cloak
+  ></div>
+
+  <!-- Sidebar -->
+  <div
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    class="fixed inset-y-0 left-0 z-30 w-64 transform overflow-y-auto bg-indigo-700 text-white transition-transform duration-300 md:translate-x-0">
+    <div class="flex items-center justify-between border-b border-indigo-800 p-4">
+      <a href="{{ url_for('admin:index') }}" class="flex items-center">
+        {% if admin.logo_url %}
+        <img src="{{ admin.logo_url }}" alt="Admin" class="h-8 w-auto">
+        {% else %}
+        <span class="text-xl font-bold">{{ admin.title }}</span>
+        {% endif %}
+      </a>
+      <button @click="sidebarOpen = false" class="text-white md:hidden">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <nav class="p-4">
+      {{ display_menu(admin._menu, request) }}
+    </nav>
+
+    {% if admin.authentication_backend %}
+    <div class="border-t border-indigo-800 p-4">
+      <a href="{{ request.url_for('admin:logout') }}" class="flex items-center text-white hover:text-indigo-200">
+        <i class="fas fa-sign-out-alt mr-2"></i>
+        <span>로그아웃</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Main content -->
+  <div class="md:pl-64">
+    <!-- Top navbar -->
+    <div class="bg-white shadow">
+      <div class="flex h-16 items-center justify-between px-6">
+        <button @click="sidebarOpen = true" class="text-gray-600 md:hidden">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="flex items-center">
+          {% block content_header %}
+          <h1 class="text-xl font-bold text-gray-900">{{ title }}</h1>
+          {% if subtitle %}
+          <p class="ml-4 text-sm text-gray-500">{{ subtitle }}</p>
+          {% endif %}
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="p-6">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

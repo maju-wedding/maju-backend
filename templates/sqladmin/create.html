@@ -1,0 +1,49 @@
+{% extends "sqladmin/layout.html" %}
+{% from 'sqladmin/_macros.html' import render_form_fields %}
+{% block content %}
+<div class="w-full">
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">New {{ model_view.name }}</h3>
+    </div>
+
+    <div class="p-6">
+      <form action="{{ url_for('admin:create', identity=model_view.identity) }}" method="POST" enctype="multipart/form-data">
+        {% if error %}
+        <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md" role="alert">
+          {{ error }}
+        </div>
+        {% endif %}
+
+        <div class="bg-gray-50 p-6 rounded-md border border-gray-200 mb-6">
+          {{ render_form_fields(form, form_opts=form_opts) }}
+        </div>
+
+        <div class="flex justify-between items-center">
+          <a href="{{ url_for('admin:list', identity=model_view.identity) }}"
+             class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+            취소
+          </a>
+
+          <div class="space-x-2">
+            <button type="submit" name="save" value="Save"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+              저장
+            </button>
+
+            <button type="submit" name="save" value="Save and continue editing"
+                    class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200">
+              저장 후 계속 편집
+            </button>
+
+            <button type="submit" name="save" value="Save and add another"
+                    class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200">
+              저장 후 새로 추가
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -35,6 +35,8 @@ asyncpg = "^0.30.0"
 alembic-postgresql-enum = "^1.6.1"
 loguru = "^0.7.3"
 orjson = "^3.10.15"
+sqladmin = "^0.20.1"
+itsdangerous = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.2.2"

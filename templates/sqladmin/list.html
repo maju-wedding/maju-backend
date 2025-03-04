@@ -1,0 +1,296 @@
+<!-- templates/sqladmin/list.html -->
+{% extends "sqladmin/layout.html" %}
+
+{% block content %}
+<div x-data="{ selectedItems: [], showDeleteModal: false, selectedPks: '' }">
+  <!-- 헤더 -->
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">{{ model_view.name_plural }}</h1>
+    
+    <div class="flex space-x-2">
+      {% if model_view.can_export %}
+      <div class="relative" x-data="{ open: false }">
+        <button @click="open = !open" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center">
+          Export <i class="fas fa-chevron-down ml-2"></i>
+        </button>
+        <div x-show="open" @click.away="open = false" class="absolute right-0 z-10 mt-2 w-40 bg-white rounded-md shadow-lg" x-cloak>
+          {% for export_type in model_view.export_types %}
+          <a href="{{ url_for('admin:export', identity=model_view.identity, export_type=export_type) }}" 
+             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            {{ export_type | upper }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      
+      {% if model_view.can_create %}
+      <a href="{{ url_for('admin:create', identity=model_view.identity) }}" 
+         class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+        + New {{ model_view.name }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- 필터 패널 -->
+  <div class="bg-white rounded-lg shadow mb-6 p-4">
+    <form method="GET" action="">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <!-- 삭제 상태 필터 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">삭제 상태</label>
+          <select name="is_deleted" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            <option value="false" {% if request.query_params.get('is_deleted') == 'false' %}selected{% endif %}>삭제되지 않음</option>
+            <option value="true" {% if request.query_params.get('is_deleted') == 'true' %}selected{% endif %}>삭제됨</option>
+            <option value="" {% if request.query_params.get('is_deleted') == '' or request.query_params.get('is_deleted') is none %}selected{% endif %}>모두 보기</option>
+          </select>
+        </div>
+        
+        <!-- 모델별 특수 필터 -->
+        {% if model_view.identity == 'user' %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">활성 상태</label>
+          <select name="is_active" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            <option value="" {% if request.query_params.get('is_active') is none %}selected{% endif %}>모두 보기</option>
+            <option value="true" {% if request.query_params.get('is_active') == 'true' %}selected{% endif %}>활성</option>
+            <option value="false" {% if request.query_params.get('is_active') == 'false' %}selected{% endif %}>비활성</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">사용자 유형</label>
+          <select name="user_type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            <option value="" {% if request.query_params.get('user_type') is none %}selected{% endif %}>모두 보기</option>
+            <option value="local" {% if request.query_params.get('user_type') == 'local' %}selected{% endif %}>일반</option>
+            <option value="social" {% if request.query_params.get('user_type') == 'social' %}selected{% endif %}>소셜</option>
+            <option value="guest" {% if request.query_params.get('user_type') == 'guest' %}selected{% endif %}>게스트</option>
+          </select>
+        </div>
+        {% endif %}
+      </div>
+      
+      <div class="flex justify-between">
+        <div class="flex space-x-2">
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+            필터 적용
+          </button>
+          <a href="{{ url_for('admin:list', identity=model_view.identity) }}" 
+             class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+            초기화
+          </a>
+        </div>
+        
+        {% if model_view.column_searchable_list %}
+        <div class="relative">
+          <input name="search" type="text" placeholder="Search: {{ model_view.search_placeholder() }}"
+                 value="{{ request.query_params.get('search', '') }}"
+                 class="w-full md:w-80 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pl-10">
+          <div class="absolute left-0 top-0 h-full flex items-center pl-3 text-gray-500">
+            <i class="fas fa-search"></i>
+          </div>
+          <button type="submit" class="absolute right-0 top-0 h-full px-3 text-gray-500 hover:text-gray-700">
+            검색
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+  
+  <!-- 테이블 -->
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="flex py-2 px-4 border-b border-gray-200 bg-gray-50">
+      <div class="flex items-center">
+        <input type="checkbox" @click="selectedItems = $event.target.checked ? [...document.querySelectorAll('.select-box')].map(el => el.closest('tr').querySelector('input[type=hidden]').value) : []"
+               class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+               
+        <div class="ml-4">
+          <button x-bind:disabled="selectedItems.length === 0"
+                  @click="showDeleteModal = true; selectedPks = selectedItems.join(',')"
+                  class="px-3 py-1 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
+            Delete selected
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+            <span class="sr-only">Select</span>
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+            <span class="sr-only">Actions</span>
+          </th>
+          
+          {% for name in model_view._list_prop_names %}
+          {% set label = model_view._column_labels.get(name, name) %}
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {% if name in model_view._sort_fields %}
+              {% if request.query_params.get("sortBy") == name and request.query_params.get("sort") == "asc" %}
+              <a href="{{ request.url.include_query_params(sort='desc') }}" class="flex items-center group">
+                {{ label }}
+                <i class="fas fa-arrow-up ml-1 text-indigo-600 group-hover:text-indigo-800"></i>
+              </a>
+              {% elif request.query_params.get("sortBy") == name and request.query_params.get("sort") == "desc" %}
+              <a href="{{ request.url.include_query_params(sort='asc') }}" class="flex items-center group">
+                {{ label }}
+                <i class="fas fa-arrow-down ml-1 text-indigo-600 group-hover:text-indigo-800"></i>
+              </a>
+              {% else %}
+              <a href="{{ request.url.include_query_params(sortBy=name, sort='asc') }}" class="group">
+                {{ label }}
+                <i class="fas fa-sort ml-1 text-gray-400 group-hover:text-gray-600"></i>
+              </a>
+              {% endif %}
+            {% else %}
+              {{ label }}
+            {% endif %}
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for row in pagination.rows %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <input type="hidden" value="{{ get_object_identifier(row) }}">
+            <input @click="selectedItems = [...document.querySelectorAll('.select-box:checked')].map(el => el.closest('tr').querySelector('input[type=hidden]').value)"
+                   class="select-box rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <div class="flex space-x-1">
+              {% if model_view.can_view_details %}
+              <a href="{{ model_view._build_url_for('admin:details', request, row) }}" 
+                 class="text-indigo-600 hover:text-indigo-900" title="View">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% endif %}
+              
+              {% if model_view.can_edit %}
+              <a href="{{ model_view._build_url_for('admin:edit', request, row) }}" 
+                 class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                <i class="fas fa-pen-to-square"></i>
+              </a>
+              {% endif %}
+              
+              {% if model_view.can_delete %}
+              <a href="#" @click.prevent="showDeleteModal = true; selectedPks = '{{ get_object_identifier(row) }}'"
+                 class="text-red-600 hover:text-red-900" title="Delete">
+                <i class="fas fa-trash"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+          
+          {% for name in model_view._list_prop_names %}
+          {% set value, formatted_value = model_view.get_list_value(row, name) %}
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {% if name in model_view._relation_names %}
+              {% if is_list(value) %}
+                {% for elem, formatted_elem in zip(value, formatted_value) %}
+                <a href="{{ model_view._build_url_for('admin:details', request, elem) }}" 
+                   class="text-indigo-600 hover:text-indigo-900">({{ formatted_elem }})</a>
+                {% endfor %}
+              {% else %}
+                <a href="{{ model_view._url_for_details_with_prop(request, row, name) }}" 
+                   class="text-indigo-600 hover:text-indigo-900">{{ formatted_value }}</a>
+              {% endif %}
+            {% else %}
+              {{ formatted_value }}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+    <!-- 페이지네이션 -->
+    <div class="px-4 py-3 border-t border-gray-200 bg-white flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.page_size) + 1 }}</span> to 
+        <span class="font-medium">{{ min(pagination.page * pagination.page_size, pagination.count) }}</span> of
+        <span class="font-medium">{{ pagination.count }}</span> items
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md flex items-center">
+            {{ request.query_params.get("pageSize") or model_view.page_size }} / Page
+            <i class="fas fa-chevron-down ml-2"></i>
+          </button>
+          <div x-show="open" @click.away="open = false" class="absolute right-0 z-10 mt-2 w-40 bg-white rounded-md shadow-lg" x-cloak>
+            {% for page_size_option in model_view.page_size_options %}
+            <a href="{{ request.url.include_query_params(pageSize=page_size_option, page=pagination.resize(page_size_option).page) }}" 
+               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              {{ page_size_option }} / Page
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+          <a href="{{ pagination.previous_page.url if pagination.has_previous else '#' }}" 
+             class="{{ 'cursor-not-allowed ' if not pagination.has_previous else '' }}relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <span class="sr-only">Previous</span>
+            <i class="fas fa-chevron-left h-5 w-5"></i>
+          </a>
+          
+          {% for page_control in pagination.page_controls %}
+          <a href="{{ page_control.url }}" 
+             class="{{ 'bg-indigo-50 border-indigo-500 text-indigo-600 z-10 ' if page_control.number == pagination.page else 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 ' }}relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+            {{ page_control.number }}
+          </a>
+          {% endfor %}
+          
+          <a href="{{ pagination.next_page.url if pagination.has_next else '#' }}" 
+             class="{{ 'cursor-not-allowed ' if not pagination.has_next else '' }}relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <span class="sr-only">Next</span>
+            <i class="fas fa-chevron-right h-5 w-5"></i>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 삭제 모달 -->
+  <div x-show="showDeleteModal" class="fixed z-10 inset-0 overflow-y-auto" x-cloak>
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+      </div>
+      
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Delete {{ model_view.name }}</h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500">
+                  Are you sure you want to delete the selected items? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <a :href="'{{ url_for('admin:delete', identity=model_view.identity) }}?pks=' + selectedPks" 
+             class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+            Delete
+          </a>
+          <button @click="showDeleteModal = false" type="button" 
+                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% macro menu_category(menu, request) %}
+{% if menu.is_active(request) %}
+<div x-data="{ open: true }" class="mb-2">
+  <button @click="open = !open" class="flex w-full items-center justify-between rounded-md px-4 py-2 text-left text-white hover:bg-indigo-600">
+    <div class="flex items-center">
+      {% if menu.icon %}
+      <i class="{{ menu.icon }} mr-3 w-5"></i>
+      {% endif %}
+      <span>{{ menu.display_name }}</span>
+    </div>
+    <i :class="open ? 'fa-chevron-down' : 'fa-chevron-right'" class="fas"></i>
+  </button>
+
+  <div x-show="open" class="mt-2 space-y-1 pl-4">
+    {% for sub_menu in menu.children %}
+    {% if sub_menu.is_visible(request) and sub_menu.is_accessible(request) %}
+    <a href="{{ sub_menu.url(request) }}"
+       class="block rounded-md px-4 py-2 text-indigo-100 hover:bg-indigo-600 hover:text-white {{ 'bg-indigo-600 text-white' if sub_menu.is_active(request) else '' }}">
+      <div class="flex items-center">
+        {% if sub_menu.icon %}
+        <i class="{{ sub_menu.icon }} mr-3 w-5"></i>
+        {% endif %}
+        <span>{{ sub_menu.display_name }}</span>
+      </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro menu_item(menu, request) %}
+{% if menu.is_visible(request) and menu.is_accessible(request) %}
+<a href="{{ menu.url(request) }}"
+   class="mb-2 flex items-center rounded-md px-4 py-2 text-white hover:bg-indigo-600 {{ 'bg-indigo-600' if menu.is_active(request) else '' }}">
+  {% if menu.icon %}
+  <i class="{{ menu.icon }} mr-3 w-5"></i>
+  {% endif %}
+  <span>{{ menu.display_name }}</span>
+</a>
+{% endif %}
+{% endmacro %}
+
+{% macro display_menu(menu, request) %}
+<div class="space-y-2">
+  {% for item in menu.items %}
+  {% if item.type_ == "View" %}
+  {{ menu_item(item, request) }}
+  {% elif item.type_ == "Category" %}
+  {{ menu_category(item, request) }}
+  {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro render_field(field, kwargs={}) %}
+<div class="mb-4">
+  <label for="{{ field.id }}" class="mb-2 block text-sm font-medium text-gray-700">{{ field.label.text }}</label>
+  <div>
+    {% if field.errors %}
+    {{ field(class_="w-full rounded-md border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm") }}
+    {% else %}
+    {{ field(class_="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50") }}
+    {% endif %}
+
+    {% for error in field.errors %}
+    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+    {% endfor %}
+
+    {% if field.description %}
+    <p class="mt-2 text-sm text-gray-500">{{ field.description }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro render_form_fields(form, form_opts=None) %}
+{% if form.hidden_tag is defined %}
+{{ form.hidden_tag() }}
+{% else %}
+{% for f in form if f.widget.input_type == 'hidden' %}
+{{ f }}
+{% endfor %}
+{% endif %}
+
+{% for f in form if f.widget.input_type != 'hidden' %}
+{{ render_field(f, kwargs) }}
+{% endfor %}
+{% endmacro %}

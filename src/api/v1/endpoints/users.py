@@ -15,15 +15,14 @@ from models.users import User
 from schemes.common import ResponseWithStatusMessage
 from schemes.user_wishlist import WishlistCreate, WishlistCreateInternal
 from schemes.users import UserUpdate, UserRead
+from utils.utils import utc_now
 
 router = APIRouter()
 
 
 @router.get("/me", status_code=status.HTTP_200_OK, response_model=UserRead)
 async def read_user_me(current_user: User = Depends(get_current_user)):
-    """
-    내 정보 조회
-    """
+    """내 정보 조회"""
     return current_user
 
 
@@ -33,9 +32,7 @@ async def update_user_me(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    내 정보 업데이트
-    """
+    """내 정보 업데이트"""
     updated_user = await users_crud.update(
         session,
         user_update.model_dump(exclude_unset=True),
@@ -45,6 +42,30 @@ async def update_user_me(
     )
 
     return updated_user
+
+
+@router.delete(
+    "/me", status_code=status.HTTP_200_OK, response_model=ResponseWithStatusMessage
+)
+async def delete_user_me(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """내 계정 삭제"""
+    await users_crud.update(
+        session,
+        object={
+            "is_active": False,
+            "is_deleted": True,
+            "deleted_datetime": utc_now(),
+        },
+        id=current_user.id,
+    )
+
+    return ResponseWithStatusMessage(
+        status="success",
+        message="User deleted",
+    )
 
 
 @router.get(
@@ -168,7 +189,11 @@ async def delete_user(
     if user.is_superuser:
         raise HTTPException(status_code=400, detail="Cannot delete superuser")
 
-    await users_crud.delete(session, id=user_id)
+    await users_crud.update(
+        session,
+        object={"is_deleted": True, "is_active": False, "deleted_datetime": utc_now()},
+        id=user_id,
+    )
 
     return ResponseWithStatusMessage(
         status="success",

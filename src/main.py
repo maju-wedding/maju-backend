@@ -5,9 +5,12 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 
+from admin import setup_admin
 from api.v1.router import api_router
 from core.config import settings
+from core.db import async_engine
 from core.exceptions import exception_handlers
 from middleswares.logging import LoggingMiddleware
 
@@ -72,4 +75,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(LoggingMiddleware)
+setup_admin(app, async_engine)
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+app.mount("/static", StaticFiles(directory="statics"), name="static")

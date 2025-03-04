@@ -10,7 +10,8 @@ from cruds.checklists import (
     checklist_categories_crud,
 )
 from models import User
-from models.checklists import Checklist, ChecklistCategory
+from models.checklists import Checklist
+from models.checklist_categories import ChecklistCategory
 from schemes.checklists import (
     ChecklistRead,
     ChecklistCreate,

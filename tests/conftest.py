@@ -15,8 +15,9 @@ from core.db import get_session
 from core.enums import UserTypeEnum, CategoryTypeEnum, SocialProviderEnum
 from core.security import create_access_token, get_password_hash
 from main import app
-from models import Category
-from models.checklists import SuggestChecklist, Checklist
+from models import ProductCategory
+from models.checklist_categories import ChecklistCategory
+from models.checklists import Checklist
 from models.users import User
 
 # 테스트용 엔진 및 세션 생성
@@ -61,7 +62,7 @@ async def async_client(setup_database, db_session) -> AsyncGenerator[AsyncClient
     def get_session_override():
         return db_session
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(app=app, base_url="http://localhost:8000") as client:
         app.dependency_overrides[get_session] = get_session_override
         yield client
         app.dependency_overrides.clear()
@@ -79,6 +80,30 @@ async def test_user(db_session: AsyncSession) -> User:
         hashed_password=get_password_hash("testpassword"),
         is_active=True,
         is_superuser=False,
+        user_type=UserTypeEnum.local.value,  # local 유저로 변경
+        service_policy_agreement=True,
+        privacy_policy_agreement=True,
+        third_party_information_agreement=False,
+    )
+
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    return user
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_superuser(db_session: AsyncSession) -> User:
+    # 로컬 사용자 생성
+    user = User(
+        id=uuid.uuid4(),
+        email="admin@example.com",
+        phone_number="01012345678",  # 필수 필드 추가
+        nickname="테스트유저",
+        hashed_password=get_password_hash("testpassword"),
+        is_active=True,
+        is_superuser=True,
         user_type=UserTypeEnum.local.value,  # local 유저로 변경
         service_policy_agreement=True,
         privacy_policy_agreement=True,
@@ -145,6 +170,17 @@ def test_user_token(test_user: User) -> str:
 
 
 @pytest.fixture(scope="function")
+def test_superuser_token(test_superuser: User) -> str:
+    # 로컬 유저는 이메일로 토큰 생성
+    return create_access_token(
+        subject=test_superuser.email,
+        user_type=UserTypeEnum.local,
+        expires_delta=timedelta(days=1),  # 1일
+        extra_claims={"nickname": test_superuser.nickname},
+    )
+
+
+@pytest.fixture(scope="function")
 def test_guest_token(test_guest_user: User) -> str:
     # 게스트 유저는 UUID로 토큰 생성
     return create_access_token(
@@ -167,6 +203,17 @@ async def authorized_client(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def superuser_authorized_client(
+    async_client: AsyncClient, test_superuser_token: str
+) -> AsyncClient:
+    async_client.headers = {
+        "Authorization": f"Bearer {test_superuser_token}",
+        **async_client.headers,
+    }
+    return async_client
+
+
+@pytest_asyncio.fixture(scope="function")
 async def guest_authorized_client(
     async_client: AsyncClient, test_guest_token: str
 ) -> AsyncClient:
@@ -181,7 +228,7 @@ async def guest_authorized_client(
 @pytest_asyncio.fixture(scope="function")
 async def categories(db_session: AsyncSession):
     categories = [
-        Category(
+        ProductCategory(
             id=1,
             name="웨딩홀",
             type=CategoryTypeEnum.hall.value,
@@ -189,7 +236,7 @@ async def categories(db_session: AsyncSession):
             is_ready=True,
             order=1,
         ),
-        Category(
+        ProductCategory(
             id=2,
             name="스튜디오",
             type=CategoryTypeEnum.studio.value,
@@ -197,7 +244,7 @@ async def categories(db_session: AsyncSession):
             is_ready=True,
             order=2,
         ),
-        Category(
+        ProductCategory(
             id=3,
             name="드레스",
             type=CategoryTypeEnum.dress.value,
@@ -205,7 +252,7 @@ async def categories(db_session: AsyncSession):
             is_ready=True,
             order=3,
         ),
-        Category(
+        ProductCategory(
             id=4,
             name="메이크업",
             type=CategoryTypeEnum.makeup.value,
@@ -226,10 +273,10 @@ async def categories(db_session: AsyncSession):
 # 추천 체크리스트 생성
 @pytest_asyncio.fixture(scope="function")
 async def suggest_checklists(
-    db_session: AsyncSession, categories: list[Category]
-) -> list[SuggestChecklist]:
+    db_session: AsyncSession, categories: list[ChecklistCategory]
+) -> list[ChecklistCategory]:
     checklists = [
-        SuggestChecklist(
+        ChecklistCategory(
             title=f"추천 체크리스트 {i}",
             description=f"추천 체크리스트 {i}에 대한 설명",
             category_id=i % 4 + 1,  # 4개의 카테고리에 맞춰 조정
@@ -254,7 +301,7 @@ async def suggest_checklists(
 async def user_checklists(
     db_session: AsyncSession,
     test_user: User,
-    suggest_checklists: list[SuggestChecklist],
+    suggest_checklists: list[ChecklistCategory],
 ) -> list[Checklist]:
     checklists = []
 
@@ -300,7 +347,7 @@ async def user_checklists(
 async def guest_checklists(
     db_session: AsyncSession,
     test_guest_user: User,
-    suggest_checklists: list[SuggestChecklist],
+    suggest_checklists: list[ChecklistCategory],
 ) -> list[Checklist]:
     checklists = []
 

@@ -1,3 +1,4 @@
+from .checklist_categories import ChecklistCategory
 from .checklists import Checklist
 from .product_categories import ProductCategory
 from .product_halls import ProductHall
@@ -8,6 +9,7 @@ from .users import User
 all_models = [
     User,
     ProductCategory,
+    ChecklistCategory,
     Checklist,
     Product,
     ProductHall,

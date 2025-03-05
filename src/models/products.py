@@ -29,6 +29,9 @@ class Product(SQLModel, table=True):
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
     )
     is_deleted: bool = Field(default=False)
+    deleted_datetime: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
 
     # Relationships
     category: "ProductCategory" = Relationship(back_populates="products")

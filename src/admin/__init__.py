@@ -8,6 +8,8 @@ from admin.models import (
     UserAdmin,
     ChecklistAdmin,
     ChecklistCategoryAdmin,
+    ProductCategoryAdmin,
+    ProductHallAdmin,
 )
 from core.config import settings
 from core.db import get_session
@@ -40,9 +42,16 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
         return response
 
     # Register admin views
+    # 유저
     admin.add_view(UserAdmin)
+    # admin.add_view(UserWishlistAdmin)
+
+    # 체크리스트
     admin.add_view(ChecklistCategoryAdmin)
     admin.add_view(ChecklistAdmin)
-    # admin.add_view(UserWishlistAdmin)
+
+    # 상품
+    admin.add_view(ProductCategoryAdmin)
+    admin.add_view(ProductHallAdmin)
 
     return admin

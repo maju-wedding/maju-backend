@@ -5,7 +5,7 @@ from sqlmodel import select
 from starlette.requests import Request
 
 from core.security import get_password_hash
-from models import User, UserWishlist, Checklist
+from models import User, UserWishlist, Checklist, ProductCategory, ProductHall
 from models.checklist_categories import ChecklistCategory
 
 
@@ -38,6 +38,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
     name = "유저"
     name_plural = "유저 목록"
     icon = "fa-solid fa-users"
+    category = "유저 관리"
 
     column_list = [
         User.id,
@@ -181,6 +182,7 @@ class UserWishlistAdmin(ModelView, model=UserWishlist):
     name = "위시리스트"
     name_plural = "위시리스트 목록"
     icon = "fa-solid fa-heart"
+    category = "유저 관리"
 
     column_list = [
         UserWishlist.id,
@@ -228,6 +230,7 @@ class ChecklistCategoryAdmin(BaseModelViewWithFilters, model=ChecklistCategory):
     name = "체크리스트 카테고리"
     name_plural = "체크리스트 카테고리 목록"
     icon = "fa-solid fa-folder"
+    category = "체크리스트 관리"
 
     column_list = [
         ChecklistCategory.id,
@@ -305,6 +308,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     name = "체크리스트"
     name_plural = "체크리스트 목록"
     icon = "fa-solid fa-check-square"
+    category = "체크리스트 관리"
 
     column_list = [
         Checklist.id,
@@ -397,3 +401,208 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     can_edit = True
     can_delete = True
     can_view_details = True
+
+
+class ProductCategoryAdmin(BaseModelViewWithFilters, model=ProductCategory):
+    name = "상품 카테고리"
+    name_plural = "상품 카테고리 목록"
+    icon = "fa-solid fa-folder"
+    category = "상품 관리"
+
+    column_list = [
+        ProductCategory.id,
+        ProductCategory.name,
+        ProductCategory.display_name,
+        ProductCategory.type,
+        ProductCategory.is_ready,
+        ProductCategory.order,
+    ]
+
+    column_labels = {
+        ProductCategory.id: "카테고리 ID",
+        ProductCategory.name: "이름",
+        ProductCategory.display_name: "표시 이름",
+        ProductCategory.type: "유형",
+        ProductCategory.is_ready: "준비 여부",
+        ProductCategory.order: "순서",
+    }
+
+    column_details_list = [
+        ProductCategory.id,
+        ProductCategory.name,
+        ProductCategory.display_name,
+        ProductCategory.type,
+        ProductCategory.is_ready,
+        ProductCategory.order,
+    ]
+
+    column_searchable_list = [
+        ProductCategory.name,
+        ProductCategory.display_name,
+    ]
+
+    column_sortable_list = [
+        ProductCategory.id,
+        ProductCategory.name,
+        ProductCategory.display_name,
+        ProductCategory.type,
+        ProductCategory.is_ready,
+        ProductCategory.order,
+    ]
+
+    column_formatters = {
+        ProductCategory.is_ready: lambda m, a: "O" if m.is_ready else "X",
+    }
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+
+class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
+    name = "웨딩홀"
+    name_plural = "웨딩홀 목록"
+    icon = "fa-solid fa-building"
+    category = "상품 관리"
+
+    column_list = [
+        ProductHall.id,
+        "product.name",  # 연결된 상품 이름 표시
+        ProductHall.address,
+        ProductHall.min_capacity,
+        ProductHall.max_capacity,
+        ProductHall.parking_capacity,
+        ProductHall.is_deleted,
+    ]
+
+    column_labels = {
+        ProductHall.id: "웨딩홀 ID",
+        "product.name": "상품명",
+        ProductHall.product_id: "상품 ID",
+        ProductHall.address: "주소",
+        ProductHall.latitude: "위도",
+        ProductHall.longitude: "경도",
+        ProductHall.min_capacity: "최소 수용 인원",
+        ProductHall.max_capacity: "최대 수용 인원",
+        ProductHall.parking_capacity: "주차 수용 대수",
+        ProductHall.is_deleted: "삭제 여부",
+        ProductHall.created_datetime: "생성일시",
+        ProductHall.updated_datetime: "수정일시",
+        ProductHall.deleted_datetime: "삭제일시",
+    }
+
+    column_details_list = [
+        ProductHall.id,
+        ProductHall.product_id,
+        "product.name",
+        "product.description",
+        "product.available",
+        ProductHall.address,
+        ProductHall.latitude,
+        ProductHall.longitude,
+        ProductHall.min_capacity,
+        ProductHall.max_capacity,
+        ProductHall.parking_capacity,
+        ProductHall.is_deleted,
+        ProductHall.created_datetime,
+        ProductHall.updated_datetime,
+        ProductHall.deleted_datetime,
+    ]
+
+    column_searchable_list = [
+        "product.name",
+        ProductHall.address,
+    ]
+
+    column_sortable_list = [
+        ProductHall.id,
+        # "product.name" 정렬은 별도 구현 필요
+        ProductHall.min_capacity,
+        ProductHall.max_capacity,
+        ProductHall.parking_capacity,
+        ProductHall.created_datetime,
+        ProductHall.updated_datetime,
+    ]
+
+    column_formatters = {
+        ProductHall.created_datetime: lambda m, a: m.created_datetime.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        if m.created_datetime
+        else "",
+        ProductHall.updated_datetime: lambda m, a: m.updated_datetime.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        if m.updated_datetime
+        else "",
+        ProductHall.deleted_datetime: lambda m, a: m.deleted_datetime.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        if m.deleted_datetime
+        else "",
+    }
+
+    # form_excluded_columns = [
+    #     ProductHall.created_datetime,
+    #     ProductHall.updated_datetime,
+    #     ProductHall.deleted_datetime,
+    # ]
+
+    # 연결된 Product 모델의 정보를 함께 편집할 수 있도록 설정
+    form_columns = [
+        "product.name",
+        "product.description",
+        "product.available",
+        "product.product_category_id",
+        ProductHall.address,
+        ProductHall.latitude,
+        ProductHall.longitude,
+        ProductHall.min_capacity,
+        ProductHall.max_capacity,
+        ProductHall.parking_capacity,
+    ]
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+    # ProductHall이 생성/수정될 때 연결된 Product도 함께 처리
+    async def insert_model(self, request: Request, data: dict) -> Any:
+        # Product 정보 분리
+        product_data = {}
+        if "product" in data:
+            product_data = data.pop("product")
+
+        # 먼저 Product 생성
+        from models import Product
+
+        product = Product(**product_data)
+        # 여기서 product를 DB에 추가하는 로직 구현
+
+        # ProductHall에 product_id 설정
+        data["product_id"] = product.id
+
+        return await super().insert_model(request, data)
+
+    async def update_model(self, request: Request, pk: str, data: dict) -> Any:
+        # Product 정보 분리해서 업데이트
+        product_data = {}
+        if "product" in data:
+            product_data = data.pop("product")
+
+        # 기존 ProductHall 객체 가져오기
+        obj = await self.get_object_for_details(pk)
+
+        # Product 업데이트 로직 구현
+        # ...
+
+        return await super().update_model(request, pk, data)
+
+    async def delete_model(self, request: Request, pk: Any) -> None:
+        obj = await self.get_object_for_details(pk)
+        obj.is_deleted = True
+        # 연결된 Product도 삭제 처리할지 결정
+        # obj.product.is_deleted = True
+        await self.update_model(request, pk, obj.dict())

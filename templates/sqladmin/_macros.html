@@ -28,8 +28,9 @@
     {% endif %} {% endfor %}
   </div>
 </div>
-{% endif %} {% endmacro %} {% macro menu_item(menu, request) %} {% if
-menu.is_visible(request) and menu.is_accessible(request) %}
+{% endif %} {% endmacro %}
+
+{% macro menu_item(menu, request) %} {% if menu.is_visible(request) and menu.is_accessible(request) %}
 <a
   href="{{ menu.url(request) }}"
   class="flex items-center py-3 px-3 text-sm rounded-md hover:bg-gray-100 hover:text-primary transition-colors duration-200 sidebar-menu-item {{ 'active' if menu.is_active(request) else '' }}"
@@ -41,38 +42,137 @@ menu.is_visible(request) and menu.is_accessible(request) %}
   {% endif %}
   <span>{{ menu.display_name }}</span>
 </a>
-{% endif %} {% endmacro %} {% macro display_menu(menu, request) %}
+{% endif %} {% endmacro %}
+
+{% macro display_menu(menu, request) %}
 <div class="space-y-1 text-black">
   {% for item in menu.items %} {% if item.type_ == "View" %} {{ menu_item(item,
   request) }} {% elif item.type_ == "Category" %} {{ menu_category(item,
   request) }} {% endif %} {% endfor %}
 </div>
-{% endmacro %} {% macro render_field(field, kwargs={}) %}
-<div class="mb-4">
+{% endmacro %}
+
+{% macro render_field(field, kwargs={}) %}
+<div class="mb-6">
   <label
     for="{{ field.id }}"
-    class="block text-sm font-medium text-gray-700 mb-1"
-    >{{ field.label.text }}</label
-  >
-  <div>
-    {% if field.errors %} {{ field(class_="w-full rounded-md border-red-300
-    pr-10 text-red-900 placeholder-red-300 focus:border-red-500
-    focus:outline-none focus:ring-red-500 sm:text-sm") }} {% else %} {{
-    field(class_="w-full rounded-md border-gray-300 shadow-sm
-    focus:border-primary focus:ring focus:ring-primary-light
-    focus:ring-opacity-50") }} {% endif %} {% for error in field.errors %}
+    class="block mb-2 font-medium"
+  >{{ field.label.text }}</label>
+  <div class="w-full">
+    {% if field.type == 'SelectField' or field.type == 'QuerySelectField' %}
+      <select
+        id="{{ field.id }}"
+        name="{{ field.name }}"
+        class="select2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 {% if field.errors %}border-red-300 text-red-900{% endif %}"
+      >
+        {% for choice in field.choices %}
+        <option value="{{ choice[0] }}" {% if field.data == choice[0] %}selected{% endif %}>
+          {{ choice[1] }}
+        </option>
+        {% endfor %}
+      </select>
+    {% elif field.type == 'DateField' or field.type == 'DateTimeField' %}
+      <input
+        type="text"
+        id="{{ field.id }}"
+        name="{{ field.name }}"
+        value="{{ field.data or '' }}"
+        placeholder="Select date"
+        class="datepicker w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 {% if field.errors %}border-red-300 text-red-900{% endif %}"
+      >
+    {% elif field.type == 'RadioField' %}
+      <div class="flex items-center space-x-6">
+        {% for subfield in field %}
+        <div class="flex items-center">
+          {{ subfield(class="w-5 h-5 text-indigo-600 border-gray-300 focus:ring-indigo-500") }}
+          <label for="{{ subfield.id }}" class="ml-2">{{ subfield.label.text }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {% if field.errors %}
+        {{ field(class="w-full px-4 py-2 border border-red-300 rounded-lg pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500") }}
+      {% else %}
+        {{ field(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500") }}
+      {% endif %}
+    {% endif %}
+
+    {% for error in field.errors %}
     <p class="mt-2 text-sm text-red-600">{{ error }}</p>
-    {% endfor %} {% if field.description %}
+    {% endfor %}
+
+    {% if field.description %}
     <p class="mt-2 text-sm text-gray-500">{{ field.description }}</p>
     {% endif %}
   </div>
 </div>
-{% endmacro %} {% macro render_form_fields(form, form_opts=None) %} {% if
-form.hidden_tag is defined %} {{ form.hidden_tag() }} {% else %} {% for f in
-form if f.widget.input_type == 'hidden' %} {{ f }} {% endfor %} {% endif %} {%
-for f in form if f.widget.input_type != 'hidden' %} {{ render_field(f, kwargs)
-}} {% endfor %} {% endmacro %} {% macro stat_card(title, value, change=None,
-icon=None, is_positive=true) %}
+{% endmacro %}
+
+{% macro render_form_fields(form, form_opts=None) %}
+  {% if form.hidden_tag is defined %}
+    {{ form.hidden_tag() }}
+  {% else %}
+    {% for f in form if f.widget.input_type == 'hidden' %}
+      {{ f }}
+    {% endfor %}
+  {% endif %}
+
+  {% if form_opts and form_opts.sections %}
+    {% for section in form_opts.sections %}
+      <!-- 섹션 시작 -->
+      <div class="mb-6">
+        <h2 class="text-lg font-medium mb-4 pb-2 border-b border-gray-200">{{ section.title }}</h2>
+
+        <div class="space-y-6">
+          {% for row in section.rows %}
+            {% if row.is_grid %}
+              <!-- 그리드 레이아웃 -->
+              <div class="grid grid-cols-1 md:grid-cols-{{ row.cols|default(2) }} gap-6">
+                {% for field_name in row.fields %}
+                  {% if field_name in form %}
+                    <div>
+                      {{ render_field(form[field_name]) }}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <!-- 단일 필드 -->
+              {% if row.field and row.field in form %}
+                {{ render_field(form[row.field]) }}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <!-- 섹션 끝 -->
+    {% endfor %}
+  {% else %}
+    <!-- 섹션이 없는 경우 모든 필드를 순서대로 렌더링 -->
+    {% for f in form if f.widget.input_type != 'hidden' %}
+      {{ render_field(f) }}
+    {% endfor %}
+  {% endif %}
+
+  <!-- 필드 초기화 스크립트 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Select2 초기화
+      $('.select2').select2({
+        theme: "classic",
+        width: '100%'
+      });
+
+      // Flatpickr 초기화
+      $(".datepicker").flatpickr({
+        dateFormat: "Y-m-d",
+        allowInput: true
+      });
+    });
+  </script>
+{% endmacro %}
+
+{% macro stat_card(title, value, change=None, icon=None, is_positive=true) %}
 <div class="dashboard-card">
   <div class="flex items-center gap-4">
     {% if icon %}

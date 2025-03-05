@@ -35,7 +35,7 @@
                 <!-- 삭제 상태 필터 -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">삭제 상태</label>
-                  <select name="is_deleted" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="is_deleted" class="w-full py-2 px-1 text-sm rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="false" {% if request.query_params.get('is_deleted') == 'false' %}selected{% endif %}>삭제되지 않음</option>
                     <option value="true" {% if request.query_params.get('is_deleted') == 'true' %}selected{% endif %}>삭제됨</option>
                     <option value="" {% if request.query_params.get('is_deleted') == '' or request.query_params.get('is_deleted') is none %}selected{% endif %}>모두 보기</option>
@@ -46,7 +46,7 @@
                 {% if model_view.identity == 'user' %}
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">활성 상태</label>
-                  <select name="is_active" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="is_active" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="" {% if request.query_params.get('is_active') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_active') == 'true' %}selected{% endif %}>활성</option>
                     <option value="false" {% if request.query_params.get('is_active') == 'false' %}selected{% endif %}>비활성</option>
@@ -55,7 +55,7 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">사용자 유형</label>
-                  <select name="user_type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="user_type" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="" {% if request.query_params.get('user_type') is none %}selected{% endif %}>모두 보기</option>
                     <option value="local" {% if request.query_params.get('user_type') == 'local' %}selected{% endif %}>일반</option>
                     <option value="social" {% if request.query_params.get('user_type') == 'social' %}selected{% endif %}>소셜</option>
@@ -67,7 +67,7 @@
                 {% if model_view.identity == 'checklist_category' %}
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">카테고리 유형</label>
-                  <select name="is_system_category" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="is_system_category" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="" {% if request.query_params.get('is_system_category') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_system_category') == 'true' %}selected{% endif %}>시스템 카테고리</option>
                     <option value="false" {% if request.query_params.get('is_system_category') == 'false' %}selected{% endif %}>사용자 카테고리</option>
@@ -78,7 +78,7 @@
                 {% if model_view.identity == 'checklist' %}
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">체크리스트 유형</label>
-                  <select name="is_system_checklist" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="is_system_checklist" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="" {% if request.query_params.get('is_system_checklist') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_system_checklist') == 'true' %}selected{% endif %}>시스템 체크리스트</option>
                     <option value="false" {% if request.query_params.get('is_system_checklist') == 'false' %}selected{% endif %}>사용자 체크리스트</option>
@@ -87,7 +87,7 @@
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">완료 상태</label>
-                  <select name="is_completed" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
+                  <select name="is_completed" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50">
                     <option value="" {% if request.query_params.get('is_completed') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_completed') == 'true' %}selected{% endif %}>완료됨</option>
                     <option value="false" {% if request.query_params.get('is_completed') == 'false' %}selected{% endif %}>미완료</option>
@@ -133,7 +133,7 @@
           <button
             @click="searchItems"
             id="search-button"
-            class="absolute inset-y-0 right-0 px-3 flex items-center bg-gray-50 rounded-r-md border-gray-300 hover:bg-gray-100">
+            class="absolute inset-y-0 text-sm right-0 px-3 flex items-center bg-gray-50 rounded-r-md border-gray-300 hover:bg-gray-100">
             검색
           </button>
         </div>
@@ -229,7 +229,7 @@
       <tbody class="bg-white divide-y divide-gray-200">
         {% for row in pagination.rows %}
         <tr class="hover:bg-gray-50">
-          <td class="px-4 py-3 whitespace-nowrap align-middle">
+          <td class="px-4 py-3 whitespace-nowrap align-middle text-sm">
             <input
               type="checkbox"
               value="{{ get_object_identifier(row) }}"
@@ -239,7 +239,7 @@
 
           {% for name in model_view._list_prop_names %}
           {% set value, formatted_value = model_view.get_list_value(row, name) %}
-          <td class="px-4 py-3 whitespace-nowrap align-middle">
+          <td class="px-4 py-3 whitespace-nowrap align-middle text-sm">
             {% if name in model_view._relation_names %}
               {% if is_list(value) %}
                 {% for elem, formatted_elem in zip(value, formatted_value) %}

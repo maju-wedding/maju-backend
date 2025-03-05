@@ -28,6 +28,8 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
         authentication_backend=authentication_backend,
         title=f"{settings.PROJECT_NAME}",
         templates_dir="templates",
+        favicon_url="/static/favicon.ico",
+        logo_url="/static/logo.png",
     )
 
     # Setup middleware to inject session into request

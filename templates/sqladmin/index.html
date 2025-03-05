@@ -1,43 +1,15 @@
-{% extends "sqladmin/layout.html" %}
-{% from 'sqladmin/_macros.html' import stat_card %}
-
-{% block title %}대시보드{% endblock %}
-
-{% block content %}
+{% extends "sqladmin/layout.html" %} {% from 'sqladmin/_macros.html' import
+stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
 <div class="space-y-6">
   <!-- Stats Cards Row -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-    {{ stat_card(
-      title="사용자",
-      value="3,782",
-      change="11.01%",
-      icon="fas fa-users",
-      is_positive=true
-    ) }}
-
-    {{ stat_card(
-      title="주문",
-      value="5,359",
-      change="9.05%",
-      icon="fas fa-shopping-cart",
-      is_positive=true
-    ) }}
-
-    {{ stat_card(
-      title="매출",
-      value="₩12,580,000",
-      change="8.35%",
-      icon="fas fa-dollar-sign",
-      is_positive=true
-    ) }}
-
-    {{ stat_card(
-      title="방문자",
-      value="18,267",
-      change="5.25%",
-      icon="fas fa-chart-line",
-      is_positive=true
-    ) }}
+    {{ stat_card( title="사용자", value="3,782", change="11.01%", icon="fas
+    fa-users", is_positive=true ) }} {{ stat_card( title="주문", value="5,359",
+    change="9.05%", icon="fas fa-shopping-cart", is_positive=true ) }} {{
+    stat_card( title="매출", value="₩12,580,000", change="8.35%", icon="fas
+    fa-dollar-sign", is_positive=true ) }} {{ stat_card( title="방문자",
+    value="18,267", change="5.25%", icon="fas fa-chart-line", is_positive=true )
+    }}
   </div>
 
   <!-- Charts Row -->
@@ -48,7 +20,7 @@
         <h3 class="text-lg font-semibold">월별 매출</h3>
         <div class="text-sm text-gray-500">최근 12개월</div>
       </div>
-      <div id="sales-chart" style="height: 300px;"></div>
+      <div id="sales-chart" style="height: 300px"></div>
     </div>
 
     <!-- Traffic Chart -->
@@ -57,7 +29,7 @@
         <h3 class="text-lg font-semibold">트래픽 분석</h3>
         <div class="text-sm text-gray-500">최근 30일</div>
       </div>
-      <div id="traffic-chart" style="height: 300px;"></div>
+      <div id="traffic-chart" style="height: 300px"></div>
     </div>
   </div>
 
@@ -82,48 +54,69 @@
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img src="https://ui-avatars.com/api/?name=John+Doe&background=4f46e5&color=fff" alt="John Doe" class="h-8 w-8 rounded-full mr-3">
+                <img
+                  src="https://ui-avatars.com/api/?name=John+Doe&background=4f46e5&color=fff"
+                  alt="John Doe"
+                  class="h-8 w-8 rounded-full mr-3"
+                />
                 <div>
-                  <p class="font-medium">홍길동</p>
+                  <p class="font-medium">최용환</p>
                   <p class="text-gray-500">user@example.com</p>
                 </div>
               </div>
             </td>
             <td class="px-4 py-3">상품 구매</td>
             <td class="px-4 py-3">
-              <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">완료</span>
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
+                >완료</span
+              >
             </td>
             <td class="px-4 py-3 text-gray-500">3분 전</td>
           </tr>
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img src="https://ui-avatars.com/api/?name=Jane+Smith&background=4f46e5&color=fff" alt="Jane Smith" class="h-8 w-8 rounded-full mr-3">
+                <img
+                  src="https://ui-avatars.com/api/?name=Jane+Smith&background=4f46e5&color=fff"
+                  alt="Jane Smith"
+                  class="h-8 w-8 rounded-full mr-3"
+                />
                 <div>
-                  <p class="font-medium">김철수</p>
+                  <p class="font-medium">최아름</p>
                   <p class="text-gray-500">kim@example.com</p>
                 </div>
               </div>
             </td>
             <td class="px-4 py-3">댓글 작성</td>
             <td class="px-4 py-3">
-              <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">승인됨</span>
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
+                >승인됨</span
+              >
             </td>
             <td class="px-4 py-3 text-gray-500">15분 전</td>
           </tr>
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img src="https://ui-avatars.com/api/?name=Alex+Wilson&background=4f46e5&color=fff" alt="Alex Wilson" class="h-8 w-8 rounded-full mr-3">
+                <img
+                  src="https://ui-avatars.com/api/?name=Alex+Wilson&background=4f46e5&color=fff"
+                  alt="Alex Wilson"
+                  class="h-8 w-8 rounded-full mr-3"
+                />
                 <div>
-                  <p class="font-medium">박영희</p>
+                  <p class="font-medium">현진우</p>
                   <p class="text-gray-500">park@example.com</p>
                 </div>
               </div>
             </td>
             <td class="px-4 py-3">계정 생성</td>
             <td class="px-4 py-3">
-              <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">진행중</span>
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                >진행중</span
+              >
             </td>
             <td class="px-4 py-3 text-gray-500">1시간 전</td>
           </tr>
@@ -133,116 +126,150 @@
   </div>
 </div>
 
-{% endblock %}
-
-{% block js %}
+{% endblock %} {% block js %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener("DOMContentLoaded", function () {
     // Sales Chart
     var salesOptions = {
-      series: [{
-        name: '매출',
-        data: [30, 40, 35, 50, 49, 60, 70, 91, 125, 150, 160, 140]
-      }],
+      series: [
+        {
+          name: "매출",
+          data: [30, 40, 35, 50, 49, 60, 70, 91, 125, 150, 160, 140],
+        },
+      ],
       chart: {
-        type: 'bar',
+        type: "bar",
         height: 300,
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
-      colors: ['#4f46e5'],
+      colors: ["#4f46e5"],
       plotOptions: {
         bar: {
           borderRadius: 4,
-          columnWidth: '50%',
-        }
+          columnWidth: "50%",
+        },
       },
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       xaxis: {
-        categories: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+        categories: [
+          "1월",
+          "2월",
+          "3월",
+          "4월",
+          "5월",
+          "6월",
+          "7월",
+          "8월",
+          "9월",
+          "10월",
+          "11월",
+          "12월",
+        ],
         axisBorder: {
-          show: false
+          show: false,
         },
         axisTicks: {
-          show: false
-        }
+          show: false,
+        },
       },
       grid: {
-        borderColor: '#f1f1f1',
+        borderColor: "#f1f1f1",
         padding: {
-          bottom: 10
-        }
+          bottom: 10,
+        },
       },
       yaxis: {
         labels: {
-          formatter: function(val) {
-            return val + '만';
-          }
-        }
-      }
+          formatter: function (val) {
+            return val + "만";
+          },
+        },
+      },
     };
 
-    var salesChart = new ApexCharts(document.querySelector("#sales-chart"), salesOptions);
+    var salesChart = new ApexCharts(
+      document.querySelector("#sales-chart"),
+      salesOptions,
+    );
     salesChart.render();
 
     // Traffic Chart
     var trafficOptions = {
-      series: [{
-        name: '방문자',
-        data: [31, 40, 28, 51, 42, 109, 100, 120, 80, 95, 110, 130]
-      }, {
-        name: '페이지뷰',
-        data: [11, 32, 45, 32, 34, 52, 41, 80, 96, 140, 150, 210]
-      }],
+      series: [
+        {
+          name: "방문자",
+          data: [31, 40, 28, 51, 42, 109, 100, 120, 80, 95, 110, 130],
+        },
+        {
+          name: "페이지뷰",
+          data: [11, 32, 45, 32, 34, 52, 41, 80, 96, 140, 150, 210],
+        },
+      ],
       chart: {
         height: 300,
-        type: 'area',
+        type: "area",
         toolbar: {
-          show: false
-        }
+          show: false,
+        },
       },
-      colors: ['#4f46e5', '#818cf8'],
+      colors: ["#4f46e5", "#818cf8"],
       dataLabels: {
-        enabled: false
+        enabled: false,
       },
       stroke: {
-        curve: 'smooth',
+        curve: "smooth",
         width: 2,
       },
       fill: {
-        type: 'gradient',
+        type: "gradient",
         gradient: {
           shadeIntensity: 1,
           opacityFrom: 0.7,
           opacityTo: 0.3,
-        }
+        },
       },
       xaxis: {
-        categories: ['1일', '3일', '6일', '9일', '12일', '15일', '18일', '21일', '24일', '27일', '30일'],
+        categories: [
+          "1일",
+          "3일",
+          "6일",
+          "9일",
+          "12일",
+          "15일",
+          "18일",
+          "21일",
+          "24일",
+          "27일",
+          "30일",
+        ],
         axisBorder: {
-          show: false
+          show: false,
         },
         axisTicks: {
-          show: false
-        }
+          show: false,
+        },
       },
       grid: {
-        borderColor: '#f1f1f1',
+        borderColor: "#f1f1f1",
         padding: {
-          bottom: 10
-        }
+          bottom: 10,
+        },
       },
       tooltip: {
         x: {
-          format: 'dd/MM/yy'
+          format: "dd/MM/yy",
         },
-      }
+      },
     };
 
-    var trafficChart = new ApexCharts(document.querySelector("#traffic-chart"), trafficOptions);
+    var trafficChart = new ApexCharts(
+      document.querySelector("#traffic-chart"),
+      trafficOptions,
+    );
     trafficChart.render();
   });
 </script>

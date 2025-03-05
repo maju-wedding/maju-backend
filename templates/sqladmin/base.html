@@ -1,151 +1,198 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{% endblock %} - {{ admin.title }}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}{% endblock %} - {{ admin.title }}</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'sidebar-dark': '#1e2a4a',
-            'sidebar-darker': '#172241',
-            'primary': '#4f46e5',
-            'primary-light': '#818cf8',
-          },
-          fontFamily: {
-            'sans': ['Pretendard', 'sans-serif'],
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "sidebar-dark": "#1e2a4a",
+              "sidebar-darker": "#172241",
+              primary: "#4f46e5",
+              "primary-light": "#818cf8",
+            },
+            fontFamily: {
+              sans: ["Pretendard", "sans-serif"],
+            },
           },
         },
-      },
-    }
-  </script>
+      };
+    </script>
 
-  <!-- 프리텐다드 폰트 -->
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+    <!-- 프리텐다드 폰트 -->
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css"
+    />
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+    />
 
-  <!-- Alpine.js for interactions -->
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js for interactions -->
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
 
-  <!-- Select2 for advanced selects -->
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Select2 for advanced selects -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
 
-  <!-- Flatpickr for date pickers -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr for date pickers -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
 
-  <!-- ApexCharts for charts -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- ApexCharts for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
-  <!-- Custom Styles -->
-  <style>
-    [x-cloak] { display: none !important; }
+    <!-- Custom Styles -->
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
 
-    /* 프리텐다드 폰트를 위한 기본 스타일 */
-    body {
-      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
-      font-weight: 400;
-    }
+      /* 프리텐다드 폰트를 위한 기본 스타일 */
+      body {
+        font-family:
+          "Pretendard Variable",
+          Pretendard,
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          Roboto,
+          "Helvetica Neue",
+          "Segoe UI",
+          "Apple SD Gothic Neo",
+          "Noto Sans KR",
+          "Malgun Gothic",
+          "Apple Color Emoji",
+          "Segoe UI Emoji",
+          "Segoe UI Symbol",
+          sans-serif;
+        font-weight: 400;
+      }
 
-    /* 폰트 두께 클래스 */
-    .font-thin { font-weight: 100; }
-    .font-extralight { font-weight: 200; }
-    .font-light { font-weight: 300; }
-    .font-normal { font-weight: 400; }
-    .font-medium { font-weight: 500; }
-    .font-semibold { font-weight: 600; }
-    .font-bold { font-weight: 700; }
-    .font-extrabold { font-weight: 800; }
-    .font-black { font-weight: 900; }
+      /* 폰트 두께 클래스 */
+      .font-thin {
+        font-weight: 100;
+      }
+      .font-extralight {
+        font-weight: 200;
+      }
+      .font-light {
+        font-weight: 300;
+      }
+      .font-normal {
+        font-weight: 400;
+      }
+      .font-medium {
+        font-weight: 500;
+      }
+      .font-semibold {
+        font-weight: 600;
+      }
+      .font-bold {
+        font-weight: 700;
+      }
+      .font-extrabold {
+        font-weight: 800;
+      }
+      .font-black {
+        font-weight: 900;
+      }
 
-    /* Scrollbar Styling */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #a8a8a8;
-    }
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
 
-    /* Select2 Tailwind Integration */
-    .select2-container--default .select2-selection--single {
-      @apply h-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50;
-    }
+      /* Select2 Tailwind Integration */
+      .select2-container--default .select2-selection--single {
+        @apply h-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50;
+      }
 
-    /* Flatpickr Tailwind Integration */
-    .flatpickr-input {
-      @apply rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50;
-    }
+      /* Flatpickr Tailwind Integration */
+      .flatpickr-input {
+        @apply rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50;
+      }
 
-    /* Active menu item */
-    .sidebar-menu-item.active {
-      @apply bg-sidebar-darker text-white;
-    }
+      /* Active menu item */
+      .sidebar-menu-item.active {
+        @apply bg-sidebar-darker text-white;
+      }
 
-    /* Card styling */
-    .dashboard-card {
-      @apply bg-white rounded-lg shadow-sm p-5 border border-gray-100;
-    }
-  </style>
+      /* Card styling */
+      .dashboard-card {
+        @apply bg-white rounded-lg shadow-sm p-5 border border-gray-100;
+      }
+    </style>
 
-  {% if admin.favicon_url %}
-  <link rel="icon" href="{{ admin.favicon_url }}">
-  {% endif %}
-
-  {% block head_css %}{% endblock %}
-  {% block head_js %}{% endblock %}
-</head>
-<body class="bg-gray-50 text-gray-700 antialiased">
-  {% block body %}
-  <main>
-    {% block main %}
+    {% if admin.favicon_url %}
+    <link rel="icon" href="{{ admin.favicon_url }}" />
+    {% endif %} {% block head_css %}{% endblock %} {% block head_js %}{%
+    endblock %}
+  </head>
+  <body class="bg-gray-50 text-gray-700 antialiased">
+    {% block body %}
+    <main>{% block main %} {% endblock %}</main>
     {% endblock %}
-  </main>
-  {% endblock %}
 
-  <!-- Core Scripts -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Core Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-  <!-- Custom Scripts -->
-  <script>
-    // Initialize Select2
-    $(document).ready(function() {
-      $('.select2').select2({
-        theme: 'classic',
-        width: '100%'
+    <!-- Custom Scripts -->
+    <script>
+      // Initialize Select2
+      $(document).ready(function () {
+        $(".select2").select2({
+          theme: "classic",
+          width: "100%",
+        });
+
+        // Initialize Flatpickr
+        $(".datepicker").flatpickr({
+          dateFormat: "Y-m-d",
+          allowInput: true,
+        });
+
+        $(".datetimepicker").flatpickr({
+          enableTime: true,
+          allowInput: true,
+          enableSeconds: true,
+          time_24hr: true,
+          dateFormat: "Y-m-d H:i:s",
+        });
       });
+    </script>
 
-      // Initialize Flatpickr
-      $(".datepicker").flatpickr({
-        dateFormat: "Y-m-d",
-        allowInput: true
-      });
-
-      $(".datetimepicker").flatpickr({
-        enableTime: true,
-        allowInput: true,
-        enableSeconds: true,
-        time_24hr: true,
-        dateFormat: "Y-m-d H:i:s",
-      });
-    });
-  </script>
-
-  {% block js %}{% endblock %}
-</body>
+    {% block js %}{% endblock %}
+  </body>
 </html>

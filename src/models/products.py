@@ -26,7 +26,6 @@ class Product(SQLModel, table=True):
     thumbnail: str = Field(max_length=500)
     logo_url: str = Field(max_length=500)
 
-
     # enterprise
     enterprise_name: str = Field(max_length=100)
     enterprise_code: str = Field(max_length=100)
@@ -43,11 +42,14 @@ class Product(SQLModel, table=True):
     lat: float = Field(default=0.0)
     lng: float = Field(default=0.0)
 
+    # subway
     subway_line: str = Field(max_length=20)
     subway_name: str = Field(max_length=20)
     subway_exit: str = Field(max_length=20)
-    way_text: str = Field(max_length=100)
+
     park_limit: int = Field(default=0)
+    park_free_hours: int = Field(default=0)
+    way_text: str = Field(max_length=100)
 
     # business
     holiday: str = Field(max_length=100)

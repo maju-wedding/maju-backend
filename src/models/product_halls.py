@@ -13,9 +13,7 @@ class ProductHall(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     product_id: int = Field(foreign_key="products.id", unique=True)
 
-    address: str
-    latitude: float
-    longitude: float
+    checkpoint: str = Field(max_length=255)
     min_capacity: int
     max_capacity: int
     parking_capacity: int

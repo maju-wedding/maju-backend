@@ -17,9 +17,44 @@ class Product(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     product_category_id: int = Field(foreign_key="product_categories.id")
-    name: str
+    name: str = Field(max_length=100)
     description: str
-    available: bool = True
+    hashtag: str = Field(max_length=100)
+
+    direct_link: str = Field(max_length=500)
+    # images
+    thumbnail: str = Field(max_length=500)
+    logo_url: str = Field(max_length=500)
+
+
+    # enterprise
+    enterprise_name: str = Field(max_length=100)
+    enterprise_code: str = Field(max_length=100)
+
+    # contact
+    tel: str = Field(max_length=20)
+    fax_tel: str = Field(max_length=20)
+
+    # location
+    sido: str = Field(max_length=20)
+    gugun: str = Field(max_length=20)
+    dong: str = Field(max_length=20)
+    address: str = Field(max_length=100)
+    lat: float = Field(default=0.0)
+    lng: float = Field(default=0.0)
+
+    subway_line: str = Field(max_length=20)
+    subway_name: str = Field(max_length=20)
+    subway_exit: str = Field(max_length=20)
+    way_text: str = Field(max_length=100)
+    park_limit: int = Field(default=0)
+
+    # business
+    holiday: str = Field(max_length=100)
+    business_hours: str = Field(max_length=100)
+    available: bool = Field(default=True)
+
+    is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
@@ -28,7 +63,6 @@ class Product(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
     )
-    is_deleted: bool = Field(default=False)
     deleted_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )

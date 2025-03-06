@@ -1,6 +1,6 @@
 {% extends "sqladmin/layout.html" %}
 {% block content %}
-<div x-data="adminListView()" class="bg-white rounded-lg shadow">
+<div x-data="adminListView()" class="bg-white rounded-lg shadow" xmlns:x-transition="http://www.w3.org/1999/xhtml">
   <!-- 상단 필터/액션 영역 -->
   <div class="border-b border-gray-200 bg-white px-6 py-4">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -10,7 +10,7 @@
         <button
           @click="showDeleteSelected()"
           :disabled="selectedItems.length === 0"
-          class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-red-700 bg-red-50 border border-red-100 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
+          class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md text-red-700 bg-red-50 border border-red-100 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
           <i class="fas fa-trash-alt mr-2"></i>
           선택 삭제
         </button>
@@ -19,7 +19,7 @@
         <div x-data="{ open: false }" class="relative">
           <button
             @click="open = !open"
-            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-white border border-gray-300 hover:bg-gray-50">
+            class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-white border border-gray-300 hover:bg-gray-50">
             <i class="fas fa-filter mr-2"></i>
             필터
             <i class="fas fa-chevron-down ml-2"></i>
@@ -34,8 +34,8 @@
               <div class="space-y-3">
                 <!-- 삭제 상태 필터 -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">삭제 상태</label>
-                  <select name="is_deleted" class="w-full py-2 px-1 text-sm rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">삭제 상태</label>
+                  <select name="is_deleted" class="w-full py-2 px-1 text-xs rounded-md border-gray-300 shadow-sm focus:border-primary">
                     <option value="false" {% if request.query_params.get('is_deleted') == 'false' %}selected{% endif %}>삭제되지 않음</option>
                     <option value="true" {% if request.query_params.get('is_deleted') == 'true' %}selected{% endif %}>삭제됨</option>
                     <option value="" {% if request.query_params.get('is_deleted') == '' or request.query_params.get('is_deleted') is none %}selected{% endif %}>모두 보기</option>
@@ -45,8 +45,8 @@
                 <!-- 모델별 특수 필터 -->
                 {% if model_view.identity == 'user' %}
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">활성 상태</label>
-                  <select name="is_active" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">활성 상태</label>
+                  <select name="is_active" class="w-full py-2 px-1 text-xs rounded-md border-gray-600 border-1 shadow-sm focus:border-primary">
                     <option value="" {% if request.query_params.get('is_active') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_active') == 'true' %}selected{% endif %}>활성</option>
                     <option value="false" {% if request.query_params.get('is_active') == 'false' %}selected{% endif %}>비활성</option>
@@ -54,8 +54,8 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">사용자 유형</label>
-                  <select name="user_type" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">사용자 유형</label>
+                  <select name="user_type" class="w-full py-2 px-1 text-xs rounded-md border-gray-600 border-1 shadow-sm focus:border-primary">
                     <option value="" {% if request.query_params.get('user_type') is none %}selected{% endif %}>모두 보기</option>
                     <option value="local" {% if request.query_params.get('user_type') == 'local' %}selected{% endif %}>일반</option>
                     <option value="social" {% if request.query_params.get('user_type') == 'social' %}selected{% endif %}>소셜</option>
@@ -66,8 +66,8 @@
 
                 {% if model_view.identity == 'checklist_category' %}
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">카테고리 유형</label>
-                  <select name="is_system_category" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">카테고리 유형</label>
+                  <select name="is_system_category" class="w-full py-2 px-1 text-xs rounded-md border-gray-600 border-1 shadow-sm focus:border-primary">
                     <option value="" {% if request.query_params.get('is_system_category') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_system_category') == 'true' %}selected{% endif %}>시스템 카테고리</option>
                     <option value="false" {% if request.query_params.get('is_system_category') == 'false' %}selected{% endif %}>사용자 카테고리</option>
@@ -77,8 +77,8 @@
 
                 {% if model_view.identity == 'checklist' %}
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">체크리스트 유형</label>
-                  <select name="is_system_checklist" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">체크리스트 유형</label>
+                  <select name="is_system_checklist" class="w-full py-2 px-1 text-xs rounded-md border-gray-600 border-1 shadow-sm focus:border-primary">
                     <option value="" {% if request.query_params.get('is_system_checklist') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_system_checklist') == 'true' %}selected{% endif %}>시스템 체크리스트</option>
                     <option value="false" {% if request.query_params.get('is_system_checklist') == 'false' %}selected{% endif %}>사용자 체크리스트</option>
@@ -86,8 +86,8 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">완료 상태</label>
-                  <select name="is_completed" class="w-full py-2 px-1 text-sm rounded-md border-gray-600 border-1 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50">
+                  <label class="block text-xs font-medium text-gray-700 mb-1">완료 상태</label>
+                  <select name="is_completed" class="w-full py-2 px-1 text-xs rounded-md border-gray-600 border-1 shadow-sm focus:border-primary">
                     <option value="" {% if request.query_params.get('is_completed') is none %}selected{% endif %}>모두 보기</option>
                     <option value="true" {% if request.query_params.get('is_completed') == 'true' %}selected{% endif %}>완료됨</option>
                     <option value="false" {% if request.query_params.get('is_completed') == 'false' %}selected{% endif %}>미완료</option>
@@ -97,10 +97,10 @@
 
                 <!-- 필터 적용 버튼 -->
                 <div class="flex justify-between pt-2">
-                  <button type="submit" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-500 text-white hover:bg-primary-700">
+                  <button type="submit" class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-primary-500 text-white hover:bg-primary-700">
                     적용
                   </button>
-                  <a href="{{ url_for('admin:list', identity=model_view.identity) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  <a href="{{ url_for('admin:list', identity=model_view.identity) }}" class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">
                     초기화
                   </a>
                 </div>
@@ -125,17 +125,17 @@
             id="search-input"
             placeholder="검색"
             value="{{ request.query_params.get('search', '') }}"
-            class="w-64 py-2 rounded-md text-sm border-gray-300 pl-10 shadow-sm focus:border-primary focus:ring focus:ring-primary-300 focus:ring-opacity-50"
+            class="w-64 py-2 rounded-md text-xs pl-10 shadow"
             @keydown.enter.prevent="searchItems">
           <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <i class="fas fa-search text-gray-400"></i>
           </div>
-          <button
-            @click="searchItems"
-            id="search-button"
-            class="absolute inset-y-0 text-sm right-0 px-3 flex items-center bg-gray-50 rounded-r-md border-gray-300 hover:bg-gray-100">
-            검색
-          </button>
+<!--          <button-->
+<!--            @click="searchItems"-->
+<!--            id="search-button"-->
+<!--            class="absolute inset-y-0 text-xs right-0 px-3 flex items-center bg-gray-50 shadow rounded-r-md border-gray-300 hover:bg-gray-100">-->
+<!--            검색-->
+<!--          </button>-->
         </div>
         {% endif %}
 
@@ -144,7 +144,7 @@
         <div x-data="{ open: false }" class="relative">
           <button
             @click="open = !open"
-            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-white border border-gray-300 hover:bg-gray-50">
+            class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-white border border-gray-300 hover:bg-gray-50">
             <i class="fas fa-download mr-2"></i>
             내보내기
             <i class="fas fa-chevron-down ml-2"></i>
@@ -152,11 +152,11 @@
           <div
             x-show="open"
             @click.away="open = false"
-            class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200"
+            class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-30 border border-gray-200"
             x-cloak>
             {% for export_type in model_view.export_types %}
             <a href="{{ url_for('admin:export', identity=model_view.identity, export_type=export_type) }}"
-               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+               class="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">
               {{ export_type | upper }}
             </a>
             {% endfor %}
@@ -167,9 +167,9 @@
         <!-- 새 항목 추가 버튼 -->
         {% if model_view.can_create %}
         <a href="{{ url_for('admin:create', identity=model_view.identity) }}"
-           class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-500 text-white hover:bg-primary-700">
+           class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-primary-500 text-white hover:bg-primary-700">
           <i class="fas fa-plus mr-2"></i>
-          새 항목
+          추가
         </a>
         {% endif %}
       </div>
@@ -188,6 +188,10 @@
                 x-model="selectAll"
                 @change="toggleSelectAll"
                 class="rounded border-gray-300 text-primary-500 focus:ring-primary">
+            </th>
+
+            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap" style="min-width: 100px;">
+              액션
             </th>
 
             {% for name in model_view._list_prop_names %}
@@ -222,15 +226,12 @@
             </th>
             {% endfor %}
 
-            <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap" style="min-width: 100px;">
-              액션
-            </th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           {% for row in pagination.rows %}
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 whitespace-nowrap align-middle text-sm sticky left-0 bg-white">
+            <td class="px-4 py-3 whitespace-nowrap align-middle text-xs sticky left-0 bg-white">
               <input
                 type="checkbox"
                 value="{{ get_object_identifier(row) }}"
@@ -238,33 +239,8 @@
                 class="select-box rounded border-gray-300 text-primary-500 focus:ring-primary">
             </td>
 
-            {% for name in model_view._list_prop_names %}
-            {% set value, formatted_value = model_view.get_list_value(row, name) %}
-            <td class="px-4 py-3 whitespace-nowrap align-middle text-sm overflow-hidden text-ellipsis">
-              {% if name in model_view._relation_names %}
-                {% if is_list(value) %}
-                  {% for elem, formatted_elem in zip(value, formatted_value) %}
-                  <a href="{{ model_view._build_url_for('admin:details', request, elem) }}"
-                     class="text-primary-500 hover:text-primary-dark hover:underline">({{ formatted_elem }})</a>
-                  {% endfor %}
-                {% else %}
-                  <a href="{{ model_view._url_for_details_with_prop(request, row, name) }}"
-                     class="text-primary-500 hover:text-primary-dark hover:underline">{{ formatted_value }}</a>
-                {% endif %}
-              {% else %}
-                {% if formatted_value is sameas true %}
-                  <span class="text-green-600"><i class="fas fa-check-circle"></i></span>
-                {% elif formatted_value is sameas false %}
-                  <span class="text-red-600"><i class="fas fa-times-circle"></i></span>
-                {% else %}
-                  {{ formatted_value }}
-                {% endif %}
-              {% endif %}
-            </td>
-            {% endfor %}
-
-            <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-              <div class="flex items-center justify-end space-x-2">
+            <td class="px-4 py-3 whitespace-nowrap text-left text-xs">
+              <div class="flex items-center justify-start space-x-2">
                 {% if model_view.can_view_details %}
                 <a href="{{ model_view._build_url_for('admin:details', request, row) }}"
                   class="text-gray-500 hover:text-primary" title="상세보기">
@@ -288,6 +264,33 @@
                 {% endif %}
               </div>
             </td>
+
+            {% for name in model_view._list_prop_names %}
+            {% set value, formatted_value = model_view.get_list_value(row, name) %}
+            <td class="px-4 py-3 whitespace-nowrap align-middle text-xs overflow-hidden text-ellipsis">
+              {% if name in model_view._relation_names %}
+                {% if is_list(value) %}
+                  {% for elem, formatted_elem in zip(value, formatted_value) %}
+                  <a href="{{ model_view._build_url_for('admin:details', request, elem) }}"
+                     class="text-primary-500 hover:text-primary-dark hover:underline">({{ formatted_elem }})</a>
+                  {% endfor %}
+                {% else %}
+                  <a href="{{ model_view._url_for_details_with_prop(request, row, name) }}"
+                     class="text-primary-500 hover:text-primary-dark hover:underline">{{ formatted_value }}</a>
+                {% endif %}
+              {% else %}
+                {% if formatted_value is sameas true %}
+                  <span class="text-green-600"><i class="fas fa-check-circle"></i></span>
+                {% elif formatted_value is sameas false %}
+                  <span class="text-red-600"><i class="fas fa-times-circle"></i></span>
+                {% else %}
+                  {{ formatted_value }}
+                {% endif %}
+              {% endif %}
+            </td>
+            {% endfor %}
+
+
           </tr>
           {% endfor %}
         </tbody>
@@ -298,23 +301,23 @@
   <!-- 페이지네이션 -->
   <div class="border-t border-gray-200 px-4 py-3 bg-gray-50 sm:px-6">
     <div class="flex items-center justify-between flex-wrap">
-      <div class="text-sm text-gray-700">
-        {{ pagination.count }}개 중 <span class="font-medium">{{ ((pagination.page - 1) * pagination.page_size) + 1 }}</span>
-        부터 <span class="font-medium">{{ min(pagination.page * pagination.page_size, pagination.count) }}</span>까지 표시
+      <div class="text-xs text-gray-700">
+        Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.page_size) + 1 }}</span>
+        to <span class="font-medium">{{ min(pagination.page * pagination.page_size, pagination.count) }}</span> of {{ pagination.count }}
       </div>
 
       <div class="flex items-center space-x-4">
         <!-- 페이지 크기 설정 -->
         <div x-data="{ open: false }" class="relative">
-          <button @click="open = !open" class="inline-flex items-center px-3 py-2 text-sm rounded-md bg-white border border-gray-300 hover:bg-gray-50">
-            {{ request.query_params.get("pageSize") or model_view.page_size }} / 페이지
+          <button @click="open = !open" class="inline-flex items-center px-3 py-2 text-xs rounded-md bg-white border border-gray-300 hover:bg-gray-50">
+            {{ request.query_params.get("pageSize") or model_view.page_size }} / Page
             <i class="fas fa-chevron-down ml-2"></i>
           </button>
           <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200" x-cloak>
             {% for page_size_option in model_view.page_size_options %}
             <a href="{{ request.url.include_query_params(pageSize=page_size_option, page=pagination.resize(page_size_option).page) }}"
-               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              {{ page_size_option }} / 페이지
+               class="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">
+              {{ page_size_option }} / Page
             </a>
             {% endfor %}
           </div>
@@ -329,7 +332,7 @@
 
           {% for page_control in pagination.page_controls %}
           <a href="{{ page_control.url }}"
-             class="{{ 'z-10 bg-primary-500 text-white border-primary' if page_control.number == pagination.page else 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' }} flex items-center justify-center h-8 w-8 border">
+             class="{{ 'z-10 bg-primary-500 text-white border-primary' if page_control.number == pagination.page else 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' }} flex items-center justify-center h-8 w-8 border-1">
             {{ page_control.number }}
           </a>
           {% endfor %}
@@ -346,7 +349,7 @@
   <!-- 삭제 모달 -->
   <div
     x-show="deleteModal.show"
-    class="fixed z-10 inset-0 overflow-y-auto"
+    class="fixed z-40 inset-0 overflow-y-auto"
     x-transition:enter="ease-out duration-300"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
@@ -373,10 +376,10 @@
               <i class="fas fa-exclamation-triangle text-red-600"></i>
             </div>
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-              <h3 class="text-lg leading-6 font-medium text-gray-900" x-text="deleteModal.title">항목 삭제</h3>
+              <h3 class="text-base leading-6 font-medium text-gray-900" x-text="deleteModal.title">항목 삭제</h3>
               <div class="mt-2">
-                <p class="text-sm text-gray-500" x-text="deleteModal.message">
-                  정말로 이 항목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                <p class="text-xs text-gray-500" x-text="deleteModal.message">
+                  정말로 이 항목을 삭제하시겠습니까?
                 </p>
               </div>
             </div>
@@ -386,13 +389,13 @@
           <button
             type="button"
             @click="confirmDelete()"
-            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-xs">
             삭제
           </button>
           <button
             type="button"
             @click="deleteModal.show = false"
-            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-xs">
             취소
           </button>
         </div>

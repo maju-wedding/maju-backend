@@ -24,7 +24,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.title: "제목",
         Checklist.description: "설명",
         Checklist.checklist_category_id: "카테고리 ID",
-        Checklist.is_system_checklist: "시스템 체크리스트 여부",
+        Checklist.is_system_checklist: "기본 체크리스트",
         Checklist.user_id: "사용자 ID",
         Checklist.is_completed: "완료 여부",
         Checklist.completed_datetime: "완료일시",

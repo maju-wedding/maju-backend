@@ -2,7 +2,7 @@
 <div class="space-y-1">
   {% for item in menu.items %}
     {% if item.type_ == "View" %}
-      <a href="{{ item.url(request) }}" class="flex items-center justify-between py-1 px-4 rounded-lg text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200 {{ 'bg-primary-100 text-primary-600' if item.is_active(request) else '' }}">
+      <a href="{{ item.url(request) }}" class="flex items-center justify-between py-1 px-4 rounded-lg text-xs text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200 {{ 'bg-primary-100 text-primary-600' if item.is_active(request) else '' }}">
         <div class="flex items-center">
           {% if item.icon %}
             <i class="{{ item.icon }} w-5 h-5 mr-3 text-primary-500"></i>
@@ -16,7 +16,7 @@
       </a>
     {% elif item.type_ == "Category" %}
       <div x-data="{ open: {{ 'true' if item.is_active(request) else 'false' }} }" class="mb-1">
-        <button @click="open = !open" class="flex items-center justify-between w-full py-2 px-4 text-sm rounded-lg text-gray-700 hover:bg-gray-50 hover:text-primary-700 transition-colors duration-200 {{ 'bg-gray-50 text-primary-500' if item.is_active(request) else '' }}">
+        <button @click="open = !open" class="flex items-center justify-between w-full py-2 px-4 text-xs rounded-lg text-gray-700 hover:bg-gray-50 hover:text-primary-700 transition-colors duration-200 {{ 'bg-gray-50 text-primary-500' if item.is_active(request) else '' }}">
           <div class="flex items-center">
             {% if item.icon %}
               <i class="{{ item.icon }} w-5 h-5 mr-3 text-primary-500"></i>
@@ -34,7 +34,7 @@
         <div x-show="open" class="mt-1 ml-8 space-y-1">
           {% for sub_menu in item.children %}
             {% if sub_menu.is_visible(request) and sub_menu.is_accessible(request) %}
-              <a href="{{ sub_menu.url(request) }}" class="block py-2 px-3 text-sm text-gray-600 hover:text-primary-600 rounded-md transition-colors duration-200 {{ 'text-primary-600 font-medium' if sub_menu.is_active(request) else '' }}">
+              <a href="{{ sub_menu.url(request) }}" class="block py-2 px-3 text-xs text-gray-600 hover:text-primary-600 rounded-md transition-colors duration-200 {{ 'text-primary-600 font-medium' if sub_menu.is_active(request) else '' }}">
                 {{ sub_menu.display_name }}
               </a>
             {% endif %}
@@ -47,17 +47,17 @@
 {% endmacro %}
 
 {% macro render_field(field, kwargs={}) %}
-<div class="mb-6">
+<div class="flex flex-row mb-6">
   <label
     for="{{ field.id }}"
-    class="block mb-2 font-medium"
+    class="block mb-2 font-medium text-xs w-[120px]"
   >{{ field.label.text }}</label>
   <div class="w-full">
     {% if field.type == 'SelectField' or field.type == 'QuerySelectField' %}
       <select
         id="{{ field.id }}"
         name="{{ field.name }}"
-        class="select2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 {% if field.errors %}border-red-300 text-red-900{% endif %}"
+        class="select2 px-4 py-2 text-xs border border-gray-300 rounded-lg {% if field.errors %}border-red-300 text-red-900{% endif %}"
       >
         {% for choice in field.choices %}
         <option value="{{ choice[0] }}" {% if field.data == choice[0] %}selected{% endif %}>
@@ -65,6 +65,21 @@
         </option>
         {% endfor %}
       </select>
+    {% elif field.type == 'BooleanField' or field.widget.input_type == 'checkbox' %}
+      <label for="{{ field.id }}" class="inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          id="{{ field.id }}"
+          name="{{ field.name }}"
+          value="y"
+          {% if field.data %}checked{% endif %}
+          class="sr-only peer"
+        >
+        <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-600"></div>
+        {% if field.description %}
+          <span class="ml-2 text-xs text-gray-600">{{ field.description }}</span>
+        {% endif %}
+      </label>
     {% elif field.type == 'DateField' or field.type == 'DateTimeField' %}
       <input
         type="text"
@@ -72,31 +87,31 @@
         name="{{ field.name }}"
         value="{{ field.data or '' }}"
         placeholder="Select date"
-        class="datepicker w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 {% if field.errors %}border-red-300 text-red-900{% endif %}"
+        class="datepicker w-full px-4 py-2 text-xs border border-gray-300 rounded-lg {% if field.errors %}border-red-300 text-red-900{% endif %}"
       >
     {% elif field.type == 'RadioField' %}
       <div class="flex items-center space-x-6">
         {% for subfield in field %}
         <div class="flex items-center">
-          {{ subfield(class="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500") }}
+          {{ subfield(class="w-5 h-5 text-xs text-primary-600 border-gray-300 focus:ring-primary-500") }}
           <label for="{{ subfield.id }}" class="ml-2">{{ subfield.label.text }}</label>
         </div>
         {% endfor %}
       </div>
     {% else %}
       {% if field.errors %}
-        {{ field(class="w-full px-4 py-2 border border-red-300 rounded-lg pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500") }}
+        {{ field(class="w-full px-4 py-2 text-xs border border-red-300 rounded-lg pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500") }}
       {% else %}
-        {{ field(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500") }}
+        {{ field(class="w-full px-4 py-2 text-xs border border-gray-300 rounded-lg ") }}
       {% endif %}
     {% endif %}
 
     {% for error in field.errors %}
-    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+    <p class="mt-2 text-xs text-red-600">{{ error }}</p>
     {% endfor %}
 
     {% if field.description %}
-    <p class="mt-2 text-sm text-gray-500">{{ field.description }}</p>
+    <p class="mt-2 text-xs text-gray-500">{{ field.description }}</p>
     {% endif %}
   </div>
 </div>
@@ -115,7 +130,7 @@
     {% for section in form_opts.sections %}
       <!-- 섹션 시작 -->
       <div class="mb-6">
-        <h2 class="text-lg font-medium mb-4 pb-2 border-b border-gray-200">{{ section.title }}</h2>
+        <h2 class="text-sm font-medium mb-4 pb-2 border-b border-gray-200">{{ section.title }}</h2>
 
         <div class="space-y-6">
           {% for row in section.rows %}
@@ -173,16 +188,16 @@
     <div
       class="flex items-center justify-center h-12 w-12 rounded-full bg-primary-200 bg-opacity-20 text-primary"
     >
-      <i class="{{ icon }} text-xl text-primary-500"></i>
+      <i class="{{ icon }} text-lg text-primary-500"></i>
     </div>
     {% endif %}
     <div>
-      <p class="text-sm text-gray-400 font-medium">{{ title }}</p>
-      <h3 class="text-2xl font-bold mt-1">{{ value }}</h3>
+      <p class="text-xs text-gray-400 font-medium">{{ title }}</p>
+      <h3 class="text-xl font-bold mt-1">{{ value }}</h3>
 
       {% if change %}
       <p
-        class="mt-1 text-sm {{ 'text-green-600' if is_positive else 'text-red-600' }}"
+        class="mt-1 text-xs {{ 'text-green-600' if is_positive else 'text-red-600' }}"
       >
         <span class="flex items-center">
           <i

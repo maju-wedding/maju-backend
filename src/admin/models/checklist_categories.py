@@ -20,7 +20,7 @@ class ChecklistCategoryAdmin(BaseModelViewWithFilters, model=ChecklistCategory):
     column_labels = {
         ChecklistCategory.id: "카테고리 ID",
         ChecklistCategory.display_name: "표시 이름",
-        ChecklistCategory.is_system_category: "시스템 카테고리 여부",
+        ChecklistCategory.is_system_category: "기본 카테고리",
         ChecklistCategory.user_id: "사용자 ID",
         ChecklistCategory.created_datetime: "생성일시",
         ChecklistCategory.updated_datetime: "수정일시",

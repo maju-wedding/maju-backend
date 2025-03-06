@@ -2,11 +2,11 @@
 stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
 <div class="space-y-6">
   <!-- Stats Cards Row -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     {{ stat_card( title="사용자", value="3,782", change="11.01%", icon="fas
     fa-users", is_positive=true ) }} {{ stat_card( title="주문", value="5,359",
     change="9.05%", icon="fas fa-shopping-cart", is_positive=true ) }} {{
-    stat_card( title="매출", value="₩12,580,000", change="8.35%", icon="fas
+    stat_card( title="매출", value="62,580$", change="8.35%", icon="fas
     fa-dollar-sign", is_positive=true ) }} {{ stat_card( title="방문자",
     value="18,267", change="5.25%", icon="fas fa-chart-line", is_positive=true )
     }}
@@ -17,8 +17,8 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
     <!-- Sales Chart -->
     <div class="dashboard-card">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">월별 매출</h3>
-        <div class="text-sm text-gray-500">최근 12개월</div>
+        <h3 class="text-base font-semibold">월별 매출</h3>
+        <div class="text-xs text-gray-500">최근 12개월</div>
       </div>
       <div id="sales-chart" style="height: 300px"></div>
     </div>
@@ -26,8 +26,8 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
     <!-- Traffic Chart -->
     <div class="dashboard-card">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">트래픽 분석</h3>
-        <div class="text-sm text-gray-500">최근 30일</div>
+        <h3 class="text-base font-semibold">트래픽 분석</h3>
+        <div class="text-xs text-gray-500">최근 30일</div>
       </div>
       <div id="traffic-chart" style="height: 300px"></div>
     </div>
@@ -36,12 +36,12 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
   <!-- Recent Activity -->
   <div class="dashboard-card">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">최근 활동</h3>
-      <a href="#" class="text-primary-500 text-sm hover:underline">모두 보기</a>
+      <h3 class="text-base font-semibold">최근 활동</h3>
+      <a href="#" class="text-primary-500 text-xs hover:underline">모두 보기</a>
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-xs">
         <thead>
           <tr class="text-left bg-gray-100">
             <th class="px-4 py-3 font-medium">사용자</th>

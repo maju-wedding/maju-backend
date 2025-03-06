@@ -1,10 +1,10 @@
 {% extends "sqladmin/layout.html" %} {% from 'sqladmin/_macros.html' import
 render_form_fields %} {% block content %}
-<div class="w-full">
+<div class="w-full max-w-[600px] m-auto">
   <div class="bg-white rounded-lg shadow overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900">
-        New {{ model_view.name }}
+      <h3 class="text-base font-medium text-gray-900">
+        {{ model_view.name }} 추가
       </h3>
     </div>
 
@@ -30,26 +30,17 @@ render_form_fields %} {% block content %}
         <div class="flex justify-between items-center">
           <a
             href="{{ url_for('admin:list', identity=model_view.identity) }}"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            class="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
           >
             취소
           </a>
 
           <div class="space-x-2">
-            <button
-              type="submit"
-              name="save"
-              value="Save"
-              class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-            >
-              저장
-            </button>
-
-            <button
+                        <button
               type="submit"
               name="save"
               value="Save and continue editing"
-              class="px-4 py-2 bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"
+              class="px-4 py-2 text-xs bg-primary-500 text-white rounded-md hover:bg-primary-600"
             >
               저장 후 계속 편집
             </button>
@@ -57,11 +48,20 @@ render_form_fields %} {% block content %}
             <button
               type="submit"
               name="save"
-              value="Save and add another"
-              class="px-4 py-2 bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"
+              value="Save"
+              class="px-4 py-2 text-xs bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
             >
-              저장 후 새로 추가
+              저장
             </button>
+
+<!--            <button-->
+<!--              type="submit"-->
+<!--              name="save"-->
+<!--              value="Save and add another"-->
+<!--              class="px-4 py-2 text-xs bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"-->
+<!--            >-->
+<!--              저장 후 새로 추가-->
+<!--            </button>-->
           </div>
         </div>
       </form>

@@ -469,23 +469,52 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     column_list = [
         ProductHall.id,
         "product.name",  # 연결된 상품 이름 표시
-        ProductHall.address,
+        "product.address",
+        ProductHall.hall_type,
+        ProductHall.hall_style,
+        ProductHall.wedding_type,
+        ProductHall.wedding_running_time,
+        ProductHall.food_type,
+        ProductHall.food_cost,
         ProductHall.min_capacity,
         ProductHall.max_capacity,
-        ProductHall.parking_capacity,
+        ProductHall.guaranteed_min_count,
+        ProductHall.elevator,
+        ProductHall.valet_parking,
+        ProductHall.pyebaek_room,
+        ProductHall.family_waiting_room,
+        ProductHall.atm,
+        ProductHall.dress_room,
+        ProductHall.smoking_area,
+        ProductHall.photo_zone,
         ProductHall.is_deleted,
     ]
 
     column_labels = {
         ProductHall.id: "웨딩홀 ID",
         "product.name": "상품명",
+        "product.address": "주소",
+        "product.description": "설명",
+        "product.enterprise.name": "업체명",
+        "product.available": "판매 가능 여부",
         ProductHall.product_id: "상품 ID",
-        ProductHall.address: "주소",
-        ProductHall.latitude: "위도",
-        ProductHall.longitude: "경도",
+        ProductHall.hall_type: "홀 종류",
+        ProductHall.hall_style: "홀 스타일",
         ProductHall.min_capacity: "최소 수용 인원",
         ProductHall.max_capacity: "최대 수용 인원",
-        ProductHall.parking_capacity: "주차 수용 대수",
+        ProductHall.guaranteed_min_count: "보증 인원",
+        ProductHall.wedding_type: "예식 진행 방식",
+        ProductHall.wedding_running_time: "예식 진행 시간",
+        ProductHall.food_type: "식사 타입",
+        ProductHall.food_cost: "식사 비용",
+        ProductHall.elevator: "엘리베이터",
+        ProductHall.valet_parking: "발렛 파킹",
+        ProductHall.pyebaek_room: "폐백실",
+        ProductHall.family_waiting_room: "가족 대기실",
+        ProductHall.atm: "ATM 기기",
+        ProductHall.dress_room: "드레스룸",
+        ProductHall.smoking_area: "흡연실",
+        ProductHall.photo_zone: "포토존",
         ProductHall.is_deleted: "삭제 여부",
         ProductHall.created_datetime: "생성일시",
         ProductHall.updated_datetime: "수정일시",
@@ -497,13 +526,25 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         ProductHall.product_id,
         "product.name",
         "product.description",
+        "product.enterprise.name",
+        "product.address",
         "product.available",
-        ProductHall.address,
-        ProductHall.latitude,
-        ProductHall.longitude,
+        ProductHall.hall_type,
+        ProductHall.hall_style,
         ProductHall.min_capacity,
         ProductHall.max_capacity,
-        ProductHall.parking_capacity,
+        ProductHall.wedding_type,
+        ProductHall.wedding_running_time,
+        ProductHall.food_type,
+        ProductHall.food_cost,
+        ProductHall.elevator,
+        ProductHall.valet_parking,
+        ProductHall.pyebaek_room,
+        ProductHall.family_waiting_room,
+        ProductHall.atm,
+        ProductHall.dress_room,
+        ProductHall.smoking_area,
+        ProductHall.photo_zone,
         ProductHall.is_deleted,
         ProductHall.created_datetime,
         ProductHall.updated_datetime,
@@ -512,7 +553,10 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
 
     column_searchable_list = [
         "product.name",
-        ProductHall.address,
+        "product.address",
+        ProductHall.hall_type,
+        ProductHall.hall_style,
+        ProductHall.food_type,
     ]
 
     column_sortable_list = [
@@ -520,7 +564,8 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         # "product.name" 정렬은 별도 구현 필요
         ProductHall.min_capacity,
         ProductHall.max_capacity,
-        ProductHall.parking_capacity,
+        ProductHall.food_cost,
+        ProductHall.wedding_running_time,
         ProductHall.created_datetime,
         ProductHall.updated_datetime,
     ]
@@ -543,28 +588,8 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         else "",
     }
 
-    # form_excluded_columns = [
-    #     ProductHall.created_datetime,
-    #     ProductHall.updated_datetime,
-    #     ProductHall.deleted_datetime,
-    # ]
-
-    # 연결된 Product 모델의 정보를 함께 편집할 수 있도록 설정
-    form_columns = [
-        "product.name",
-        "product.description",
-        "product.available",
-        "product.product_category_id",
-        ProductHall.address,
-        ProductHall.latitude,
-        ProductHall.longitude,
-        ProductHall.min_capacity,
-        ProductHall.max_capacity,
-        ProductHall.parking_capacity,
-    ]
-
-    can_create = True
-    can_edit = True
+    can_create = False
+    can_edit = False
     can_delete = True
     can_view_details = True
 

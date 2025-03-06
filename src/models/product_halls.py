@@ -12,21 +12,20 @@ class ProductHall(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     product_id: int = Field(foreign_key="products.id", unique=True)
-
+    name: str = Field(max_length=100, nullable=True)
     hall_type: str = Field(
         max_length=255
     )  # 채플, 호텔, 컨벤션, 하우스, 야외, 한옥, 소규모, 기타
     hall_style: str = Field(max_length=255)  # 밝은, 어두운
 
     # hall size
-    min_capacity: int
-    max_capacity: int
+    min_capacity: int = Field(default=0)
+    max_capacity: int = Field(default=0)
+    guaranteed_min_count: int = Field(default=0)
 
     # hall detail
-    is_convention: bool
-    wedding_type: str  # 분리, 동시
-    wedding_running_time: int
-    # 컨벤션, 분리예식, 180분
+    wedding_type: str = Field(max_length=10)  # 동시, 분리
+    wedding_running_time: int = Field(default=60)  # 60분
 
     # food
     food_type: str = Field(max_length=255)  # 뷔페, 코스, 한상

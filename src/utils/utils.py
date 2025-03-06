@@ -1,6 +1,14 @@
 import datetime
 import random
 
+from fastapi.routing import APIRoute
+
+
+def custom_generate_unique_id(route: APIRoute) -> str:
+    if len(route.tags) == 0:
+        return route.name
+    return f"{route.tags[0]}-{route.name}"
+
 
 def utc_now() -> datetime.datetime:
     return datetime.datetime.now(datetime.UTC)

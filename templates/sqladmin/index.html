@@ -2,7 +2,7 @@
 stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
 <div class="space-y-6">
   <!-- Stats Cards Row -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     {{ stat_card( title="사용자", value="3,782", change="11.01%", icon="fas
     fa-users", is_positive=true ) }} {{ stat_card( title="주문", value="5,359",
     change="9.05%", icon="fas fa-shopping-cart", is_positive=true ) }} {{
@@ -37,13 +37,13 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
   <div class="dashboard-card">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">최근 활동</h3>
-      <a href="#" class="text-primary text-sm hover:underline">모두 보기</a>
+      <a href="#" class="text-primary-500 text-sm hover:underline">모두 보기</a>
     </div>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-left bg-gray-50">
+          <tr class="text-left bg-gray-100">
             <th class="px-4 py-3 font-medium">사용자</th>
             <th class="px-4 py-3 font-medium">활동</th>
             <th class="px-4 py-3 font-medium">상태</th>
@@ -51,74 +51,193 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
+          <!-- 최용환 -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img
-                  src="https://ui-avatars.com/api/?name=John+Doe&background=4f46e5&color=fff"
-                  alt="John Doe"
-                  class="h-8 w-8 rounded-full mr-3"
-                />
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=용환&background=4F46E5&color=fff"
+                    alt="최용환"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
                 <div>
                   <p class="font-medium">최용환</p>
-                  <p class="text-gray-500">user@example.com</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3">상품 구매</td>
+            <td class="px-4 py-3 text-gray-700">상품 구매</td>
             <td class="px-4 py-3">
               <span
                 class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
                 >완료</span
               >
             </td>
-            <td class="px-4 py-3 text-gray-500">3분 전</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">3분 전</td>
           </tr>
+
+          <!-- 최아름 -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img
-                  src="https://ui-avatars.com/api/?name=Jane+Smith&background=4f46e5&color=fff"
-                  alt="Jane Smith"
-                  class="h-8 w-8 rounded-full mr-3"
-                />
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=아름&background=EC4899&color=fff"
+                    alt="최아름"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
                 <div>
                   <p class="font-medium">최아름</p>
-                  <p class="text-gray-500">kim@example.com</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3">댓글 작성</td>
+            <td class="px-4 py-3 text-gray-700">댓글 작성</td>
             <td class="px-4 py-3">
               <span
                 class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
                 >승인됨</span
               >
             </td>
-            <td class="px-4 py-3 text-gray-500">15분 전</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">15분 전</td>
           </tr>
+
+          <!-- 황혜민 -->
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
               <div class="flex items-center">
-                <img
-                  src="https://ui-avatars.com/api/?name=Alex+Wilson&background=4f46e5&color=fff"
-                  alt="Alex Wilson"
-                  class="h-8 w-8 rounded-full mr-3"
-                />
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=혜민&background=F59E0B&color=fff"
+                    alt="황혜민"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
                 <div>
-                  <p class="font-medium">현진우</p>
-                  <p class="text-gray-500">park@example.com</p>
+                  <p class="font-medium">황혜민</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3">계정 생성</td>
+            <td class="px-4 py-3 text-gray-700">계정 생성</td>
             <td class="px-4 py-3">
               <span
                 class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
                 >진행중</span
               >
             </td>
-            <td class="px-4 py-3 text-gray-500">1시간 전</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">1시간 전</td>
+          </tr>
+
+          <!-- 정예린 -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="flex items-center">
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=예린&background=10B981&color=fff"
+                    alt="정예린"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p class="font-medium">정예린</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-gray-700">계정 생성</td>
+            <td class="px-4 py-3">
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                >진행중</span
+              >
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-xs">3시간 전</td>
+          </tr>
+
+          <!-- 진혜림 -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="flex items-center">
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=혜림&background=8B5CF6&color=fff"
+                    alt="진혜림"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p class="font-medium">진혜림</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-gray-700">계정 생성</td>
+            <td class="px-4 py-3">
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                >진행중</span
+              >
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-xs">1일 전</td>
+          </tr>
+
+          <!-- 전성훈 -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="flex items-center">
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=성훈&background=EF4444&color=fff"
+                    alt="전성훈"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p class="font-medium">전성훈</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-gray-700">계정 생성</td>
+            <td class="px-4 py-3">
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                >진행중</span
+              >
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-xs">2일 전</td>
+          </tr>
+
+          <!-- 현진우 -->
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="flex items-center">
+                <div class="h-8 w-8 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                  <img
+                    src="https://ui-avatars.com/api/?name=진우&background=0EA5E9&color=fff"
+                    alt="현진우"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p class="font-medium">현진우</p>
+                  <p class="text-gray-500 text-xs">user@example.com</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-gray-700">계정 생성</td>
+            <td class="px-4 py-3">
+              <span
+                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                >진행중</span
+              >
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-xs">7일 전</td>
           </tr>
         </tbody>
       </table>
@@ -144,7 +263,7 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
           show: false,
         },
       },
-      colors: ["#4f46e5"],
+      colors: ["#4073e0"],
       plotOptions: {
         bar: {
           borderRadius: 4,
@@ -216,7 +335,7 @@ stat_card %} {% block title %}대시보드{% endblock %} {% block content %}
           show: false,
         },
       },
-      colors: ["#4f46e5", "#818cf8"],
+      colors: ["#0fd568", "#818cf8"],
       dataLabels: {
         enabled: false,
       },

@@ -12,11 +12,11 @@ display_menu %} {% block body %}
   <!-- Sidebar -->
   <div
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-    class="fixed inset-y-0 left-0 z-30 w-64 transform overflow-y-auto text-white transition-transform duration-300 ease-in-out md:translate-x-0 md:relative md:shadow-md"
+    class="fixed inset-y-0 left-0 z-40 w-64 bg-white transform overflow-y-auto text-white transition-transform duration-300 ease-in-out md:translate-x-0 md:relative md:shadow-md"
   >
     <!-- Logo -->
     <div
-      class="flex items-center justify-between px-4 py-5 border-sidebar-darker text-black"
+      class="flex items-center justify-between px-4 py-5 text-black"
     >
       <a
         href="{{ url_for('admin:index') }}"
@@ -65,18 +65,18 @@ display_menu %} {% block body %}
 
           <!-- Search form - optional -->
           <div class="hidden sm:block">
-            <div class="relative">
-              <input
-                type="text"
-                placeholder="검색..."
-                class="border-0 pl-10 pr-4 py-2 w-72 text-sm rounded-md bg-gray-100 focus:bg-white focus:ring-2 focus:ring-primary focus:outline-none"
-              />
-              <div
-                class="absolute left-0 top-0 h-full flex items-center pl-3 text-gray-400"
-              >
-                <i class="fas fa-search"></i>
-              </div>
-            </div>
+<!--            <div class="relative">-->
+<!--              <input-->
+<!--                type="text"-->
+<!--                placeholder="검색"-->
+<!--                class="border-0 pl-10 pr-4 py-2 w-72 text-sm rounded-md bg-gray-100 focus:bg-white focus:ring-2 focus:ring-primary focus:outline-none"-->
+<!--              />-->
+<!--              <div-->
+<!--                class="absolute left-0 top-0 h-full flex items-center pl-3 text-gray-400"-->
+<!--              >-->
+<!--                <i class="fas fa-search"></i>-->
+<!--              </div>-->
+<!--            </div>-->
           </div>
         </div>
 
@@ -86,7 +86,7 @@ display_menu %} {% block body %}
             <button @click="open = !open" class="flex items-center space-x-2">
               <img
                 class="h-8 w-8 rounded-full object-cover"
-                src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff"
+                src="https://ui-avatars.com/api/?name=Admin&background=DA7656&color=fff"
                 alt="Admin"
               />
               <span class="hidden md:block font-medium text-sm">관리자</span>

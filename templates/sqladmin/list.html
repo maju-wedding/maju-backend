@@ -1,6 +1,22 @@
 {% extends "sqladmin/layout.html" %}
 {% block content %}
 <div x-data="adminListView()" class="bg-white rounded-lg shadow" xmlns:x-transition="http://www.w3.org/1999/xhtml">
+  <!-- 로딩 오버레이 -->
+  <div
+    x-show="isLoading"
+    class="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-75"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0">
+    <div class="text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      <p class="mt-2 text-sm text-gray-600">데이터를 불러오는 중입니다...</p>
+    </div>
+  </div>
+
   <!-- 상단 필터/액션 영역 -->
   <div class="border-b border-gray-200 bg-white px-6 py-4">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -130,12 +146,6 @@
           <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <i class="fas fa-search text-gray-400"></i>
           </div>
-<!--          <button-->
-<!--            @click="searchItems"-->
-<!--            id="search-button"-->
-<!--            class="absolute inset-y-0 text-xs right-0 px-3 flex items-center bg-gray-50 shadow rounded-r-md border-gray-300 hover:bg-gray-100">-->
-<!--            검색-->
-<!--          </button>-->
         </div>
         {% endif %}
 
@@ -434,6 +444,7 @@
     return {
       selectedItems: [],
       selectAll: false,
+      isLoading: false,  // 로딩 상태 추가
       deleteModal: {
         show: false,
         title: '',
@@ -442,18 +453,76 @@
         pks: ''
       },
 
-      // 전체 선택/해제
+      // 초기화 함수 추가
+      init() {
+        // 페이지 로드 시 로딩 상태 감지
+        this.addLoadingIndicators();
+      },
+
+      // 로딩 인디케이터 이벤트 추가
+      addLoadingIndicators() {
+        // 페이지네이션 링크에 로딩 표시
+        document.querySelectorAll('a[href*="page="]').forEach(link => {
+          link.addEventListener('click', () => {
+            if (!link.classList.contains('cursor-not-allowed')) {
+              this.isLoading = true;
+            }
+          });
+        });
+
+        // 필터 폼 제출 시 로딩 표시
+        document.querySelectorAll('form').forEach(form => {
+          form.addEventListener('submit', () => {
+            this.isLoading = true;
+          });
+        });
+
+        // 검색 버튼 클릭 시 로딩 표시
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+          searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              this.isLoading = true;
+            }
+          });
+        }
+
+        // 정렬 링크에 로딩 표시
+        document.querySelectorAll('a[href*="sortBy="]').forEach(link => {
+          link.addEventListener('click', () => {
+            this.isLoading = true;
+          });
+        });
+
+        // 페이지 크기 변경 링크에 로딩 표시
+        document.querySelectorAll('a[href*="pageSize="]').forEach(link => {
+          link.addEventListener('click', () => {
+            this.isLoading = true;
+          });
+        });
+
+        // 삭제 후 로딩 표시
+        this.addDeleteLoadingIndicator();
+      },
+
+      // 삭제 로딩 인디케이터 추가
+      addDeleteLoadingIndicator() {
+        const originalConfirmDelete = this.confirmDelete;
+        this.confirmDelete = function () {
+          this.isLoading = true;
+          originalConfirmDelete.call(this);
+        };
+      },
+
+      // 기존 함수들...
       toggleSelectAll() {
         if (this.selectAll) {
-          // 모든 체크박스 선택
           this.selectedItems = Array.from(document.querySelectorAll('.select-box')).map(cb => cb.value);
         } else {
-          // 모든 체크박스 해제
           this.selectedItems = [];
         }
       },
 
-      // 단일 항목 삭제 모달 표시
       showDeleteModal(name, pk, url) {
         this.deleteModal.title = `${name} 삭제`;
         this.deleteModal.message = `정말로 이 항목을 삭제하시겠습니까?`;
@@ -462,7 +531,6 @@
         this.deleteModal.show = true;
       },
 
-      // 선택된 항목 삭제 모달 표시
       showDeleteSelected() {
         if (this.selectedItems.length === 0) return;
 
@@ -473,7 +541,6 @@
         this.deleteModal.show = true;
       },
 
-      // 삭제 확인
       confirmDelete() {
         const url = `${this.deleteModal.url}?pks=${this.deleteModal.pks}`;
 
@@ -483,17 +550,18 @@
             'Content-Type': 'application/json'
           }
         })
-        .then(response => response.text())
-        .then(result => {
-          window.location.href = result;
-        })
-        .catch(error => {
-          alert('삭제 중 오류가 발생했습니다: ' + error);
-        });
+                .then(response => response.text())
+                .then(result => {
+                  window.location.href = result;
+                })
+                .catch(error => {
+                  this.isLoading = false;  // 에러 발생 시 로딩 상태 해제
+                  alert('삭제 중 오류가 발생했습니다: ' + error);
+                });
       },
 
-      // 검색 실행
       searchItems() {
+        this.isLoading = true;  // 검색 시 로딩 표시
         const searchInput = document.getElementById('search-input');
         const searchTerm = encodeURIComponent(searchInput.value);
 
@@ -508,6 +576,7 @@
         window.location.href = newUrl;
       }
     };
+
   }
 </script>
 {% endblock %}

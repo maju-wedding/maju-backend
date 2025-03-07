@@ -11,7 +11,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     column_list = [
         Checklist.id,
         Checklist.title,
-        Checklist.checklist_category_id,
+        "checklist_category.display_name",
         Checklist.user_id,
         Checklist.is_completed,
         Checklist.is_system_checklist,
@@ -23,7 +23,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.id: "체크리스트 ID",
         Checklist.title: "제목",
         Checklist.description: "설명",
-        Checklist.checklist_category_id: "카테고리 ID",
+        "checklist_category.display_name": "체크리스트 카테고리",
         Checklist.is_system_checklist: "기본 체크리스트",
         Checklist.user_id: "사용자 ID",
         Checklist.is_completed: "완료 여부",

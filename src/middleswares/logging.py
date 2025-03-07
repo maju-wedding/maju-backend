@@ -15,6 +15,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # 요청 경로 로깅
         path = request.url.path
         method = request.method
+        host = request.client.host or "unknown"
 
         try:
             response = await call_next(request)
@@ -33,12 +34,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 duration_str = f"{duration_ns/1_000_000_000:.2f}s"
 
             # 상태 코드에 따라 로그 레벨 조정
+            format = f"{host} {method} {path} {response.status_code} {duration_str}"
             if 200 <= response.status_code < 400:
-                logger.info(f"{method} {path} {response.status_code} {duration_str}")
+                logger.info(format)
             elif 400 <= response.status_code < 500:
-                logger.warning(f"{method} {path} {response.status_code} {duration_str}")
+                logger.warning(format)
             else:
-                logger.error(f"{method} {path} {response.status_code} {duration_str}")
+                logger.error(format)
 
             return response
 
@@ -56,5 +58,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             else:
                 duration_str = f"{duration_ns/1_000_000_000:.2f}s"
 
-            logger.exception(f"{method} {path} 500 {duration_str} - {str(e)}")
+            logger.exception(f"{host} {method} {path} 500 {duration_str} - {str(e)}")
             raise

@@ -1,10 +1,14 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlmodel
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 
 from utils.utils import utc_now
+
+if TYPE_CHECKING:
+    from models.checklists import Checklist
 
 
 class ChecklistCategory(SQLModel, table=True):
@@ -28,3 +32,5 @@ class ChecklistCategory(SQLModel, table=True):
     deleted_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
+
+    checklists: list["Checklist"] = Relationship(back_populates="checklist_category")

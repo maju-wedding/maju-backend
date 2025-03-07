@@ -300,51 +300,76 @@
 
   <!-- 페이지네이션 -->
   <div class="border-t border-gray-200 px-4 py-3 bg-gray-50 sm:px-6">
-    <div class="flex items-center justify-between flex-wrap">
-      <div class="text-xs text-gray-700">
-        Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.page_size) + 1 }}</span>
-        to <span class="font-medium">{{ min(pagination.page * pagination.page_size, pagination.count) }}</span> of {{ pagination.count }}
-      </div>
+  <div class="flex items-center justify-between flex-wrap">
+    {% with current_page=pagination.page, page_size=pagination.page_size, total_count=pagination.count %}
+    {% set total_pages = ((total_count + page_size - 1) // page_size) %}
+    {% set has_next = current_page < total_pages %}
+    {% set next_page = current_page + 1 if has_next else current_page %}
+    {% set has_previous = current_page > 1 %}
+    {% set previous_page = current_page - 1 if has_previous else 1 %}
 
-      <div class="flex items-center space-x-4">
-        <!-- 페이지 크기 설정 -->
-        <div x-data="{ open: false }" class="relative">
-          <button @click="open = !open" class="inline-flex items-center px-3 py-2 text-xs rounded-md bg-white border border-gray-300 hover:bg-gray-50">
-            {{ request.query_params.get("pageSize") or model_view.page_size }} / Page
-            <i class="fas fa-chevron-down ml-2"></i>
-          </button>
-          <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200" x-cloak>
-            {% for page_size_option in model_view.page_size_options %}
-            <a href="{{ request.url.include_query_params(pageSize=page_size_option, page=pagination.resize(page_size_option).page) }}"
-               class="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">
-              {{ page_size_option }} / Page
-            </a>
-            {% endfor %}
-          </div>
-        </div>
+    <div class="text-xs text-gray-700">
+      Showing <span class="font-medium">{{ ((current_page - 1) * page_size) + 1 }}</span>
+      to <span class="font-medium">{{ min(current_page * page_size, total_count) }}</span> of {{ total_count }}
+    </div>
 
-        <!-- 페이지 이동 버튼 -->
-        <div class="flex">
-          <a href="{{ pagination.previous_page.url if pagination.has_previous else '#' }}"
-             class="{{ 'cursor-not-allowed text-gray-300' if not pagination.has_previous else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 rounded-l-md border border-gray-300 bg-white">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-
-          {% for page_control in pagination.page_controls %}
-          <a href="{{ page_control.url }}"
-             class="{{ 'z-10 bg-primary-500 text-white border-primary' if page_control.number == pagination.page else 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' }} flex items-center justify-center h-8 w-8 border-1">
-            {{ page_control.number }}
+    <div class="flex items-center space-x-4">
+      <!-- 페이지 크기 설정 -->
+      <div x-data="{ open: false }" class="relative">
+        <button @click="open = !open" class="inline-flex items-center px-3 py-2 text-xs rounded-md bg-white border border-gray-300 hover:bg-gray-50">
+          {{ page_size or model_view.page_size }} / Page
+          <i class="fas fa-chevron-down ml-2"></i>
+        </button>
+        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200" x-cloak>
+          {% for page_size_option in model_view.page_size_options %}
+          <a href="{{ request.url.include_query_params(pageSize=page_size_option, page=1) }}"
+             class="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-100">
+            {{ page_size_option }} / Page
           </a>
           {% endfor %}
-
-          <a href="{{ pagination.next_page.url if pagination.has_next else '#' }}"
-             class="{{ 'cursor-not-allowed text-gray-300' if not pagination.has_next else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 rounded-r-md border border-gray-300 bg-white">
-            <i class="fas fa-chevron-right"></i>
-          </a>
         </div>
       </div>
+
+      <!-- 페이지 이동 버튼 -->
+      <div class="flex">
+        <!-- 첫 페이지 버튼 -->
+        <a href="{{ request.url.include_query_params(page=1) }}"
+           class="{{ 'cursor-not-allowed text-gray-300' if current_page == 1 else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 border border-gray-300 bg-white">
+          <i class="fas fa-angle-double-left"></i>
+        </a>
+
+        <!-- 이전 페이지 버튼 -->
+        <a href="{{ request.url.include_query_params(page=previous_page) }}"
+           class="{{ 'cursor-not-allowed text-gray-300' if not has_previous else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 border border-gray-300 bg-white">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+
+        <!-- 페이지 컨트롤 -->
+        {% for page_control in pagination.page_controls %}
+        {% set is_current = page_control.number == pagination.page %}
+        <a href="{{ page_control.url }}"
+           class="{{ 'z-10 bg-primary-500 text-white border-primary' if is_current else 'bg-white text-gray-500 hover:bg-gray-50 border-gray-300' }} flex items-center justify-center h-8 w-8 border-1">
+          {{ page_control.number }}
+        </a>
+        {% endfor %}
+
+        <!-- 다음 페이지 버튼 -->
+        <a href="{{ request.url.include_query_params(page=next_page) }}"
+           class="{{ 'cursor-not-allowed text-gray-300' if not has_next else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 border border-gray-300 bg-white">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+
+        <!-- 마지막 페이지 버튼 -->
+        <a href="{{ request.url.include_query_params(page=total_pages) }}"
+           class="{{ 'cursor-not-allowed text-gray-300' if current_page == total_pages else 'text-gray-500 hover:text-primary' }} flex items-center justify-center h-8 w-8 rounded-r-md border border-gray-300 bg-white">
+          <i class="fas fa-angle-double-right"></i>
+        </a>
+      </div>
+
     </div>
+    {% endwith %}
   </div>
+</div>
 
   <!-- 삭제 모달 -->
   <div
@@ -431,7 +456,7 @@
       // 단일 항목 삭제 모달 표시
       showDeleteModal(name, pk, url) {
         this.deleteModal.title = `${name} 삭제`;
-        this.deleteModal.message = `정말로 이 항목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`;
+        this.deleteModal.message = `정말로 이 항목을 삭제하시겠습니까?`;
         this.deleteModal.url = url;
         this.deleteModal.pks = pk;
         this.deleteModal.show = true;
@@ -442,7 +467,7 @@
         if (this.selectedItems.length === 0) return;
 
         this.deleteModal.title = '항목 삭제';
-        this.deleteModal.message = `선택한 ${this.selectedItems.length}개 항목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`;
+        this.deleteModal.message = `선택한 ${this.selectedItems.length}개 항목을 삭제하시겠습니까?`;
         this.deleteModal.url = "{{ url_for('admin:delete', identity=model_view.identity) }}";
         this.deleteModal.pks = this.selectedItems.join(',');
         this.deleteModal.show = true;

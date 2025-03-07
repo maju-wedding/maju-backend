@@ -53,6 +53,14 @@ class ProductCategoryAdmin(BaseModelViewWithFilters, model=ProductCategory):
         ProductCategory.is_ready: lambda m, a: "O" if m.is_ready else "X",
     }
 
+    form_excluded_columns = [
+        "products",
+        ProductCategory.is_deleted,
+        ProductCategory.created_datetime,
+        ProductCategory.updated_datetime,
+        ProductCategory.deleted_datetime,
+    ]
+
     can_create = True
     can_edit = True
     can_delete = True

@@ -11,11 +11,11 @@ from core import security
 from core.config import settings
 from core.db import get_session
 from core.enums import UserTypeEnum
-from core.exceptions import InvalidAuthorizationCode, InvalidToken
+from core.exceptions import InvalidToken
 from core.oauth_client import OAuthClient, extract_user_data
 from cruds.users import users_crud
 from models.users import SocialProviderEnum, User
-from schemes.auth import AuthToken, SocialLoginData
+from schemes.auth import AuthToken, SocialLoginWithTokenData
 from schemes.users import (
     UserCreate,
     InternalUserCreate,
@@ -141,26 +141,28 @@ async def login(
 
 @router.post("/social-login")
 async def social_login(
-    login_data: SocialLoginData,
+    login_data: SocialLoginWithTokenData,
     session: AsyncSession = Depends(get_session),
     oauth_client: OAuthClient = Depends(get_oauth_client),
 ):
-    """소셜 로그인 (카카오, 네이버)"""
-    try:
-        token_data = await oauth_client.get_tokens(login_data.code, login_data.state)
-    except InvalidAuthorizationCode:
-        raise HTTPException(status_code=400, detail="Invalid authorization code")
-
+    """소셜 로그인 (카카오, 네이버) - SDK에서 받은 액세스 토큰 사용"""
     if login_data.provider not in [SocialProviderEnum.kakao, SocialProviderEnum.naver]:
         raise ValueError(f"Unsupported provider: {login_data.provider}")
 
     try:
-        raw_user_info = await oauth_client.get_user_info(token_data["access_token"])
+        # 액세스 토큰 유효성 검증
+        is_valid = await oauth_client.is_authenticated(login_data.access_token)
+        if not is_valid:
+            raise InvalidToken
+
+        # 액세스 토큰으로 사용자 정보 가져오기
+        raw_user_info = await oauth_client.get_user_info(login_data.access_token)
     except InvalidToken:
-        raise HTTPException(status_code=400, detail="Invalid token")
+        raise HTTPException(status_code=400, detail="Invalid access token")
 
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
+    # 기존 사용자 확인 또는 신규 사용자 생성
     user = await users_crud.get(session, email=user_data["email"])
 
     if not user:
@@ -175,6 +177,7 @@ async def social_login(
             ),
         )
 
+    # JWT 토큰 생성 및 반환
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(
         subject=user.email,

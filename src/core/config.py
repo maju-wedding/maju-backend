@@ -15,18 +15,12 @@ class BaseAppSettings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str = "Reborn"
+    PROJECT_NAME: str = "SERENADE"
 
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "secret"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 3  # 3 days
     ENVIRONMENT: Literal["test", "local", "production"]
-
-    NAVER_CLIENT_ID: str = ""
-    NAVER_CLIENT_SECRET_ID: str = ""
-
-    KAKAO_CLIENT_ID: str = ""
-    KAKAO_CLIENT_SECRET_ID: str = ""
 
 
 class LocalSettings(BaseAppSettings):
@@ -63,7 +57,7 @@ class ProductionSettings(BaseAppSettings):
 
     @computed_field
     def DATABASE_URI(self) -> str:
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 def get_settings():

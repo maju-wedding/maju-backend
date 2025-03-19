@@ -25,12 +25,17 @@ class Checklist(SQLModel, table=True):
     )
     is_system_checklist: bool = Field(default=False)
     user_id: UUID | None = Field(foreign_key="users.id")
+    global_display_order: int = Field(
+        default=0, sa_column=Column(sqlmodel.Integer, default=0)
+    )
+    category_display_order: int = Field(
+        default=0, sa_column=Column(sqlmodel.Integer, default=0)
+    )
+
     is_completed: bool = Field(default=False)
     completed_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
-    is_deleted: bool = Field(default=False)
-    display_order: int = Field(default=0)
     created_datetime: datetime = Field(
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
@@ -42,5 +47,7 @@ class Checklist(SQLModel, table=True):
     deleted_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
+
+    is_deleted: bool = Field(default=False)
 
     checklist_category: "ChecklistCategory" = Relationship(back_populates="checklists")

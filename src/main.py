@@ -24,7 +24,7 @@ def custom_openapi():
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title="Reborn API",
+        title="Serenade API",
         version="1.0.0",
         description="API description",
         routes=app.routes,
@@ -34,7 +34,7 @@ def custom_openapi():
     openapi_schema["components"]["securitySchemes"] = {
         "User Login": {
             "type": "oauth2",
-            "flows": {"password": {"tokenUrl": "api/v1/auth/login", "scopes": {}}},
+            "flows": {"password": {"tokenUrl": "/api/v1/auth/login", "scopes": {}}},
         },
         "Bearer Auth": {
             "type": "http",

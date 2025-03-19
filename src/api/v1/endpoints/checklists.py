@@ -10,8 +10,8 @@ from cruds.checklists import (
     checklist_categories_crud,
 )
 from models import User
-from models.checklists import Checklist
 from models.checklist_categories import ChecklistCategory
+from models.checklists import Checklist
 from schemes.checklists import (
     ChecklistRead,
     ChecklistCreate,
@@ -43,6 +43,8 @@ async def list_system_checklists(
         limit=limit,
         schema_to_select=ChecklistRead,
         return_as_model=True,
+        sort_columns="global_display_order",
+        sort_orders="asc",
         **query,
     )
 
@@ -182,25 +184,31 @@ async def delete_system_checklist(
 @router.get("", response_model=list[ChecklistRead])
 async def list_checklists(
     checklist_category_id: int | None = Query(None),
-    completed_only: bool | None = Query(None),
+    contains_completed: bool = Query(True),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 체크리스트 목록 조회 (카테고리별, 완료 상태별 필터링 가능)"""
     query = {"user_id": current_user.id, "is_deleted": False}
+    sort_column = "global_display_order"
 
     # 카테고리 필터링
     if checklist_category_id is not None:
         query["checklist_category_id"] = checklist_category_id
+        sort_column = "category_display_order"
 
     # 완료된 항목만 조회
-    if completed_only is not None:
-        query["is_completed"] = True
+    if not contains_completed:
+        query["is_completed"] = False
 
-    checklist = await checklists_crud.get_multi(
+    checklist = await checklists_crud.get_multi_joined(
         session,
         schema_to_select=ChecklistRead,
         return_as_model=True,
+        join_model=ChecklistCategory,
+        join_prefix="checklist_category_",
+        sort_columns=sort_column,
+        sort_orders="asc",
         **query,
     )
 
@@ -222,7 +230,7 @@ async def create_checklists(
         id__in=system_checklist_ids,
         is_system_checklist=True,
         is_deleted=False,
-        schema_to_select=ChecklistRead,
+        schema_to_select=Checklist,
         return_as_model=True,
     )
 
@@ -295,6 +303,7 @@ async def create_custom_checklist(
 @router.put("/reorder", response_model=list[ChecklistRead])
 async def update_checklists_order(
     checklist_order_data: list[ChecklistOrderUpdate] = Body(...),
+    is_global_order: bool = Query(False),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -321,17 +330,16 @@ async def update_checklists_order(
     # 각 체크리스트 항목의 순서 업데이트
     results = []
     for item in checklist_order_data:
-        existing_item = await checklists_crud.get(
-            session,
-            id=item.id,
-            is_deleted=False,
-            return_as_model=True,
-            schema_to_select=Checklist,
-        )
+        existing_item = await checklists_crud.get(session, id=item.id, is_deleted=False)
+        update_data = {
+            (
+                "global_display_order" if is_global_order else "category_display_order"
+            ): item.display_order
+        }
         updated_item = await checklists_crud.update(
             session,
             id=existing_item.id,
-            display_order=item.display_order,
+            **update_data,
             return_as_model=True,
             schema_to_select=Checklist,
         )

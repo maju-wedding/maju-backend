@@ -17,3 +17,8 @@ class CategoryTypeEnum(str, Enum):
     studio = "studio"
     dress = "dress"
     makeup = "makeup"
+
+
+class GenderEnum(str, Enum):
+    male = "male"
+    female = "female"

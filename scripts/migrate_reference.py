@@ -1,4 +1,5 @@
 import json
+import re
 import traceback
 from typing import Any
 
@@ -8,9 +9,8 @@ from sqlalchemy import text
 from sqlmodel import Session, create_engine
 
 from core.config import settings
-from models.products import Product, ProductImage
 from models.product_halls import ProductHall
-
+from models.products import Product, ProductImage
 
 PROD_PG_CONNECTION = {
     "host": settings.POSTGRES_SERVER,
@@ -21,8 +21,8 @@ PROD_PG_CONNECTION = {
 }
 
 
-reference_engine = create_engine(settings.DATABASE_URL)
-target_engine = create_engine(settings.DATABASE_URL)
+reference_engine = create_engine(settings.DATABASE_URI)
+target_engine = create_engine(settings.DATABASE_URI)
 
 
 def connect_to_reference_postgres():
@@ -358,6 +358,58 @@ def sanitize_json(value):
     return None
 
 
+def clean_wedding_hall_names(name: str):
+    # List of city names to remove
+    city_names = [
+        "서울",
+        "인천",
+        "부산",
+        "대구",
+        "대전",
+        "광주",
+        "울산",
+        "세종",
+        "수원",
+        "안산",
+        "안양",
+        "부천",
+        "광명",
+        "평택",
+        "파주",
+        "이천",
+        "김해",
+        "창원",
+        "마산",
+        "거제",
+        "전주",
+        "제주",
+        "천안",
+        "청주",
+        "제천",
+        "여주",
+        "양평",
+        "포천",
+        "원주",
+    ]
+
+    dirty_patterns = {"_": " ", " ": ""}
+
+    # Create regex pattern for city names
+    city_pattern = "^(" + "|".join(city_names) + ")"
+
+    # Remove content in parentheses
+    cleaned = re.sub(r"\([^)]*\)", "", name)
+
+    # Remove city names
+    cleaned = re.sub(city_pattern, "", cleaned)
+
+    # Remove dirty patterns
+    for pattern in dirty_patterns:
+        cleaned = cleaned.replace(pattern, dirty_patterns[pattern])
+
+    return cleaned.strip()
+
+
 def migrate_data():
     """데이터 마이그레이션 실행"""
     hall_infos, iw_halls, wb_halls = fetch_source_data()
@@ -376,11 +428,13 @@ def migrate_data():
             iw_hall = mapping["iw_hall"]
             wb_hall = mapping["wb_hall"]
 
+            clean_name = clean_wedding_hall_names(hall_info.get("name_new"))
+
             try:
                 # 기본 제품 정보 생성
                 product = Product(
                     product_category_id=product_category_id,
-                    name=safe_truncate(hall_info.get("name_new") or "", 100),
+                    name=safe_truncate(clean_name, 100),
                     description=hall_info.get("contents_text").strip()
                     or iw_hall.get("contents_text")
                     or "",
@@ -430,7 +484,7 @@ def migrate_data():
 
                 product_hall = ProductHall(
                     product_id=product.id,
-                    name=safe_truncate(hall_info.get("name") or "", 100),
+                    name=safe_truncate(clean_name, 100),
                     hall_type=parse_hall_type(hall_info, iw_hall, wb_hall),
                     hall_style=parse_hall_style(wb_hall),
                     min_capacity=min_capacity,

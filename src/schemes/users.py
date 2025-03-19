@@ -5,7 +5,7 @@ import sqlmodel
 from pydantic import EmailStr, SecretStr
 from sqlmodel import SQLModel, Field
 
-from core.enums import UserTypeEnum, SocialProviderEnum
+from core.enums import UserTypeEnum, SocialProviderEnum, GenderEnum
 from utils.utils import utc_now
 
 
@@ -51,9 +51,11 @@ class UserUpdate(SQLModel):
     """사용자 업데이트 스키마"""
 
     nickname: str | None = Field(default=None, max_length=20)
+
+    gender: GenderEnum | None = Field(default=None, max_length=10)
     service_policy_agreement: bool | None = Field(default=None)
     privacy_policy_agreement: bool | None = Field(default=None)
-    third_party_information_agreement: bool | None = Field(default=None)
+    advertising_agreement: bool | None = Field(default=None)
     updated_datetime: datetime = Field(default_factory=utc_now)
 
 

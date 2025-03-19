@@ -6,9 +6,8 @@ from sqlmodel import SQLModel
 from core.enums import UserTypeEnum, SocialProviderEnum
 
 
-class SocialLoginData(SQLModel):
-    code: str
-    state: str
+class SocialLoginWithTokenData(SQLModel):
+    access_token: str
     provider: SocialProviderEnum
 
 

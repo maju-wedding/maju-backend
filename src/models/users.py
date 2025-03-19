@@ -3,10 +3,10 @@ from uuid import UUID, uuid4
 
 import sqlmodel
 from pydantic import EmailStr
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Boolean
 from sqlmodel import Field, SQLModel
 
-from core.enums import SocialProviderEnum, UserTypeEnum
+from core.enums import SocialProviderEnum, UserTypeEnum, GenderEnum
 from utils.utils import utc_now
 
 
@@ -25,8 +25,12 @@ class User(SQLModel, table=True):
     email: EmailStr | None = Field(default=None, max_length=255, unique=True)
     phone_number: str | None = Field(..., max_length=20)
     nickname: str = Field(..., max_length=20)
-
-    is_active: bool = Field(default=True)
+    gender: GenderEnum | None = Field(
+        None, max_length=10, sa_column=Column(String, nullable=True)
+    )
+    wedding_datetime: datetime | None = Field(
+        default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
+    )
 
     user_type: UserTypeEnum = Field(
         default=UserTypeEnum.guest,
@@ -36,9 +40,15 @@ class User(SQLModel, table=True):
         default=None, sa_column=Column(String, nullable=True)
     )
 
-    service_policy_agreement: bool = Field(default=False)
-    privacy_policy_agreement: bool = Field(default=False)
-    third_party_information_agreement: bool = Field(default=False)
+    service_policy_agreement: bool | None = Field(
+        default=False, sa_column=Column(Boolean, default=False)
+    )
+    privacy_policy_agreement: bool | None = Field(
+        default=False, sa_column=Column(Boolean, default=False)
+    )
+    advertising_agreement: bool | None = Field(
+        default=False, sa_column=Column(Boolean, default=False)
+    )
 
     joined_datetime: datetime = Field(
         default_factory=utc_now,
@@ -52,5 +62,6 @@ class User(SQLModel, table=True):
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
 
-    is_superuser: bool = Field(default=False)
-    is_deleted: bool = Field(default=False)
+    is_superuser: bool = Field(default=False, sa_column=Column(Boolean, default=False))
+    is_active: bool = Field(default=True, sa_column=Column(Boolean, default=True))
+    is_deleted: bool = Field(default=False, sa_column=Column(Boolean, default=False))

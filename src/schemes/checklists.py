@@ -87,7 +87,9 @@ class ChecklistRead(SQLModel):
     is_completed: bool
     completed_datetime: datetime | None = None
     checklist_category_id: int | None = None
-    display_order: int = 0
+    global_display_order: int = 0
+    category_display_order: int = 0
+    checklist_category_display_name: str
 
 
 class SuggestChecklistRead(SQLModel):
@@ -96,4 +98,4 @@ class SuggestChecklistRead(SQLModel):
     title: str
     description: str | None = None
     checklist_category_id: int | None = None
-    display_order: int = 0
+    global_display_order: int = 0

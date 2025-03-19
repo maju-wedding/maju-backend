@@ -40,7 +40,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.deleted_datetime: "삭제일시",
         User.service_policy_agreement: "서비스 정책 동의",
         User.privacy_policy_agreement: "개인정보 정책 동의",
-        User.third_party_information_agreement: "제3자 정보 제공 동의",
+        User.advertising_agreement: "광고 마케팅 수신 동의",
     }
 
     column_details_list = [
@@ -58,7 +58,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.deleted_datetime,
         User.service_policy_agreement,
         User.privacy_policy_agreement,
-        User.third_party_information_agreement,
+        User.advertising_agreement,
     ]
 
     column_searchable_list = [
@@ -105,7 +105,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         "is_superuser",
         "service_policy_agreement",
         "privacy_policy_agreement",
-        "third_party_information_agreement",
+        "advertising_agreement",
     ]
 
     can_create = True

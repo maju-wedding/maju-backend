@@ -1,8 +1,15 @@
 from .checklist_categories import ChecklistCategory
 from .checklists import Checklist
+from .product_ai_review import ProductAIReview
 from .product_categories import ProductCategory
+from .product_hall_venues import (
+    ProductHallStyle,
+    ProductHallType,
+    ProductHallFoodType,
+    ProductHallVenueTypeLink,
+)
 from .product_halls import ProductHall
-from .products import Product
+from .products import Product, ProductImage
 from .user_wishlist import UserWishlist
 from .users import User
 
@@ -12,7 +19,13 @@ all_models = [
     ChecklistCategory,
     Checklist,
     Product,
+    ProductImage,
     ProductHall,
+    ProductHallVenueTypeLink,
+    ProductHallStyle,
+    ProductHallType,
+    ProductHallFoodType,
+    ProductAIReview,
     UserWishlist,
 ]
 

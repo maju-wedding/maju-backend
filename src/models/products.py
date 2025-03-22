@@ -8,7 +8,8 @@ from sqlmodel import SQLModel, Field, Relationship
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
-    from models import ProductCategory
+    from models.product_ai_review import ProductAIReview
+    from models.product_categories import ProductCategory
     from models.product_halls import ProductHall
     from models.user_wishlist import UserWishlist
 
@@ -76,6 +77,7 @@ class Product(SQLModel, table=True):
     wedding_hall_detail: Optional["ProductHall"] = Relationship(
         back_populates="product"
     )
+    ai_reviews: list["ProductAIReview"] = Relationship(back_populates="product")
 
     # studio_detail: Optional["StudioDetail"] = Relationship(back_populates="product")
     # dress_detail: Optional["DressDetail"] = Relationship(back_populates="product")

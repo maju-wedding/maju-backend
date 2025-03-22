@@ -12,7 +12,7 @@ from core.config import settings
 from core.db import get_session
 from core.enums import UserTypeEnum
 from core.exceptions import InvalidToken
-from core.oauth_client import OAuthClient, extract_user_data
+from core.oauth_client import extract_user_data
 from cruds.users import users_crud
 from models.users import SocialProviderEnum, User
 from schemes.auth import AuthToken, SocialLoginWithTokenData
@@ -143,8 +143,9 @@ async def login(
 async def social_login(
     login_data: SocialLoginWithTokenData,
     session: AsyncSession = Depends(get_session),
-    oauth_client: OAuthClient = Depends(get_oauth_client),
 ):
+    oauth_client = get_oauth_client(login_data.provider)
+
     """소셜 로그인 (카카오, 네이버) - SDK에서 받은 액세스 토큰 사용"""
     if login_data.provider not in [SocialProviderEnum.kakao, SocialProviderEnum.naver]:
         raise ValueError(f"Unsupported provider: {login_data.provider}")

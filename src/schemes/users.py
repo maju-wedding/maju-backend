@@ -41,6 +41,7 @@ class InternalUserCreate(SQLModel):
     phone_number: str | None = Field(None, max_length=20)
     hashed_password: str | None = Field(None)
     is_active: bool = Field(default=True)
+    gender: GenderEnum | None = Field(default=None)
 
     joined_datetime: datetime = Field(default_factory=utc_now)
     social_provider: SocialProviderEnum | None = Field(default=None)

@@ -42,7 +42,9 @@ class ProductHallStyle(SQLModel, table=True):
         back_populates="hall_style"
     )
     venues: list["ProductHallVenue"] = Relationship(
-        back_populates="hall_styles", link_model=ProductHallStyleLink
+        back_populates="hall_styles",
+        link_model=ProductHallStyleLink,
+        sa_relationship_kwargs={"overlaps": "hall_style,hall_style_links,venue"},
     )
 
 
@@ -56,7 +58,9 @@ class ProductHallType(SQLModel, table=True):
         back_populates="hall_type"
     )
     venues: list["ProductHallVenue"] = Relationship(
-        back_populates="hall_types", link_model=ProductHallVenueTypeLink
+        back_populates="hall_types",
+        link_model=ProductHallVenueTypeLink,
+        sa_relationship_kwargs={"overlaps": "venue_type_links,venue,hall_type"},
     )
 
 
@@ -127,15 +131,23 @@ class ProductHallVenue(SQLModel, table=True):
     # Relationships
     product_hall: "ProductHall" = Relationship(back_populates="product_hall_venues")
     hall_style_links: list["ProductHallStyleLink"] = Relationship(
-        back_populates="venue"
+        back_populates="venue", sa_relationship_kwargs={"overlaps": "venues"}
     )
     hall_styles: list["ProductHallStyle"] = Relationship(
-        back_populates="venues", link_model=ProductHallStyleLink
+        back_populates="venues",
+        link_model=ProductHallStyleLink,
+        sa_relationship_kwargs={
+            "overlaps": "hall_style_links,venue,hall_style,hall_style_links"
+        },
     )
 
     venue_type_links: list["ProductHallVenueTypeLink"] = Relationship(
-        back_populates="venue"
+        back_populates="venue", sa_relationship_kwargs={"overlaps": "venues"}
     )
     hall_types: list["ProductHallType"] = Relationship(
-        back_populates="venues", link_model=ProductHallVenueTypeLink
+        back_populates="venues",
+        link_model=ProductHallVenueTypeLink,
+        sa_relationship_kwargs={
+            "overlaps": "venue,venue_type_links,hall_type,venue_type_links"
+        },
     )

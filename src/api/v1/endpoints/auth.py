@@ -164,7 +164,13 @@ async def social_login(
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
     # 기존 사용자 확인 또는 신규 사용자 생성
-    user = await users_crud.get(session, email=user_data["email"])
+    user = await users_crud.get(
+        session,
+        email=user_data["email"],
+        is_deleted=False,
+        return_as_model=True,
+        schema_to_select=User,
+    )
 
     if not user:
         user = await users_crud.create(
@@ -175,16 +181,18 @@ async def social_login(
                 social_provider=login_data.provider,
                 nickname=user_data["name"],
                 user_type=UserTypeEnum.social,
+                gender=user_data["gender"],
             ),
         )
 
     # JWT 토큰 생성 및 반환
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
     jwt_token = security.create_access_token(
         subject=user.email,
         expires_delta=access_token_expires,
         user_type=UserTypeEnum.social,
-        extra_claims={"provider": user.social_provider.value},
+        extra_claims={"provider": user.social_provider},
     )
 
     return AuthToken(

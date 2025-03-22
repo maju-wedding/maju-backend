@@ -4,7 +4,7 @@ from typing import Any
 import aiohttp
 import certifi
 
-from core.enums import SocialProviderEnum
+from core.enums import SocialProviderEnum, GenderEnum
 from core.exceptions import InvalidToken
 
 
@@ -51,17 +51,21 @@ def extract_user_data(
     """Extract standardized user data from provider-specific response"""
     if provider == SocialProviderEnum.kakao:
         return {
-            "email": raw_user_info["kakao_account"]["email"],
             "id": raw_user_info["id"],
+            "email": raw_user_info["kakao_account"]["email"],
             "mobile": raw_user_info.get("mobile", ""),
-            "name": raw_user_info.get("name"),
-            "profile_image": raw_user_info.get("profile_image"),
+            "name": raw_user_info["kakao_account"]["profile"].get("nickname", ""),
+            "profile_image": raw_user_info["kakao_account"]["profile"].get(
+                "profile_image_url", ""
+            ),
             "age": raw_user_info.get("age"),
             "birthday": raw_user_info.get("birthday"),
             "gender": raw_user_info.get("gender"),
         }
     elif provider == SocialProviderEnum.naver:
         user_info = raw_user_info["response"]
+        gender = user_info.get("gender")
+        gender = GenderEnum.male if gender == "M" else GenderEnum.female
         return {
             "email": user_info["email"],
             "id": user_info["id"],
@@ -70,7 +74,7 @@ def extract_user_data(
             "profile_image": user_info.get("profile_image"),
             "age": user_info.get("age"),
             "birthday": user_info.get("birthday"),
-            "gender": user_info.get("gender"),
+            "gender": gender,
         }
     else:
         raise ValueError(f"Unsupported provider: {provider}")

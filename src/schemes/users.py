@@ -54,6 +54,7 @@ class UserUpdate(SQLModel):
     nickname: str | None = Field(default=None, max_length=20)
 
     gender: GenderEnum | None = Field(default=None, max_length=10)
+    wedding_datetime: datetime | None = Field(default=None)
     service_policy_agreement: bool | None = Field(default=None)
     privacy_policy_agreement: bool | None = Field(default=None)
     advertising_agreement: bool | None = Field(default=None)

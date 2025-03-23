@@ -1,7 +1,8 @@
+import datetime
 import json
 import re
 import traceback
-from typing import Any, List
+from typing import Any, List, Tuple
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -31,9 +32,7 @@ PROD_PG_CONNECTION = {
 
 
 reference_engine = create_engine(settings.DATABASE_URI)
-target_engine = create_engine(
-    "postgresql://reborn:reborn@postgres-container.orb.local:5432/reborn"
-)
+target_engine = create_engine(settings.DATABASE_URI)
 
 
 def connect_to_reference_postgres():
@@ -252,62 +251,351 @@ def parse_wedding_type(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> 
     return "동시"
 
 
-def parse_food_type(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> str:
-    """음식 유형 파싱"""
+def parse_food_type_and_cost(
+    hall_info: dict, iw_hall: dict, wb_hall: dict | None, venue_data: dict
+) -> Tuple[str, float]:
+    """음식 유형과 비용 파싱"""
+    food_type = "뷔페"  # 기본값
+    food_cost = 0
+
+    # wb_wedding_halls에서 메뉴 정보 확인
     if wb_hall and wb_hall.get("tag_메뉴"):
-        if "뷔페" in wb_hall["tag_메뉴"]:
-            return "뷔페"
-        elif "코스" in wb_hall["tag_메뉴"]:
-            return "코스"
-        elif "한상" in wb_hall["tag_메뉴"]:
-            return "한상"
+        menu_tag = wb_hall.get("tag_메뉴").lower()
+        if "뷔페" in menu_tag:
+            food_type = "뷔페"
+        elif "코스" in menu_tag:
+            food_type = "코스"
+        elif "한상" in menu_tag:
+            food_type = "한상"
 
-    # 예시 데이터에서 확인한 형식 처리
-    food_display = hall_info.get("foodDisplay", "").lower()
-    if "뷔페" in food_display:
-        return "뷔페"
-    elif "코스" in food_display:
-        return "코스"
-    elif "한상" in food_display:
-        return "한상"
+    # iw_wedding_hall_info의 foodDisplay 확인
+    if food_type == "뷔페" and hall_info.get("foodDisplay"):
+        food_display = hall_info.get("foodDisplay").lower()
+        if "코스" in food_display:
+            food_type = "코스"
+        elif "한상" in food_display:
+            food_type = "한상"
 
-    # iw_wedding_halls의 hashtag 필드 확인
+    # 해시태그 확인
     hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
-    if "뷔페" in hashtag:
-        return "뷔페"
-    elif "코스" in hashtag:
-        return "코스"
-    elif "한상" in hashtag:
-        return "한상"
+    if food_type == "뷔페" and "한상차림" in hashtag:
+        food_type = "한상"
+    elif food_type == "뷔페" and "코스" in hashtag:
+        food_type = "코스"
 
-    return "뷔페"  # 기본값
+    # 음식 비용 확인
+    # 먼저 venue_data 확인
+    if venue_data and venue_data.get("min_meal"):
+        food_cost = float(venue_data.get("min_meal"))
+    elif venue_data and venue_data.get("min_food_fee"):
+        food_cost = float(venue_data.get("min_food_fee"))
 
-
-def parse_food_cost(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> int:
-    """음식 비용 파싱"""
-    # wb_wedding_halls의 tag_식대_최소 필드 확인
-    if wb_hall and wb_hall.get("tag_식대_최소"):
+    # wb_hall의 식대 정보 확인
+    elif wb_hall and wb_hall.get("tag_식대_최소"):
         try:
-            # 문자열에서 숫자만 추출 (예: "식대 82,000" -> 82000)
-            cost_str = "".join(c for c in wb_hall["tag_식대_최소"] if c.isdigit())
+            cost_str = "".join(c for c in wb_hall.get("tag_식대_최소") if c.isdigit())
             if cost_str:
-                return int(cost_str)
+                food_cost = int(cost_str)
         except:
             pass
 
-    # iw_wedding_hall_info의 min_food 필드 확인
-    min_food = hall_info.get("min_food")
-    if min_food and isinstance(min_food, (int, float)):
-        return int(min_food)
+    # hall_info의 min_food 확인
+    elif hall_info.get("min_food"):
+        food_cost = float(hall_info.get("min_food"))
 
-    # iw_wedding_halls의 정보 확인
-    if iw_hall:
-        try:
-            return int(iw_hall.get("min_food", 0))
-        except:
-            pass
+    # 최소 기본값 설정
+    if food_cost <= 0:
+        food_cost = {"뷔페": 60000, "코스": 80000, "한상": 100000}.get(food_type, 70000)
 
-    return 0  # 기본값
+    return food_type, food_cost
+
+
+def parse_wedding_times_and_interval(
+    venue_data: dict, hall_info: dict
+) -> Tuple[int, str]:
+    """웨딩 시간 및 간격 파싱"""
+    # 기본값
+    wedding_interval = 60
+
+    # timeDisplay 필드에서 시간 정보 확인
+    time_display = venue_data.get("timeDisplay", "")
+
+    # 간격 정보 추출 시도
+    interval_match = re.search(r"(\d+)분", str(time_display))
+    if interval_match:
+        wedding_interval = int(interval_match.group(1))
+
+    # time_val 확인
+    if venue_data.get("time_val") and str(venue_data.get("time_val")).isdigit():
+        wedding_interval = int(venue_data.get("time_val"))
+
+    # 해시태그에서 확인
+    hashtag = venue_data.get("hashtag", "").lower() if venue_data else ""
+    if "60분이하" in hashtag:
+        wedding_interval = 60
+    elif "70~90분" in hashtag:
+        wedding_interval = 80
+    elif "100~120분" in hashtag:
+        wedding_interval = 110
+    elif "130~180분" in hashtag:
+        wedding_interval = 150
+    elif "240분이상" in hashtag:
+        wedding_interval = 240
+
+    # 웨딩 시간 생성
+    start_time = datetime.time(11, 0)
+    wedding_times = []
+
+    # 간격에 따라 4개 시간대 생성
+    for i in range(4):
+        hour = (
+            start_time.hour + ((start_time.minute + i * wedding_interval) // 60)
+        ) % 24
+        minute = (start_time.minute + i * wedding_interval) % 60
+        wedding_times.append(f"{hour:02d}:{minute:02d}")
+
+    return wedding_interval, ", ".join(wedding_times)
+
+
+def parse_hall_pricing(
+    venue_data: dict, hall_info: dict, iw_hall: dict
+) -> Tuple[int, int]:
+    """홀 가격 정보 파싱"""
+    # 기본값
+    basic_price = 0
+
+    # min_grand 확인 (가장 정확한 출처)
+    if venue_data.get("min_grand"):
+        basic_price = float(venue_data.get("min_grand"))
+    # fees JSON에서 확인
+    elif venue_data.get("fees"):
+        fees = sanitize_json(venue_data.get("fees"))
+        if fees and "grand" in fees and "minFee" in fees["grand"]:
+            basic_price = float(fees["grand"]["minFee"])
+    # 음식 비용 기반 추정
+    elif hall_info.get("min_food"):
+        food_cost = float(hall_info.get("min_food", 0))
+        # 평균 손님 수 * 음식 비용
+        avg_guests = (
+            int(hall_info.get("min_person", 100))
+            + int(hall_info.get("max_person", 200))
+        ) / 2
+        basic_price = avg_guests * food_cost
+
+    # 여전히 가격 정보가 없다면 기본값 사용
+    if basic_price <= 0:
+        basic_price = 5000000
+
+    # 성수기 가격 확인
+    peak_season_price = 0
+    if venue_data.get("max_grand") and float(venue_data.get("max_grand")) > basic_price:
+        peak_season_price = float(venue_data.get("max_grand"))
+    else:
+        # 기본 가격의 1.2배로 추정
+        peak_season_price = int(basic_price * 1.2)
+
+    return int(basic_price), peak_season_price
+
+
+def parse_amenities(
+    hall_info: dict, iw_hall: dict, wb_hall: dict = None
+) -> dict[str, bool]:
+    """편의시설 정보 파싱"""
+    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
+    sell_point = hall_info.get("sell_point", "")
+    sell_point_data = sanitize_json(sell_point)
+
+    # wb_hall 태그 데이터 확인
+    wb_tags = ""
+    if wb_hall:
+        wb_tags = f"{wb_hall.get('tag_타입', '')} {wb_hall.get('tag_예식형태', '')} {wb_hall.get('tag_메뉴', '')}"
+
+    # 기본값 설정
+    amenities = {
+        "elevator": False,
+        "valet_parking": False,
+        "pyebaek_room": False,
+        "family_waiting_room": False,
+        "atm": False,
+        "dress_room": False,
+        "smoking_area": False,
+        "photo_zone": False,
+        "include_drink": False,
+        "include_alcohol": False,
+        "include_service_fee": True,
+        "include_vat": True,
+        "bride_room_makeup_room": False,
+    }
+
+    # 키워드 매핑
+    amenity_keywords = {
+        "elevator": ["엘리베이터", "리프트", "elevator", "승강기"],
+        "valet_parking": [
+            "발렛",
+            "주차",
+            "셔틀",
+            "valet",
+            "parking",
+            "주차장",
+            "주차시설",
+        ],
+        "pyebaek_room": ["폐백", "피로연", "pyebaek", "폐백실", "전통혼례"],
+        "family_waiting_room": ["가족", "대기실", "가족실", "waiting room", "웨이팅"],
+        "atm": ["ATM", "현금인출기", "입출금기", "현금서비스"],
+        "dress_room": [
+            "드레스",
+            "드레스룸",
+            "파우더",
+            "파우더룸",
+            "dress room",
+            "탈의실",
+        ],
+        "smoking_area": ["흡연", "흡연실", "smoking", "흡연구역"],
+        "photo_zone": ["포토", "사진", "photo zone", "포토존", "사진촬영", "웨딩촬영"],
+        "include_drink": [
+            "음료",
+            "드링크",
+            "drink",
+            "주스",
+            "소프트드링크",
+            "웰컴드링크",
+        ],
+        "include_alcohol": ["주류", "알코올", "와인", "맥주", "alcohol", "위스키"],
+        "bride_room_makeup_room": [
+            "신부대기실",
+            "메이크업",
+            "화장실",
+            "makeup room",
+            "신부실",
+        ],
+    }
+
+    # 모든 텍스트 소스 확인
+    all_text = f"{hashtag} {sell_point} {wb_tags}"
+
+    # sell_point_data가 리스트인 경우 항목 추가
+    if isinstance(sell_point_data, list):
+        for item in sell_point_data:
+            if isinstance(item, str):
+                all_text += " " + item
+            elif isinstance(item, dict) and "text" in item:
+                all_text += " " + item["text"]
+
+    # 전체 텍스트에서 키워드 확인
+    for amenity, keywords in amenity_keywords.items():
+        for keyword in keywords:
+            if keyword in all_text.lower():
+                amenities[amenity] = True
+                break
+
+    return amenities
+
+
+def parse_bride_room_info(hall_info: dict, iw_hall: dict, wb_hall: dict = None) -> str:
+    """신부실 정보 파싱"""
+    # 기본값
+    entry_methods = "일반 입구"
+
+    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
+    sell_point = hall_info.get("sell_point", "")
+    sell_point_data = sanitize_json(sell_point)
+
+    # 결합 텍스트
+    all_text = f"{hashtag} {sell_point}"
+    if wb_hall:
+        all_text += f" {wb_hall.get('tag_타입', '')}"
+
+    # sell_point_data가 리스트인 경우 항목 추가
+    if isinstance(sell_point_data, list):
+        for item in sell_point_data:
+            if isinstance(item, str):
+                all_text += " " + item
+
+    # 입구 방법 키워드
+    entry_method_keywords = {
+        "전용 엘리베이터": [
+            "전용 엘리베이터",
+            "신부 전용",
+            "전용 리프트",
+            "신부 엘리베이터",
+        ],
+        "VIP 입구": ["VIP 입구", "VIP 통로", "별도 입구", "VIP 동선"],
+        "비공개 입구": ["비공개 입구", "프라이빗 입구", "독립 입구", "별도 통로"],
+    }
+
+    # 입구 방법 키워드 확인
+    for method, keywords in entry_method_keywords.items():
+        for keyword in keywords:
+            if keyword in all_text.lower():
+                entry_methods = method
+                return entry_methods
+
+    return entry_methods
+
+
+def parse_hall_physical_attributes(
+    venue_data: dict, hall_info: dict, iw_hall: dict
+) -> tuple[int, int]:
+    """홀 물리적 속성 파싱"""
+    # 기본값
+    ceiling_height = 5
+    virgin_road_length = 15
+
+    # sell_point 확인
+    sell_point = hall_info.get("sell_point", "")
+    sell_point_data = sanitize_json(sell_point)
+
+    # 결합 텍스트
+    all_text = ""
+    if isinstance(sell_point_data, list):
+        for item in sell_point_data:
+            if isinstance(item, str):
+                all_text += " " + item
+    elif isinstance(sell_point, str):
+        all_text = sell_point
+
+    # 천장 높이 정보 검색
+    ceiling_matches = re.findall(r"천장\s*높이\s*(\d+(?:\.\d+)?)", all_text)
+    ceiling_matches += re.findall(r"층고\s*(\d+(?:\.\d+)?)", all_text)
+
+    if ceiling_matches:
+        for match in ceiling_matches:
+            height = float(match)
+            if 3 <= height <= 20:  # 합리적인 천장 높이
+                ceiling_height = height
+                break
+
+    # 버진로드 길이 검색
+    road_matches = re.findall(r"버진로드\s*(\d+(?:\.\d+)?)", all_text)
+    road_matches += re.findall(r"길이\s*(\d+(?:\.\d+)?)\s*[미]?", all_text)
+
+    if road_matches:
+        for match in road_matches:
+            length = float(match)
+            if 5 <= length <= 50:  # 합리적인 도로 길이
+                virgin_road_length = length
+                break
+
+    return int(ceiling_height), int(virgin_road_length)
+
+
+def parse_wedding_running_time(iw_hall: dict) -> int:
+    """웨딩 진행 시간 파싱 (분 단위)"""
+    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
+
+    # 해시태그에서 시간 정보 추출
+    if "60분이하" in hashtag:
+        return 60
+    elif "70~90분" in hashtag:
+        return 80  # 평균값
+    elif "100~120분" in hashtag:
+        return 110  # 평균값
+    elif "130~180분" in hashtag:
+        return 150  # 평균값
+    elif "240분이상" in hashtag:
+        return 240
+
+    return 60  # 기본값
 
 
 def parse_park_free_hours(hall_info: dict) -> int | None:
@@ -331,58 +619,6 @@ def parse_park_free_hours(hall_info: dict) -> int | None:
             pass
 
     return None  # 기본값
-
-
-def parse_wedding_running_time(iw_hall: dict) -> int:
-    """웨딩 진행 시간 파싱 (분 단위)"""
-    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
-
-    # 해시태그에서 시간 정보 추출
-    if "60분이하" in hashtag:
-        return 60
-    elif "70~90분" in hashtag:
-        return 80  # 평균값
-    elif "100~120분" in hashtag or "130~180분" in hashtag:
-        return 120
-    elif "240분이상" in hashtag:
-        return 240
-
-    return 60  # 기본값
-
-
-def parse_amenities(hall_info: dict, iw_hall: dict) -> dict[str, bool]:
-    """편의시설 정보 파싱"""
-    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
-    sell_point = hall_info.get("sell_point", "")
-
-    # 기본값 설정
-    amenities = {
-        "elevator": False,
-        "valet_parking": False,
-        "pyebaek_room": False,
-        "family_waiting_room": False,
-        "atm": False,
-        "dress_room": False,
-        "smoking_area": False,
-        "photo_zone": False,
-    }
-
-    # 해시태그 및 sell_point에서 정보 추출
-    if isinstance(sell_point, str):
-        if "셔틀" in hashtag or "셔틀" in sell_point:
-            amenities["valet_parking"] = True
-
-        if "파우더룸" in sell_point or "드레스룸" in sell_point:
-            amenities["dress_room"] = True
-
-        # 일부 값은 확률적으로 설정 (실제 데이터에 없을 경우)
-        if "엘리베이터" in sell_point:
-            amenities["elevator"] = True
-
-        if "폐백" in sell_point:
-            amenities["pyebaek_room"] = True
-
-    return amenities
 
 
 def safe_truncate(value: str | None, max_length: int) -> str | None:
@@ -415,7 +651,7 @@ def sanitize_json(value):
 
 
 def clean_wedding_hall_names(name: str):
-    # List of city names to remove
+    # 도시 이름 목록 (제거 대상)
     city_names = [
         "서울",
         "인천",
@@ -450,16 +686,16 @@ def clean_wedding_hall_names(name: str):
 
     dirty_patterns = {"_": " ", " ": ""}
 
-    # Create regex pattern for city names
+    # 도시 이름을 위한 정규식 패턴 생성
     city_pattern = "^(" + "|".join(city_names) + ")"
 
-    # Remove content in parentheses
+    # 괄호 내용 제거
     cleaned = re.sub(r"\([^)]*\)", "", name)
 
-    # Remove city names
+    # 도시 이름 제거
     cleaned = re.sub(city_pattern, "", cleaned)
 
-    # Remove dirty patterns
+    # 더러운 패턴 제거
     for pattern in dirty_patterns:
         cleaned = cleaned.replace(pattern, dirty_patterns[pattern])
 
@@ -551,7 +787,7 @@ def migrate_data():
                         or "",
                         500,
                     ),
-                    logo_url="",
+                    logo_url=safe_truncate(hall_info.get("logo", "") or "", 500),
                     enterprise_name=safe_truncate(
                         iw_hall.get("enterprise_name", "") or "", 100
                     ),
@@ -592,7 +828,7 @@ def migrate_data():
                 session.flush()  # 제품 ID 생성을 위해 flush
 
                 # 편의시설 정보 파싱
-                amenities = parse_amenities(hall_info, iw_hall)
+                amenities = parse_amenities(hall_info, iw_hall, wb_hall)
 
                 # 결혼식장 상세 정보 생성
                 product_hall = ProductHall(
@@ -670,7 +906,7 @@ def migrate_data():
                         try:
                             venue_name = venue_data.get("name") or f"{clean_name} 홀"
 
-                            # 홀 유형 정보 파싱
+                            # 웨딩 타입 정보 파싱
                             wedding_type_value = parse_wedding_type(
                                 hall_info, iw_hall, wb_hall
                             )
@@ -679,56 +915,57 @@ def migrate_data():
                             min_capacity = venue_data.get("min_person") or 0
                             max_capacity = venue_data.get("max_person") or 0
 
-                            # 식음료 정보
-                            food_type_name = parse_food_type(
+                            # 개선된 파서 사용
+                            wedding_interval, wedding_times = (
+                                parse_wedding_times_and_interval(venue_data, hall_info)
+                            )
+                            basic_price, peak_season_price = parse_hall_pricing(
+                                venue_data, hall_info, iw_hall
+                            )
+                            ceiling_height, virgin_road_length = (
+                                parse_hall_physical_attributes(
+                                    venue_data, hall_info, iw_hall
+                                )
+                            )
+                            bride_room_entry = parse_bride_room_info(
                                 hall_info, iw_hall, wb_hall
                             )
-                            food_cost_adult = venue_data.get(
-                                "min_food_fee"
-                            ) or parse_food_cost(hall_info, iw_hall, wb_hall)
-
-                            # 기본 가격 계산
-                            basic_price = 0
-                            if venue_data.get("min_grand"):
-                                basic_price += float(venue_data.get("min_grand"))
-
-                            # 성수기 가격은 기본 가격의 1.2배로 가정
-                            peak_season_price = int(basic_price * 1.2)
+                            food_type_name, food_cost = parse_food_type_and_cost(
+                                hall_info, iw_hall, wb_hall, venue_data
+                            )
 
                             venue = ProductHallVenue(
                                 product_hall_id=product_hall.id,
                                 name=safe_truncate(venue_name, 100),
-                                wedding_interval=60,  # 기본값
-                                wedding_times="11:00, 13:00, 15:00, 17:00",  # 기본값
+                                wedding_interval=wedding_interval,
+                                wedding_times=wedding_times,
                                 wedding_type=wedding_type_value,
                                 guaranteed_min_count=min_capacity,
                                 min_capacity=min_capacity,
                                 max_capacity=max_capacity,
-                                basic_price=int(basic_price) or 5000000,  # 기본값
-                                peak_season_price=peak_season_price
-                                or 6000000,  # 기본값
-                                ceiling_height=5,  # 기본값
-                                virgin_road_length=15,  # 기본값
-                                include_drink=True,  # 기본값
-                                include_alcohol=False,  # 기본값
-                                include_service_fee=True,  # 기본값
-                                include_vat=True,  # 기본값
-                                bride_room_entry_methods="전용 엘리베이터",  # 기본값
-                                bride_room_makeup_room=True,  # 기본값
+                                basic_price=basic_price,
+                                peak_season_price=peak_season_price,
+                                ceiling_height=ceiling_height,
+                                virgin_road_length=virgin_road_length,
+                                include_drink=amenities["include_drink"],
+                                include_alcohol=amenities["include_alcohol"],
+                                include_service_fee=amenities["include_service_fee"],
+                                include_vat=amenities["include_vat"],
+                                bride_room_entry_methods=bride_room_entry,
+                                bride_room_makeup_room=amenities[
+                                    "bride_room_makeup_room"
+                                ],
                                 food_type_id=food_types.get(food_type_name).id,
-                                food_cost_per_adult=(
-                                    int(food_cost_adult) if food_cost_adult else 100000
-                                ),  # 기본값
-                                food_cost_per_child=(
-                                    int(food_cost_adult / 2)
-                                    if food_cost_adult
-                                    else 50000
+                                food_cost_per_adult=int(food_cost),
+                                food_cost_per_child=int(
+                                    food_cost * 0.6
+                                ),  # 성인 비용의 60%
+                                banquet_hall_running_time=parse_wedding_running_time(
+                                    iw_hall
                                 ),
-                                # 기본값 (성인의 절반)
-                                banquet_hall_running_time=120,  # 기본값
                                 banquet_hall_max_capacity=max_capacity,
-                                additional_info="",  # 기본값
-                                special_notes="",  # 기본값
+                                additional_info="",  # 더 많은 파싱으로 개선 가능
+                                special_notes="",  # 더 많은 파싱으로 개선 가능
                             )
 
                             session.add(venue)
@@ -770,37 +1007,50 @@ def migrate_data():
                         wedding_type_value = parse_wedding_type(
                             hall_info, iw_hall, wb_hall
                         )
-                        food_type_name = parse_food_type(hall_info, iw_hall, wb_hall)
-                        food_cost = parse_food_cost(hall_info, iw_hall, wb_hall)
 
                         min_capacity = hall_info.get("min_person") or 0
                         max_capacity = hall_info.get("max_person") or 0
 
+                        # 개선된 파서 사용
+                        # 기본 데이터로 빈 딕셔너리 전달
+                        wedding_interval = parse_wedding_running_time(iw_hall)
+                        wedding_times = "11:00, 13:00, 15:00, 17:00"  # 기본값
+                        basic_price, peak_season_price = parse_hall_pricing(
+                            {}, hall_info, iw_hall
+                        )
+                        ceiling_height, virgin_road_length = (
+                            parse_hall_physical_attributes({}, hall_info, iw_hall)
+                        )
+                        bride_room_entry = parse_bride_room_info(
+                            hall_info, iw_hall, wb_hall
+                        )
+                        food_type_name, food_cost = parse_food_type_and_cost(
+                            hall_info, iw_hall, wb_hall, {}
+                        )
+
                         venue = ProductHallVenue(
                             product_hall_id=product_hall.id,
                             name=f"{clean_name} 메인홀",
-                            wedding_interval=60,
-                            wedding_times="11:00, 13:00, 15:00, 17:00",
+                            wedding_interval=wedding_interval,
+                            wedding_times=wedding_times,
                             wedding_type=wedding_type_value,
                             guaranteed_min_count=min_capacity,
                             min_capacity=min_capacity,
                             max_capacity=max_capacity,
-                            basic_price=5000000,  # 기본값
-                            peak_season_price=6000000,  # 기본값
-                            ceiling_height=5,  # 기본값
-                            virgin_road_length=15,  # 기본값
-                            include_drink=True,
-                            include_alcohol=False,
-                            include_service_fee=True,
-                            include_vat=True,
-                            bride_room_entry_methods="전용 엘리베이터",
-                            bride_room_makeup_room=True,
+                            basic_price=basic_price,
+                            peak_season_price=peak_season_price,
+                            ceiling_height=ceiling_height,
+                            virgin_road_length=virgin_road_length,
+                            include_drink=amenities["include_drink"],
+                            include_alcohol=amenities["include_alcohol"],
+                            include_service_fee=amenities["include_service_fee"],
+                            include_vat=amenities["include_vat"],
+                            bride_room_entry_methods=bride_room_entry,
+                            bride_room_makeup_room=amenities["bride_room_makeup_room"],
                             food_type_id=food_types.get(food_type_name).id,
-                            food_cost_per_adult=food_cost or 100000,
-                            food_cost_per_child=(
-                                (food_cost // 2) if food_cost else 50000
-                            ),
-                            banquet_hall_running_time=120,
+                            food_cost_per_adult=int(food_cost),
+                            food_cost_per_child=int(food_cost * 0.6),  # 성인 비용의 60%
+                            banquet_hall_running_time=wedding_interval,
                             banquet_hall_max_capacity=max_capacity,
                             additional_info="",
                             special_notes="",

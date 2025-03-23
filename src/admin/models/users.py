@@ -19,6 +19,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.nickname,
         User.phone_number,
         User.user_type,
+        User.wedding_datetime,
         User.is_active,
         User.is_superuser,
         User.is_deleted,
@@ -31,6 +32,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.hashed_password: "비밀번호",
         User.phone_number: "전화번호",
         User.user_type: "사용자 유형",
+        User.wedding_datetime: "예식일",
         User.is_active: "활성 여부",
         User.is_superuser: "관리자 여부",
         User.social_provider: "소셜 제공자",
@@ -49,6 +51,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.nickname,
         User.phone_number,
         User.user_type,
+        User.wedding_datetime,
         User.social_provider,
         User.is_active,
         User.is_superuser,
@@ -64,18 +67,23 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
     column_searchable_list = [
         User.email,
         User.nickname,
-        User.phone_number,
     ]
 
     column_sortable_list = [
         User.id,
-        User.email,
-        User.nickname,
         User.joined_datetime,
-        User.updated_datetime,
     ]
 
     column_formatters = {
+        User.wedding_datetime: lambda m, a: (
+            m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""
+        ),
+    }
+
+    column_formatters_detail = {
+        User.wedding_datetime: lambda m, a: (
+            m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""
+        ),
         User.joined_datetime: lambda m, a: (
             m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""
         ),

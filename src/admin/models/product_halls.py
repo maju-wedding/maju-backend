@@ -14,8 +14,15 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
 
     column_list = [
         ProductHall.id,
-        "product.name",
+        ProductHall.name,
         "product.address",
+        "product.sido",
+        "product.gugun",
+        "product.park_limit",
+        "product.park_free_hours",
+        "product.subway_line",
+        "product.subway_name",
+        "product.subway_exit",
         ProductHall.elevator,
         ProductHall.valet_parking,
         ProductHall.pyebaek_room,
@@ -29,11 +36,23 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
 
     column_labels = {
         ProductHall.id: "웨딩홀 ID",
-        "product.name": "상품명",
+        ProductHall.name: "웨딩홀명",
         "product.address": "주소",
+        "product.sido": "시도",
+        "product.gugun": "구군",
+        "product.park_limit": "주차 가능 대수",
+        "product.park_free_hours": "주차 무료 시간",
+        "product.subway_line": "지하철 호선",
+        "product.subway_name": "지하철 역",
+        "product.subway_exit": "지하철 출구",
         "product.description": "설명",
         "product.enterprise.name": "업체명",
         "product.available": "판매 여부",
+        "product.tel": "전화번호",
+        "product.fax_tel": "팩스번호",
+        "product.way_text": "오시는 길",
+        "product.holiday": "휴무일",
+        "product.business_hours": "영업시간",
         ProductHall.product_id: "상품 ID",
         ProductHall.elevator: "엘리베이터 여부",
         ProductHall.valet_parking: "발렛 파킹 여부",
@@ -52,10 +71,21 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     column_details_list = [
         ProductHall.id,
         ProductHall.product_id,
-        "product.name",
         "product.description",
-        "product.enterprise.name",
         "product.address",
+        "product.sido",
+        "product.gugun",
+        "product.park_limit",
+        "product.park_free_hours",
+        "product.subway_line",
+        "product.subway_name",
+        "product.subway_exit",
+        "product.tel",
+        "product.fax_tel",
+        "product.way_text",
+        "product.holiday",
+        "product.business_hours",
+        "product.enterprise.name",
         "product.available",
         ProductHall.elevator,
         ProductHall.valet_parking,
@@ -78,12 +108,9 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
 
     column_sortable_list = [
         ProductHall.id,
-        # "product.name" 정렬은 별도 구현 필요
-        ProductHall.created_datetime,
-        ProductHall.updated_datetime,
     ]
 
-    column_formatters = {
+    column_formatters_detail = {
         ProductHall.created_datetime: lambda m, a: (
             m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
             if m.created_datetime

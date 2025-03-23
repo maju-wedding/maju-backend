@@ -71,6 +71,8 @@ class ProductHallFoodType(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str = Field(...)
 
+    venues: list["ProductHallVenue"] = Relationship(back_populates="food_type")
+
 
 class ProductHallVenue(SQLModel, table=True):
     __tablename__ = "product_hall_venues"
@@ -151,3 +153,5 @@ class ProductHallVenue(SQLModel, table=True):
             "overlaps": "venue,venue_type_links,hall_type,venue_type_links"
         },
     )
+
+    food_type: "ProductHallFoodType" = Relationship(back_populates="venues")

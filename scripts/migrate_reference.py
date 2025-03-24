@@ -29,10 +29,15 @@ PROD_PG_CONNECTION = {
     "password": settings.POSTGRES_PASSWORD,
     "port": settings.POSTGRES_PORT,
 }
-
+target_env = "local"
+target_database = (
+    settings.DATABASE_URI
+    if target_env == "prod"
+    else "postgresql://reborn:reborn@postgres-container.orb.local:5432/reborn"
+)
 
 reference_engine = create_engine(settings.DATABASE_URI)
-target_engine = create_engine(settings.DATABASE_URI)
+target_engine = create_engine(target_database)
 
 
 def connect_to_reference_postgres():
@@ -158,7 +163,7 @@ def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> Li
                 result_types.append(allowed_type)
 
     # 스타일과 해시태그에서 타입 추출
-    styles = hall_info.get("styles") or hall_info.get("style") or ""
+    styles = hall_info.get("hallTypeDisplay") or ""
     hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
 
     # 허용된 타입 순서대로 확인
@@ -198,15 +203,9 @@ def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> Li
     return result_types
 
 
-def parse_hall_styles(wb_hall: dict) -> List[str]:
+def parse_hall_styles(wb_hall: dict, iw_hall: dict) -> List[str]:
     """결혼식장 스타일 파싱 (여러 스타일 반환)"""
     result_styles = []
-
-    if not wb_hall:
-        return ["모던"]  # 기본 스타일
-
-    styles = wb_hall.get("tag_타입") or ""
-
     # 스타일 매핑
     style_mappings = {
         "밝은": ["밝은", "화이트", "화사한"],
@@ -216,11 +215,23 @@ def parse_hall_styles(wb_hall: dict) -> List[str]:
         "럭셔리": ["럭셔리", "고급", "호화"],
     }
 
-    # 스타일 키워드 확인
-    for style_key, keywords in style_mappings.items():
-        for keyword in keywords:
-            if keyword in styles and style_key not in result_styles:
-                result_styles.append(style_key)
+    if wb_hall:
+        styles = wb_hall.get("tag_타입") or ""
+
+        # 스타일 키워드 확인
+        for style_key, keywords in style_mappings.items():
+            for keyword in keywords:
+                if keyword in styles and style_key not in result_styles:
+                    result_styles.append(style_key)
+
+    if iw_hall:
+        hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
+
+        # 해시태그 확인
+        for style_key, keywords in style_mappings.items():
+            for keyword in keywords:
+                if keyword in hashtag and style_key not in result_styles:
+                    result_styles.append(style_key)
 
     # 결과가 없으면 기본 스타일 추가
     if not result_styles:
@@ -229,34 +240,26 @@ def parse_hall_styles(wb_hall: dict) -> List[str]:
     return result_styles
 
 
-def parse_wedding_type(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> str:
+def parse_wedding_type(
+    hall_info: dict, iw_hall: dict, wb_hall: dict | None, venue_data: dict
+) -> str:
     """웨딩 진행 방식 파싱"""
-    # 예시 데이터에서 확인한 형식 처리
-    # "동시;분리" 형태로 저장된 경우의 처리
+    shape = venue_data.get("shape")
 
-    if wb_hall and wb_hall.get("tag_예식형태"):
-        if "분리" in wb_hall["tag_예식형태"]:
-            return "분리"
-        elif "동시" in wb_hall["tag_예식형태"]:
-            return "동시"
-
-    # iw_wedding_halls의 hashtag 필드 확인
-    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
-    if "분리예식" in hashtag:
-        return "분리"
-    elif "동시예식" in hashtag:
+    if shape == "01":
         return "동시"
-
-    # 기본값
-    return "동시"
+    elif shape == "02":
+        return "분리"
+    else:
+        # 01,02 가 동시에 있는 경우 동시로 처리
+        return "동시"
 
 
 def parse_food_type_and_cost(
     hall_info: dict, iw_hall: dict, wb_hall: dict | None, venue_data: dict
-) -> Tuple[str, float]:
+) -> tuple[str, float, float]:
     """음식 유형과 비용 파싱"""
     food_type = "뷔페"  # 기본값
-    food_cost = 0
 
     # wb_wedding_halls에서 메뉴 정보 확인
     if wb_hall and wb_hall.get("tag_메뉴"):
@@ -284,63 +287,27 @@ def parse_food_type_and_cost(
         food_type = "코스"
 
     # 음식 비용 확인
-    # 먼저 venue_data 확인
-    if venue_data and venue_data.get("min_meal"):
-        food_cost = float(venue_data.get("min_meal"))
-    elif venue_data and venue_data.get("min_food_fee"):
-        food_cost = float(venue_data.get("min_food_fee"))
+    min_food_cost = float(venue_data.get("min_food_fee"))
 
-    # wb_hall의 식대 정보 확인
-    elif wb_hall and wb_hall.get("tag_식대_최소"):
-        try:
-            cost_str = "".join(c for c in wb_hall.get("tag_식대_최소") if c.isdigit())
-            if cost_str:
-                food_cost = int(cost_str)
-        except:
-            pass
+    # 최대 비용 확인
+    max_food_cost = float(venue_data.get("max_food_fee"))
 
-    # hall_info의 min_food 확인
-    elif hall_info.get("min_food"):
-        food_cost = float(hall_info.get("min_food"))
-
-    # 최소 기본값 설정
-    if food_cost <= 0:
-        food_cost = {"뷔페": 60000, "코스": 80000, "한상": 100000}.get(food_type, 70000)
-
-    return food_type, food_cost
+    return food_type, min_food_cost, max_food_cost
 
 
 def parse_wedding_times_and_interval(
     venue_data: dict, hall_info: dict
 ) -> Tuple[int, str]:
     """웨딩 시간 및 간격 파싱"""
-    # 기본값
-    wedding_interval = 60
-
-    # timeDisplay 필드에서 시간 정보 확인
     time_display = venue_data.get("timeDisplay", "")
 
     # 간격 정보 추출 시도
     interval_match = re.search(r"(\d+)분", str(time_display))
     if interval_match:
         wedding_interval = int(interval_match.group(1))
-
-    # time_val 확인
-    if venue_data.get("time_val") and str(venue_data.get("time_val")).isdigit():
-        wedding_interval = int(venue_data.get("time_val"))
-
-    # 해시태그에서 확인
-    hashtag = venue_data.get("hashtag", "").lower() if venue_data else ""
-    if "60분이하" in hashtag:
+    else:
+        # 기본값 설정
         wedding_interval = 60
-    elif "70~90분" in hashtag:
-        wedding_interval = 80
-    elif "100~120분" in hashtag:
-        wedding_interval = 110
-    elif "130~180분" in hashtag:
-        wedding_interval = 150
-    elif "240분이상" in hashtag:
-        wedding_interval = 240
 
     # 웨딩 시간 생성
     start_time = datetime.time(11, 0)
@@ -372,27 +339,11 @@ def parse_hall_pricing(
         fees = sanitize_json(venue_data.get("fees"))
         if fees and "grand" in fees and "minFee" in fees["grand"]:
             basic_price = float(fees["grand"]["minFee"])
-    # 음식 비용 기반 추정
-    elif hall_info.get("min_food"):
-        food_cost = float(hall_info.get("min_food", 0))
-        # 평균 손님 수 * 음식 비용
-        avg_guests = (
-            int(hall_info.get("min_person", 100))
-            + int(hall_info.get("max_person", 200))
-        ) / 2
-        basic_price = avg_guests * food_cost
-
-    # 여전히 가격 정보가 없다면 기본값 사용
-    if basic_price <= 0:
-        basic_price = 5000000
 
     # 성수기 가격 확인
-    peak_season_price = 0
+    peak_season_price = basic_price
     if venue_data.get("max_grand") and float(venue_data.get("max_grand")) > basic_price:
         peak_season_price = float(venue_data.get("max_grand"))
-    else:
-        # 기본 가격의 1.2배로 추정
-        peak_season_price = int(basic_price * 1.2)
 
     return int(basic_price), peak_season_price
 
@@ -581,21 +532,7 @@ def parse_hall_physical_attributes(
 
 def parse_wedding_running_time(iw_hall: dict) -> int:
     """웨딩 진행 시간 파싱 (분 단위)"""
-    hashtag = iw_hall.get("hashtag", "").lower() if iw_hall else ""
-
-    # 해시태그에서 시간 정보 추출
-    if "60분이하" in hashtag:
-        return 60
-    elif "70~90분" in hashtag:
-        return 80  # 평균값
-    elif "100~120분" in hashtag:
-        return 110  # 평균값
-    elif "130~180분" in hashtag:
-        return 150  # 평균값
-    elif "240분이상" in hashtag:
-        return 240
-
-    return 60  # 기본값
+    return 120  # 기본값
 
 
 def parse_park_free_hours(hall_info: dict) -> int | None:
@@ -717,6 +654,10 @@ def get_or_create_entity(session, model_class, **kwargs):
 def migrate_data():
     """데이터 마이그레이션 실행"""
     hall_infos, iw_halls, wb_halls, hall_venues = fetch_source_data()
+
+    with open("./scripts/wedding_halls_data.json", "r") as f:
+        ai_reviews = json.load(f)
+
     hall_mapping = create_hall_mapping(hall_infos, iw_halls, wb_halls, hall_venues)
 
     with Session(target_engine) as session:
@@ -890,15 +831,18 @@ def migrate_data():
                         )
 
                 # AI 리뷰 추가 (예시 데이터)
-                review_types = ["시설", "접근성", "음식"]
+                review_types = ["분위기", "위치", "주차", "식사", "서비스", "비용"]
                 for i, review_type in enumerate(review_types):
-                    review_content = f"{clean_name}의 {review_type}에 대한 AI 리뷰입니다. 이 내용은 예시입니다."
-                    ai_review = ProductAIReview(
-                        product_id=product.id,
-                        review_type=review_type,
-                        content=review_content,
-                    )
-                    session.add(ai_review)
+                    ai_review = ai_reviews.get(product_hall.name)
+
+                    if ai_review:
+                        review_content = ai_review.get(review_type) or ""
+                        ai_review = ProductAIReview(
+                            product_id=product.id,
+                            review_type=review_type,
+                            content=review_content,
+                        )
+                        session.add(ai_review)
 
                 # venue 정보 추가
                 if venues:
@@ -908,11 +852,16 @@ def migrate_data():
 
                             # 웨딩 타입 정보 파싱
                             wedding_type_value = parse_wedding_type(
-                                hall_info, iw_hall, wb_hall
+                                hall_info, iw_hall, wb_hall, venue_data
                             )
 
                             # 홀 크기 정보
-                            min_capacity = venue_data.get("min_person") or 0
+
+                            min_capacity = (
+                                iw_hall.get("min_person")
+                                or venue_data.get("min_person")
+                                or 0
+                            )
                             max_capacity = venue_data.get("max_person") or 0
 
                             # 개선된 파서 사용
@@ -930,8 +879,10 @@ def migrate_data():
                             bride_room_entry = parse_bride_room_info(
                                 hall_info, iw_hall, wb_hall
                             )
-                            food_type_name, food_cost = parse_food_type_and_cost(
-                                hall_info, iw_hall, wb_hall, venue_data
+                            food_type_name, min_food_cost, max_food_cost = (
+                                parse_food_type_and_cost(
+                                    hall_info, iw_hall, wb_hall, venue_data
+                                )
                             )
 
                             venue = ProductHallVenue(
@@ -956,10 +907,8 @@ def migrate_data():
                                     "bride_room_makeup_room"
                                 ],
                                 food_type_id=food_types.get(food_type_name).id,
-                                food_cost_per_adult=int(food_cost),
-                                food_cost_per_child=int(
-                                    food_cost * 0.6
-                                ),  # 성인 비용의 60%
+                                food_cost_per_adult=int(max_food_cost),
+                                food_cost_per_child=int(min_food_cost),
                                 banquet_hall_running_time=parse_wedding_running_time(
                                     iw_hall
                                 ),
@@ -972,7 +921,7 @@ def migrate_data():
                             session.flush()  # venue_id 생성을 위해 flush
 
                             # venue에 스타일 연결
-                            hall_style_names = parse_hall_styles(wb_hall)
+                            hall_style_names = parse_hall_styles(wb_hall, iw_hall)
                             for style_name in hall_style_names:
                                 if style_name in hall_styles:
                                     style_link = ProductHallStyleLink(
@@ -1000,94 +949,6 @@ def migrate_data():
                             traceback.print_exc()
                             # venue 생성 실패해도 전체 마이그레이션은 계속 진행
                             continue
-
-                # venue 정보가 없는 경우 기본 venue 생성 (간단한 정보로)
-                if not venues:
-                    try:
-                        wedding_type_value = parse_wedding_type(
-                            hall_info, iw_hall, wb_hall
-                        )
-
-                        min_capacity = hall_info.get("min_person") or 0
-                        max_capacity = hall_info.get("max_person") or 0
-
-                        # 개선된 파서 사용
-                        # 기본 데이터로 빈 딕셔너리 전달
-                        wedding_interval = parse_wedding_running_time(iw_hall)
-                        wedding_times = "11:00, 13:00, 15:00, 17:00"  # 기본값
-                        basic_price, peak_season_price = parse_hall_pricing(
-                            {}, hall_info, iw_hall
-                        )
-                        ceiling_height, virgin_road_length = (
-                            parse_hall_physical_attributes({}, hall_info, iw_hall)
-                        )
-                        bride_room_entry = parse_bride_room_info(
-                            hall_info, iw_hall, wb_hall
-                        )
-                        food_type_name, food_cost = parse_food_type_and_cost(
-                            hall_info, iw_hall, wb_hall, {}
-                        )
-
-                        venue = ProductHallVenue(
-                            product_hall_id=product_hall.id,
-                            name=f"{clean_name} 메인홀",
-                            wedding_interval=wedding_interval,
-                            wedding_times=wedding_times,
-                            wedding_type=wedding_type_value,
-                            guaranteed_min_count=min_capacity,
-                            min_capacity=min_capacity,
-                            max_capacity=max_capacity,
-                            basic_price=basic_price,
-                            peak_season_price=peak_season_price,
-                            ceiling_height=ceiling_height,
-                            virgin_road_length=virgin_road_length,
-                            include_drink=amenities["include_drink"],
-                            include_alcohol=amenities["include_alcohol"],
-                            include_service_fee=amenities["include_service_fee"],
-                            include_vat=amenities["include_vat"],
-                            bride_room_entry_methods=bride_room_entry,
-                            bride_room_makeup_room=amenities["bride_room_makeup_room"],
-                            food_type_id=food_types.get(food_type_name).id,
-                            food_cost_per_adult=int(food_cost),
-                            food_cost_per_child=int(food_cost * 0.6),  # 성인 비용의 60%
-                            banquet_hall_running_time=wedding_interval,
-                            banquet_hall_max_capacity=max_capacity,
-                            additional_info="",
-                            special_notes="",
-                        )
-
-                        session.add(venue)
-                        session.flush()
-
-                        # venue에 스타일 연결
-                        hall_style_names = parse_hall_styles(wb_hall)
-                        for style_name in hall_style_names:
-                            if style_name in hall_styles:
-                                style_link = ProductHallStyleLink(
-                                    venue_id=venue.id,
-                                    hall_style_id=hall_styles[style_name].id,
-                                )
-                                session.add(style_link)
-
-                        # venue에 타입 연결
-                        hall_type_names = parse_hall_types(hall_info, iw_hall, wb_hall)
-                        for type_name in hall_type_names:
-                            if type_name in hall_types:
-                                type_link = ProductHallVenueTypeLink(
-                                    venue_id=venue.id,
-                                    hall_type_id=hall_types[type_name].id,
-                                )
-                                session.add(type_link)
-
-                    except Exception as e:
-                        print(
-                            f"기본 Venue 생성 오류 (banquet_code: {banquet_code}): {str(e)}"
-                        )
-                        traceback.print_exc()
-
-                    print(
-                        f"결혼식장 데이터 추가 완료: {hall_info.get('name')} (ID: {product.id})"
-                    )
 
             except Exception as e:
                 traceback.print_exc()

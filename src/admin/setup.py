@@ -6,6 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from admin.auth import AdminAuth
 from admin.models.checklist_categories import ChecklistCategoryAdmin
 from admin.models.checklists import ChecklistAdmin
+from admin.models.product_ai_reviews import ProductAIReviewAdmin
 from admin.models.product_categories import ProductCategoryAdmin
 from admin.models.product_hall_venues import ProductHallVenueAdmin
 from admin.models.product_halls import ProductHallAdmin
@@ -52,7 +53,7 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
 
     # 상품
     admin.add_view(ProductCategoryAdmin)
+    admin.add_view(ProductAIReviewAdmin)
     admin.add_view(ProductHallAdmin)
     admin.add_view(ProductHallVenueAdmin)
-
     return admin

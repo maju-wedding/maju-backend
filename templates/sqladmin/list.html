@@ -280,10 +280,7 @@
             <td class="px-4 py-3 whitespace-nowrap align-middle text-xs overflow-hidden text-ellipsis">
               {% if name in model_view._relation_names %}
                 {% if is_list(value) %}
-                  {% for elem, formatted_elem in zip(value, formatted_value) %}
-                  <a href="{{ model_view._build_url_for('admin:details', request, elem) }}"
-                     class="text-primary-500 hover:text-primary-dark hover:underline">({{ formatted_elem }})</a>
-                  {% endfor %}
+                    {{ formatted_value }}
                 {% else %}
                   <a href="{{ model_view._url_for_details_with_prop(request, row, name) }}"
                      class="text-primary-500 hover:text-primary-dark hover:underline">{{ formatted_value }}</a>

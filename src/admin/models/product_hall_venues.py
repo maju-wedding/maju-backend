@@ -19,6 +19,8 @@ class ProductHallVenueAdmin(BaseModelViewWithFilters, model=ProductHallVenue):
         ProductHallVenue.wedding_interval,
         ProductHallVenue.wedding_times,
         ProductHallVenue.wedding_type,
+        "hall_styles",
+        "hall_types",
         ProductHallVenue.guaranteed_min_count,
         ProductHallVenue.min_capacity,
         ProductHallVenue.max_capacity,
@@ -44,6 +46,8 @@ class ProductHallVenueAdmin(BaseModelViewWithFilters, model=ProductHallVenue):
     column_labels = {
         ProductHallVenue.id: "홀 ID",
         "product_hall.name": "웨딩홀명",
+        "hall_styles": "홀 스타일",
+        "hall_types": "홀 타입",
         ProductHallVenue.name: "홀 이름",
         ProductHallVenue.wedding_interval: "예식 간격",
         ProductHallVenue.wedding_times: "예식 시간",
@@ -117,6 +121,11 @@ class ProductHallVenueAdmin(BaseModelViewWithFilters, model=ProductHallVenue):
         ProductHallVenue.created_datetime,
         ProductHallVenue.updated_datetime,
     ]
+
+    column_formatters = {
+        "hall_styles": lambda m, a: ", ".join([style.name for style in m.hall_styles]),
+        "hall_types": lambda m, a: ", ".join([type.name for type in m.hall_types]),
+    }
 
     column_formatters_detail = {
         ProductHallVenue.created_datetime: lambda m, a: (

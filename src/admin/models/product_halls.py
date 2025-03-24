@@ -18,6 +18,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         "product.address",
         "product.sido",
         "product.gugun",
+        "product.ai_reviews",
         "product.park_limit",
         "product.park_free_hours",
         "product.subway_line",
@@ -40,6 +41,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         "product.address": "주소",
         "product.sido": "시도",
         "product.gugun": "구군",
+        "product.ai_reviews": "AI 요약",
         "product.park_limit": "주차 가능 대수",
         "product.park_free_hours": "주차 무료 시간",
         "product.subway_line": "지하철 호선",
@@ -109,6 +111,12 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     column_sortable_list = [
         ProductHall.id,
     ]
+
+    column_formatters = {
+        "product.ai_reviews": lambda m, a: [
+            ai_review.review_type for ai_review in m.product.ai_reviews
+        ],
+    }
 
     column_formatters_detail = {
         ProductHall.created_datetime: lambda m, a: (

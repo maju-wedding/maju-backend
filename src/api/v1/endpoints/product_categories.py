@@ -28,10 +28,13 @@ async def read_categories(
     """
     categories = await product_categories_crud.get_multi(
         session,
+        is_deleted=False,
         limit=limit,
         offset=offset,
         return_as_model=True,
         schema_to_select=ProductCategoryRead,
+        sort_columns=["order"],
+        sort_orders=["asc"],
     )
 
     return categories.get("data", [])

@@ -118,8 +118,9 @@ class ProductHallVenueAdmin(BaseModelViewWithFilters, model=ProductHallVenue):
 
     column_sortable_list = [
         ProductHallVenue.id,
-        ProductHallVenue.created_datetime,
-        ProductHallVenue.updated_datetime,
+        "product_hall.name",
+        ProductHallVenue.name,
+        ProductHallVenue.wedding_type,
     ]
 
     column_formatters = {

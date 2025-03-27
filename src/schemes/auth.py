@@ -28,3 +28,7 @@ class AuthTokenPayload(SQLModel):
 class LoginRequest(SQLModel):
     email: EmailStr
     password: str
+
+
+class SocialUserCheckResponse(SQLModel):
+    exists: bool

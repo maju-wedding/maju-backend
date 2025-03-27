@@ -15,7 +15,7 @@ from core.exceptions import InvalidToken
 from core.oauth_client import extract_user_data
 from cruds.users import users_crud
 from models.users import SocialProviderEnum, User
-from schemes.auth import AuthToken, SocialLoginWithTokenData
+from schemes.auth import AuthToken, SocialLoginWithTokenData, SocialUserCheckResponse
 from schemes.users import (
     UserCreate,
     InternalUserCreate,
@@ -139,14 +139,62 @@ async def login(
     )
 
 
-@router.post("/social-login")
+@router.post("/social/user-check", response_model=SocialUserCheckResponse)
+async def social_user_check(
+    login_data: SocialLoginWithTokenData,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    소셜 로그인 사용자 확인
+
+    - 소셜 액세스 토큰으로 사용자 정보를 확인하고 계정 존재 여부를 반환합니다.
+    - 존재하는 사용자인 경우 exists=True 반환
+    - 신규 사용자인 경우 exists=False 반환하고 클라이언트는 약관동의 페이지로 이동해야 함
+    """
+    oauth_client = get_oauth_client(login_data.provider)
+
+    if login_data.provider not in [SocialProviderEnum.kakao, SocialProviderEnum.naver]:
+        raise ValueError(f"Unsupported provider: {login_data.provider}")
+
+    try:
+        # 액세스 토큰 유효성 검증
+        is_valid = await oauth_client.is_authenticated(login_data.access_token)
+        if not is_valid:
+            raise InvalidToken
+
+        # 액세스 토큰으로 사용자 정보 가져오기
+        raw_user_info = await oauth_client.get_user_info(login_data.access_token)
+    except InvalidToken:
+        raise HTTPException(status_code=400, detail="Invalid access token")
+
+    # 사용자 정보 추출
+    user_data = extract_user_data(login_data.provider, raw_user_info)
+
+    # 기존 사용자 확인
+    user = await users_crud.get(
+        session,
+        email=user_data["email"],
+        is_deleted=False,
+    )
+
+    return SocialUserCheckResponse(
+        exists=user is not None,
+    )
+
+
+@router.post("/social/login", response_model=AuthToken)
 async def social_login(
     login_data: SocialLoginWithTokenData,
     session: AsyncSession = Depends(get_session),
 ):
+    """
+    소셜 로그인 (기존 사용자)
+
+    - 이미 가입된 소셜 계정으로 로그인합니다.
+    - 계정이 없는 경우 404 에러가 발생합니다.
+    """
     oauth_client = get_oauth_client(login_data.provider)
 
-    """소셜 로그인 (카카오, 네이버) - SDK에서 받은 액세스 토큰 사용"""
     if login_data.provider not in [SocialProviderEnum.kakao, SocialProviderEnum.naver]:
         raise ValueError(f"Unsupported provider: {login_data.provider}")
 
@@ -163,7 +211,7 @@ async def social_login(
 
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
-    # 기존 사용자 확인 또는 신규 사용자 생성
+    # 기존 사용자 확인
     user = await users_crud.get(
         session,
         email=user_data["email"],
@@ -173,17 +221,82 @@ async def social_login(
     )
 
     if not user:
-        user = await users_crud.create(
-            session,
-            InternalUserCreate(
-                email=user_data["email"],
-                phone_number=user_data["mobile"],
-                social_provider=login_data.provider,
-                nickname=user_data["name"],
-                user_type=UserTypeEnum.social,
-                gender=user_data["gender"],
-            ),
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found. Please register first.",
         )
+
+    # JWT 토큰 생성 및 반환
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    jwt_token = security.create_access_token(
+        subject=user.email,
+        expires_delta=access_token_expires,
+        user_type=UserTypeEnum.social,
+        extra_claims={"provider": user.social_provider},
+    )
+
+    return AuthToken(
+        access_token=jwt_token,
+        token_type="bearer",
+        nickname=user.nickname,
+    )
+
+
+@router.post("/social/register", response_model=AuthToken)
+async def social_register(
+    login_data: SocialLoginWithTokenData,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    소셜 회원가입 (신규 사용자)
+
+    - 약관 동의 후 소셜 계정으로 회원가입합니다.
+    - 이미 가입된 계정이 있으면 400 에러가 발생합니다.
+    """
+    oauth_client = get_oauth_client(login_data.provider)
+
+    if login_data.provider not in [SocialProviderEnum.kakao, SocialProviderEnum.naver]:
+        raise ValueError(f"Unsupported provider: {login_data.provider}")
+
+    try:
+        # 액세스 토큰 유효성 검증
+        is_valid = await oauth_client.is_authenticated(login_data.access_token)
+        if not is_valid:
+            raise InvalidToken
+
+        # 액세스 토큰으로 사용자 정보 가져오기
+        raw_user_info = await oauth_client.get_user_info(login_data.access_token)
+    except InvalidToken:
+        raise HTTPException(status_code=400, detail="Invalid access token")
+
+    user_data = extract_user_data(login_data.provider, raw_user_info)
+
+    # 기존 사용자 확인
+    existing_user = await users_crud.get(
+        session,
+        email=user_data["email"],
+        is_deleted=False,
+    )
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already exists. Please login instead.",
+        )
+
+    # 신규 사용자 생성
+    user = await users_crud.create(
+        session,
+        InternalUserCreate(
+            email=user_data["email"],
+            phone_number=user_data["mobile"],
+            social_provider=login_data.provider,
+            nickname=user_data["name"],
+            user_type=UserTypeEnum.social,
+            gender=user_data["gender"],
+        ),
+    )
 
     # JWT 토큰 생성 및 반환
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

@@ -203,7 +203,7 @@ def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> Li
     return result_types
 
 
-def parse_hall_styles(wb_hall: dict, iw_hall: dict) -> List[str]:
+def parse_hall_styles(wb_hall: dict, iw_hall: dict, hall_info: dict) -> List[str]:
     """결혼식장 스타일 파싱 (여러 스타일 반환)"""
     result_styles = []
     # 스타일 매핑
@@ -231,6 +231,15 @@ def parse_hall_styles(wb_hall: dict, iw_hall: dict) -> List[str]:
         for style_key, keywords in style_mappings.items():
             for keyword in keywords:
                 if keyword in hashtag and style_key not in result_styles:
+                    result_styles.append(style_key)
+
+    if hall_info:
+        styles = hall_info.get("typical") or ""
+
+        # 스타일 키워드 확인
+        for style_key, keywords in style_mappings.items():
+            for keyword in keywords:
+                if keyword in styles and style_key not in result_styles:
                     result_styles.append(style_key)
 
     # 결과가 없으면 기본 스타일 추가
@@ -921,7 +930,9 @@ def migrate_data():
                             session.flush()  # venue_id 생성을 위해 flush
 
                             # venue에 스타일 연결
-                            hall_style_names = parse_hall_styles(wb_hall, iw_hall)
+                            hall_style_names = parse_hall_styles(
+                                wb_hall, iw_hall, hall_info
+                            )
                             for style_name in hall_style_names:
                                 if style_name in hall_styles:
                                     style_link = ProductHallStyleLink(

@@ -48,6 +48,8 @@ class ProductAIReviewAdmin(BaseModelViewWithFilters, model=ProductAIReview):
     column_sortable_list = [
         ProductAIReview.id,
         ProductAIReview.review_type,
+        "product.name",
+        "product.category.name",
     ]
 
     column_formatters_detail = {

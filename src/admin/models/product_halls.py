@@ -110,6 +110,8 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
 
     column_sortable_list = [
         ProductHall.id,
+        "product.sido",
+        "product.gugun",
     ]
 
     column_formatters = {

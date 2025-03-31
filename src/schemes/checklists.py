@@ -41,6 +41,17 @@ class ChecklistCategoryRead(SQLModel):
     display_name: str
     is_system_category: bool
     user_id: UUID | None = None
+    checklists_count: int | None = None
+
+
+class ChecklistCategoryReadWithChecklist(SQLModel):
+    """체크리스트 카테고리 읽기 스키마"""
+
+    id: int
+    display_name: str
+    is_system_category: bool
+    user_id: UUID | None = None
+    checklists: list["SuggestChecklistRead"] | None = None
 
 
 class ChecklistCreate(SQLModel):
@@ -87,9 +98,8 @@ class ChecklistRead(SQLModel):
     is_completed: bool
     completed_datetime: datetime | None = None
     checklist_category_id: int | None = None
-    global_display_order: int = 0
-    category_display_order: int = 0
-    checklist_category_display_name: str
+    global_display_order: int | None = 0
+    category_display_order: int | None = 0
 
 
 class SuggestChecklistRead(SQLModel):

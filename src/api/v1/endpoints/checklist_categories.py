@@ -1,10 +1,11 @@
 from fastapi import Depends, Path, HTTPException, Body, APIRouter
+from fastcrud import JoinConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_admin, get_current_user
 from core.db import get_session
 from cruds.checklists import checklist_categories_crud
-from models import User
+from models import User, Checklist
 from models.checklist_categories import ChecklistCategory
 from schemes.checklists import (
     ChecklistCategoryRead,
@@ -12,26 +13,73 @@ from schemes.checklists import (
     InternalChecklistCategoryCreate,
     ChecklistCategoryUpdate,
     ChecklistCategoryCreate,
+    ChecklistCategoryReadWithChecklist,
 )
 from schemes.common import ResponseWithStatusMessage
 
 router = APIRouter()
 
 
-@router.get("/system", response_model=list[ChecklistCategoryRead])
+@router.get(
+    "/system/summary",
+    response_model=list[ChecklistCategoryReadWithChecklist],
+)
 async def list_system_checklist_categories(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 체크리스트 카테고리 목록 조회"""
-    results = await checklist_categories_crud.get_multi(
+    results = await checklist_categories_crud.get_multi_joined(
         session,
         is_system_category=True,
         is_deleted=False,
-        schema_to_select=ChecklistCategory,
-        return_as_model=True,
+        joins_config=[
+            JoinConfig(
+                model=Checklist,
+                join_on=Checklist.checklist_category_id == ChecklistCategory.id,
+                join_prefix="checklists_",
+                join_type="left",
+                relationship_type="one-to-many",
+            )
+        ],
+        nest_joins=True,
+        sort_columns=["id"],
     )
 
-    return results.get("data")
+    return results.get("data", [])
+
+
+@router.get(
+    "/system",
+    response_model=list[ChecklistCategoryRead],
+)
+async def list_system_checklist_categories(
+    session: AsyncSession = Depends(get_session),
+):
+    """시스템 체크리스트 카테고리 목록 조회"""
+    results = await checklist_categories_crud.get_multi_joined(
+        session,
+        is_system_category=True,
+        is_deleted=False,
+        joins_config=[
+            JoinConfig(
+                model=Checklist,
+                join_on=Checklist.checklist_category_id == ChecklistCategory.id,
+                join_prefix="checklists_",
+                join_type="left",
+                relationship_type="one-to-many",
+            )
+        ],
+        nest_joins=True,
+        sort_columns=["id"],
+    )
+
+    if not results:
+        raise HTTPException(status_code=404, detail="Checklist categories not found")
+
+    return ChecklistCategoryRead(
+        **results,
+        checklists_count=len(results["checklists"]),
+    )
 
 
 @router.get("/system/{category_id}", response_model=ChecklistCategoryRead)
@@ -40,18 +88,29 @@ async def get_system_checklist_category(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 체크리스트 카테고리 상세 조회"""
-    checklist_category = await checklist_categories_crud.get(
+    checklist_category = await checklist_categories_crud.get_joined(
         session,
         id=category_id,
         is_deleted=False,
-        return_as_model=True,
-        schema_to_select=ChecklistCategory,
+        joins_config=[
+            JoinConfig(
+                model=Checklist,
+                join_on=Checklist.checklist_category_id == ChecklistCategory.id,
+                join_prefix="checklists_",
+                join_type="left",
+                relationship_type="one-to-many",
+            )
+        ],
+        nest_joins=True,
     )
 
     if not checklist_category:
         raise HTTPException(status_code=404, detail="Checklist category not found")
 
-    return checklist_category
+    return ChecklistCategoryRead(
+        **checklist_category,
+        checklists_count=len(checklist_category["checklists"]),
+    )
 
 
 @router.post("/system", response_model=ChecklistCategory)
@@ -142,16 +201,6 @@ async def list_checklist_categories(
     current_user: User = Depends(get_current_user),
 ):
     """사용자 체크리스트 카테고리 목록 조회"""
-    system_categories = await checklist_categories_crud.get_multi(
-        session,
-        is_system_category=True,
-        is_deleted=False,
-        schema_to_select=ChecklistCategory,
-        return_as_model=True,
-    )
-
-    system_categories = system_categories.get("data", [])
-
     user_categories = await checklist_categories_crud.get_multi(
         session,
         user_id=current_user.id,
@@ -162,7 +211,7 @@ async def list_checklist_categories(
 
     user_categories = user_categories.get("data", [])
 
-    return system_categories + user_categories
+    return user_categories
 
 
 @router.get("/{category_id}", response_model=ChecklistCategoryRead)
@@ -184,7 +233,10 @@ async def get_checklist_category(
     if not checklist_category:
         raise HTTPException(status_code=404, detail="Checklist category not found")
 
-    return checklist_category
+    return {
+        **checklist_category.dict(),
+        "checklist_count": len(checklist_category.checklists),
+    }
 
 
 @router.post("", response_model=ChecklistCategoryRead)

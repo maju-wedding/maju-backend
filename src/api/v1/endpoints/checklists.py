@@ -240,6 +240,27 @@ async def create_checklists(
         raise HTTPException(status_code=404, detail="System checklists not found")
 
     # 선택한 항목들을 유저 체크리스트로 변환
+    last_global_display_order_checklist = await checklists_crud.get(
+        session,
+        user_id=current_user.id,
+        is_deleted=False,
+        sort_columns="global_display_order",
+        sort_orders="desc",
+        schema_to_select=Checklist,
+        return_as_model=True,
+    )
+
+    last_category_display_order_checklist = await checklists_crud.get(
+        session,
+        user_id=current_user.id,
+        is_deleted=False,
+        checklist_category_id=system_checklists[0].checklist_category_id,
+        sort_columns="category_display_order",
+        sort_orders="desc",
+        schema_to_select=Checklist,
+        return_as_model=True,
+    )
+
     checklist_items = []
     for system_checklist in system_checklists:
         checklist_item = Checklist(
@@ -247,13 +268,24 @@ async def create_checklists(
             description=system_checklist.description,
             user_id=current_user.id,
             checklist_category_id=system_checklist.checklist_category_id,
+            global_display_order=(
+                last_global_display_order_checklist.global_display_order + 1
+                if last_global_display_order_checklist
+                else 0
+            ),
+            category_display_order=(
+                last_category_display_order_checklist.category_display_order + 1
+                if last_category_display_order_checklist
+                else 0
+            ),
         )
-        checklist_items.append(checklist_item)
 
-        await checklists_crud.create(
+        checklist = await checklists_crud.create(
             session,
             checklist_item,
         )
+
+        checklist_items.append(checklist)
 
     return checklist_items
 
@@ -288,14 +320,45 @@ async def create_custom_checklist(
             detail="You don't have permission to create checklist in this category",
         )
 
+    last_global_display_order_checklist = await checklists_crud.get(
+        session,
+        user_id=current_user.id,
+        is_deleted=False,
+        sort_columns="global_display_order",
+        sort_orders="desc",
+        schema_to_select=Checklist,
+        return_as_model=True,
+    )
+
+    last_category_display_order_checklist = await checklists_crud.get(
+        session,
+        user_id=current_user.id,
+        is_deleted=False,
+        checklist_category_id=checklist.checklist_category_id,
+        sort_columns="category_display_order",
+        sort_orders="desc",
+        schema_to_select=Checklist,
+        return_as_model=True,
+    )
+
     return await checklists_crud.create(
         session,
-        InternalChecklistCreate(
+        Checklist(
             title=checklist.title,
             description=checklist.description,
             checklist_category_id=checklist.checklist_category_id,
             user_id=current_user.id,
             is_system_checklist=False,
+            global_display_order=(
+                last_global_display_order_checklist.global_display_order + 1
+                if last_global_display_order_checklist
+                else 0
+            ),
+            category_display_order=(
+                last_category_display_order_checklist.category_display_order + 1
+                if last_category_display_order_checklist
+                else 0
+            ),
         ),
     )
 

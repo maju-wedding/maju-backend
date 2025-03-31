@@ -1,7 +1,7 @@
 from fastcrud import FastCRUD
 
+from models import ChecklistCategory
 from models.checklists import Checklist
-from models.checklist_categories import ChecklistCategory
 
 
 class ChecklistCRUD(FastCRUD):

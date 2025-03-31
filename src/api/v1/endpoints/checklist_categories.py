@@ -24,7 +24,7 @@ router = APIRouter()
     "/system/summary",
     response_model=list[ChecklistCategoryReadWithChecklist],
 )
-async def list_system_checklist_categories(
+async def list_system_checklist_categories_summary(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 체크리스트 카테고리 목록 조회"""
@@ -76,10 +76,12 @@ async def list_system_checklist_categories(
     if not results:
         raise HTTPException(status_code=404, detail="Checklist categories not found")
 
-    return ChecklistCategoryRead(
-        **results,
-        checklists_count=len(results["checklists"]),
-    )
+    checklist_categories = results.get("data", [])
+
+    for category in checklist_categories:
+        category["checklists_count"] = len(category["checklists"])
+
+    return checklist_categories
 
 
 @router.get("/system/{category_id}", response_model=ChecklistCategoryRead)

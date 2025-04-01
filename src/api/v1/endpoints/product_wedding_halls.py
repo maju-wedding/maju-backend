@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, Depends
-from sqlmodel import select, and_, distinct
+from sqlmodel import and_, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from core.db import get_session
@@ -10,6 +10,7 @@ from models import (
 from models.product_hall_venues import (
     ProductHallVenue,
 )
+from utils.utils import parse_guest_count_range
 
 router = APIRouter()
 
@@ -18,77 +19,112 @@ router = APIRouter()
 async def list_wedding_halls(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    sido: str = Query(None),
-    gugun: str = Query(None),
+    sidos: list[str] = Query(None),
+    guguns: list[str] = Query(None),
+    guest_counts: list[str] = Query(None),
     wedding_types: list[str] = Query(None),
-    food_type_ids: list[int] = Query(None),
-    hall_type_ids: list[int] = Query(None),
-    hall_style_ids: list[int] = Query(None),
-    min_capacity: int = Query(None),
-    max_capacity: int = Query(None),
+    food_menus: list[str] = Query(None),
+    hall_types: list[str] = Query(None),
+    hall_styles: list[str] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
-    # 필터 조건 설정
-    filters = [Product.is_deleted == False, Product.product_category_id == 1]
+    # Base query with joins
 
-    # 제품 관련 필터 적용
-    if sido:
-        filters.append(Product.sido.like(f"%{sido}%"))
-
-    if gugun:
-        filters.append(Product.gugun.like(f"%{gugun}%"))
-
-    # 베뉴 관련 필터 설정
-    venue_filters = []
-
-    if food_type_ids:
-        venue_filters.append(ProductHallVenue.food_type_id.in_(food_type_ids))
-
-    if wedding_types:
-        venue_filters.append(ProductHallVenue.wedding_type.in_(wedding_types))
-
-    if min_capacity:
-        venue_filters.append(ProductHallVenue.min_capacity >= min_capacity)
-
-    if max_capacity:
-        venue_filters.append(ProductHallVenue.max_capacity <= max_capacity)
-
-    # 1단계: 모든 필터 조건을 적용하여 제품 ID 조회
-    product_ids_query = (
-        select(distinct(Product.id))
+    query = (
+        select(Product)
         .join(ProductHall, ProductHall.product_id == Product.id)
-        .join(ProductHallVenue, ProductHallVenue.product_hall_id == ProductHall.id)
-        .where(and_(*filters))
+        .outerjoin(ProductHallVenue, ProductHallVenue.product_hall_id == ProductHall.id)
+        .where(Product.is_deleted == False)
+        .distinct()
     )
 
-    # 베뉴 필터 적용
-    if venue_filters:
-        product_ids_query = product_ids_query.where(and_(*venue_filters))
+    # 지역(시도) 필터
+    if sidos:
+        query = query.where(Product.sido.in_(sidos))
 
-    # hall_types 필터 적용
+    # 구군 필터
+    if guguns:
+        query = query.where(Product.gugun.in_(guguns))
 
-    # 제품 ID 목록 가져오기
-    result = await session.execute(product_ids_query)
-    product_ids = [row[0] for row in result.all()]
+    # 하객수 필터
+    if guest_counts:
+        guest_count_filters = []
+        for count_range in guest_counts:
+            min_count, max_count = parse_guest_count_range(count_range)
 
-    # 2단계: 필터링된 ID를 사용하여 제품 상세 정보 조회
-    if product_ids:
-        products_query = (
-            select(Product)
-            .where(Product.id.in_(product_ids))
-            .order_by(Product.id)
-            .offset(offset)
-            .limit(limit)
+            if min_count is not None and max_count is not None:
+                # 최소값과 최대값이 모두 있는 경우
+                guest_count_filters.append(
+                    and_(
+                        ProductHallVenue.guaranteed_min_count >= min_count,
+                        ProductHallVenue.guaranteed_min_count <= max_count,
+                    )
+                )
+            elif min_count is not None and max_count is None:
+                # 최소값만 있는 경우
+                guest_count_filters.append(
+                    ProductHallVenue.guaranteed_min_count >= min_count
+                )
+            elif min_count is not None and max_count is not None:
+                # 최대값만 있는 경우
+                guest_count_filters.append(
+                    ProductHallVenue.guaranteed_min_count <= max_count
+                )
+
+        if guest_count_filters:
+            query = query.where(or_(*guest_count_filters))
+
+    # 웨딩 타입 필터
+    if wedding_types:
+        query = query.where(ProductHallVenue.wedding_type.in_(wedding_types))
+
+    # 식사 메뉴 필터
+    if food_menus:
+        query = query.where(ProductHallVenue.food_menu.in_(food_menus))
+
+    # 홀 타입 필터
+    if hall_types:
+        query = query.where(ProductHallVenue.hall_types.in_(hall_types))
+
+    # 홀 스타일 필터
+    if hall_styles:
+        query = query.where(ProductHallVenue.hall_styles.in_(hall_styles))
+
+    # 페이지네이션 적용
+    query = query.offset(offset).limit(limit)
+
+    # 쿼리 실행
+    result = await session.execute(query)
+    return result.scalars().all()
+
+
+@router.get("/search")
+async def search_wedding_halls(
+    q: str = Query(...),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+):
+
+    query = (
+        select(Product)
+        .join(ProductHall, ProductHall.product_id == Product.id)
+        .outerjoin(ProductHallVenue, ProductHallVenue.product_hall_id == ProductHall.id)
+        .where(Product.is_deleted == False)
+        .distinct()
+    )
+
+    # 검색어 필터
+    query = query.filter(
+        or_(
+            Product.name.ilike(f"%{q}%"),
+            ProductHallVenue.name.ilike(f"%{q}%"),
         )
+    )
 
-        result = await session.execute(products_query)
-        products = result.scalars().all()
+    # 페이지네이션 적용
+    query = query.offset(offset).limit(limit)
 
-        # 결과를 직렬화 가능한 형태로 변환
-        response_data = []
-        for product in products:
-            response_data.append(product)
-
-        return response_data
-    else:
-        return []
+    # 쿼리 실행
+    result = await session.execute(query)
+    return result.scalars().all()

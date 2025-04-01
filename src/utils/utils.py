@@ -1,5 +1,6 @@
 import datetime
 import random
+import re
 
 from fastapi.routing import APIRoute
 
@@ -304,3 +305,27 @@ def generate_guest_nickname() -> str:
     random_number = random.randint(1000, 9999)
 
     return f"{random.choice(adjectives)}{random.choice(nouns)}{random_number}"
+
+
+def parse_guest_count_range(range_str: str) -> tuple:
+    """
+    하객수 범위 문자열을 파싱하여 (최소값, 최대값) 튜플을 반환
+
+    예:
+    "~100명" -> (0, 100)
+    "100~200명" -> (100, 200)
+    "300명~" -> (300, None)
+    """
+    # 숫자만 추출하는 패턴
+    pattern = r"(\d+)"
+    numbers = re.findall(pattern, range_str)
+
+    if range_str.startswith("~"):
+        # "~100명" 형태 (최대값만 있음)
+        return 0, int(numbers[0])
+    elif range_str.endswith("~"):
+        # "300명~" 형태 (최소값만 있음)
+        return int(numbers[0]), None
+    else:
+        # "100~200명" 형태 (범위)
+        return int(numbers[0]), int(numbers[1])

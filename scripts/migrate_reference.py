@@ -7,7 +7,7 @@ from typing import Any, List, Tuple
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from sqlalchemy import text
-from sqlmodel import Session, select, create_engine
+from sqlmodel import Session, select, create_engine, SQLModel
 
 from core.config import settings
 from models.product_ai_review import ProductAIReview
@@ -24,7 +24,7 @@ PROD_PG_CONNECTION = {
     "password": settings.POSTGRES_PASSWORD,
     "port": settings.POSTGRES_PORT,
 }
-target_env = "local"
+target_env = "prod"
 target_database = (
     settings.DATABASE_URI
     if target_env == "prod"
@@ -137,10 +137,10 @@ def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> Li
     """결혼식장 유형 파싱 (여러 타입 반환)"""
     # 허용된 hall_type 값들
     ALLOWED_HALL_TYPES = [
-        "채플",
-        "호텔",
         "컨벤션",
         "하우스",
+        "호텔",
+        "채플",
         "야외",
         "한옥",
         "소규모",
@@ -236,10 +236,6 @@ def parse_hall_styles(wb_hall: dict, iw_hall: dict, hall_info: dict) -> List[str
             for keyword in keywords:
                 if keyword in styles and style_key not in result_styles:
                     result_styles.append(style_key)
-
-    # 결과가 없으면 기본 스타일 추가
-    if not result_styles:
-        result_styles.append("모던")
 
     return result_styles
 
@@ -667,6 +663,8 @@ def migrate_data():
     with Session(target_engine) as session:
         product_category_id = 1  # 결혼식장 카테고리 ID (사전에 생성 필요)
 
+        SQLModel.metadata.create_all(target_engine)
+
         # 기존 데이터 삭제
         session.execute(text("TRUNCATE TABLE products CASCADE"))
         session.execute(text("TRUNCATE TABLE product_images CASCADE"))
@@ -701,7 +699,7 @@ def migrate_data():
                         or "",
                         500,
                     ),
-                    logo_url=safe_truncate(hall_info.get("logo", "") or "", 500),
+                    logo_url="",
                     enterprise_name=safe_truncate(
                         iw_hall.get("enterprise_name", "") or "", 100
                     ),

@@ -19,12 +19,12 @@ class ProductHall(SQLModel, table=True):
     name: str | None = Field(max_length=100, nullable=True)
 
     # amenities
-    elevator: bool = Field(...)
-    valet_parking: bool = Field(...)
-    pyebaek_room: bool = Field(...)
-    family_waiting_room: bool = Field(...)
+    elevator_count: int = Field(...)
+    atm_count: int = Field(...)
+    contain_family_waiting_room: bool = Field(...)
+    contain_pyebaek_room: bool = Field(...)
 
-    atm: bool = Field(...)
+    valet_parking: bool = Field(...)
     dress_room: bool = Field(...)
     smoking_area: bool = Field(...)
     photo_zone: bool = Field(...)

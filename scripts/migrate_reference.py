@@ -12,11 +12,6 @@ from sqlmodel import Session, select, create_engine
 from core.config import settings
 from models.product_ai_review import ProductAIReview
 from models.product_hall_venues import (
-    ProductHallStyle,
-    ProductHallType,
-    ProductHallFoodType,
-    ProductHallVenueTypeLink,
-    ProductHallStyleLink,
     ProductHallVenue,
 )
 from models.product_halls import ProductHall
@@ -210,9 +205,9 @@ def parse_hall_styles(wb_hall: dict, iw_hall: dict, hall_info: dict) -> List[str
     style_mappings = {
         "밝은": ["밝은", "화이트", "화사한"],
         "어두운": ["어두운", "블랙", "시크한"],
-        "모던": ["모던", "심플", "미니멀"],
-        "클래식": ["클래식", "전통", "앤틱"],
-        "럭셔리": ["럭셔리", "고급", "호화"],
+        # "모던": ["모던", "심플", "미니멀"],
+        # "클래식": ["클래식", "전통", "앤틱"],
+        # "럭셔리": ["럭셔리", "고급", "호화"],
     }
 
     if wb_hall:
@@ -676,39 +671,8 @@ def migrate_data():
         session.execute(text("TRUNCATE TABLE products CASCADE"))
         session.execute(text("TRUNCATE TABLE product_images CASCADE"))
         session.execute(text("TRUNCATE TABLE product_halls CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_styles CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_types CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_food_types CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_style_links CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_venue_type_links CASCADE"))
         session.execute(text("TRUNCATE TABLE product_hall_venues CASCADE"))
         session.execute(text("TRUNCATE TABLE product_ai_reviews CASCADE"))
-
-        # 스타일, 타입, 음식 타입 초기화
-        hall_styles = {
-            "모던": get_or_create_entity(session, ProductHallStyle, name="모던"),
-            "클래식": get_or_create_entity(session, ProductHallStyle, name="클래식"),
-            "럭셔리": get_or_create_entity(session, ProductHallStyle, name="럭셔리"),
-            "밝은": get_or_create_entity(session, ProductHallStyle, name="밝은"),
-            "어두운": get_or_create_entity(session, ProductHallStyle, name="어두운"),
-        }
-
-        hall_types = {
-            "채플": get_or_create_entity(session, ProductHallType, name="채플"),
-            "호텔": get_or_create_entity(session, ProductHallType, name="호텔"),
-            "컨벤션": get_or_create_entity(session, ProductHallType, name="컨벤션"),
-            "하우스": get_or_create_entity(session, ProductHallType, name="하우스"),
-            "야외": get_or_create_entity(session, ProductHallType, name="야외"),
-            "한옥": get_or_create_entity(session, ProductHallType, name="한옥"),
-            "소규모": get_or_create_entity(session, ProductHallType, name="소규모"),
-            "기타": get_or_create_entity(session, ProductHallType, name="기타"),
-        }
-
-        food_types = {
-            "뷔페": get_or_create_entity(session, ProductHallFoodType, name="뷔페"),
-            "코스": get_or_create_entity(session, ProductHallFoodType, name="코스"),
-            "한상": get_or_create_entity(session, ProductHallFoodType, name="한상"),
-        }
 
         # 각 결혼식장 데이터 처리
         for banquet_code, mapping in hall_mapping.items():
@@ -785,11 +749,11 @@ def migrate_data():
                     product_id=product.id,
                     name=safe_truncate(clean_name, 100),
                     # 편의시설 정보
-                    elevator=amenities["elevator"],
+                    elevator_count=0,
+                    atm_count=0,
+                    contain_pyebaek_room=amenities["pyebaek_room"],
+                    contain_family_waiting_room=amenities["family_waiting_room"],
                     valet_parking=amenities["valet_parking"],
-                    pyebaek_room=amenities["pyebaek_room"],
-                    family_waiting_room=amenities["family_waiting_room"],
-                    atm=amenities["atm"],
                     dress_room=amenities["dress_room"],
                     smoking_area=amenities["smoking_area"],
                     photo_zone=amenities["photo_zone"],
@@ -894,12 +858,22 @@ def migrate_data():
                                 )
                             )
 
+                            # venue에 스타일 연결
+                            hall_style_names = parse_hall_styles(
+                                wb_hall, iw_hall, hall_info
+                            )
+                            # venue에 타입 연결
+                            hall_type_names = parse_hall_types(
+                                hall_info, iw_hall, wb_hall
+                            )
                             venue = ProductHallVenue(
                                 product_hall_id=product_hall.id,
                                 name=safe_truncate(venue_name, 100),
                                 wedding_interval=wedding_interval,
                                 wedding_times=wedding_times,
                                 wedding_type=wedding_type_value,
+                                hall_types=",".join(hall_type_names),
+                                hall_styles=",".join(hall_style_names),
                                 guaranteed_min_count=min_capacity,
                                 min_capacity=min_capacity,
                                 max_capacity=max_capacity,
@@ -915,7 +889,7 @@ def migrate_data():
                                 bride_room_makeup_room=amenities[
                                     "bride_room_makeup_room"
                                 ],
-                                food_type_id=food_types.get(food_type_name).id,
+                                food_menu=food_type_name,
                                 food_cost_per_adult=int(max_food_cost),
                                 food_cost_per_child=int(min_food_cost),
                                 banquet_hall_running_time=parse_wedding_running_time(
@@ -929,29 +903,7 @@ def migrate_data():
                             session.add(venue)
                             session.flush()  # venue_id 생성을 위해 flush
 
-                            # venue에 스타일 연결
-                            hall_style_names = parse_hall_styles(
-                                wb_hall, iw_hall, hall_info
-                            )
-                            for style_name in hall_style_names:
-                                if style_name in hall_styles:
-                                    style_link = ProductHallStyleLink(
-                                        venue_id=venue.id,
-                                        hall_style_id=hall_styles[style_name].id,
-                                    )
-                                    session.add(style_link)
-
-                            # venue에 타입 연결
-                            hall_type_names = parse_hall_types(
-                                hall_info, iw_hall, wb_hall
-                            )
-                            for type_name in hall_type_names:
-                                if type_name in hall_types:
-                                    type_link = ProductHallVenueTypeLink(
-                                        venue_id=venue.id,
-                                        hall_type_id=hall_types[type_name].id,
-                                    )
-                                    session.add(type_link)
+                            session.flush()
 
                         except Exception as e:
                             print(

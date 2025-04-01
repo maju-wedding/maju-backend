@@ -7,6 +7,7 @@ from api.v1.endpoints import (
     checklists,
     products,
     checklist_categories,
+    product_wedding_halls,
 )
 
 api_router = APIRouter()
@@ -22,3 +23,6 @@ api_router.include_router(
     product_categories.router, prefix="/product_categories", tags=["product_categories"]
 )
 api_router.include_router(products.router, prefix="/products", tags=["products"])
+api_router.include_router(
+    product_wedding_halls.router, prefix="/wedding-halls", tags=["wedding-halls"]
+)

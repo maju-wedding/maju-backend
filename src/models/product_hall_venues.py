@@ -10,70 +10,6 @@ if TYPE_CHECKING:
     from models.product_halls import ProductHall
 
 
-class ProductHallVenueTypeLink(SQLModel, table=True):
-    __tablename__ = "product_hall_venue_type_links"
-
-    venue_id: int = Field(foreign_key="product_hall_venues.id", primary_key=True)
-    hall_type_id: int = Field(foreign_key="product_hall_types.id", primary_key=True)
-
-    # Relationships
-    venue: "ProductHallVenue" = Relationship(back_populates="venue_type_links")
-    hall_type: "ProductHallType" = Relationship(back_populates="venue_type_links")
-
-
-class ProductHallStyleLink(SQLModel, table=True):
-    __tablename__ = "product_hall_style_links"
-
-    venue_id: int = Field(foreign_key="product_hall_venues.id", primary_key=True)
-    hall_style_id: int = Field(foreign_key="product_hall_styles.id", primary_key=True)
-
-    # Relationships
-    venue: "ProductHallVenue" = Relationship(back_populates="hall_style_links")
-    hall_style: "ProductHallStyle" = Relationship(back_populates="hall_style_links")
-
-
-class ProductHallStyle(SQLModel, table=True):
-    __tablename__ = "product_hall_styles"
-
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(...)
-
-    hall_style_links: list["ProductHallStyleLink"] = Relationship(
-        back_populates="hall_style"
-    )
-    venues: list["ProductHallVenue"] = Relationship(
-        back_populates="hall_styles",
-        link_model=ProductHallStyleLink,
-        sa_relationship_kwargs={"overlaps": "hall_style,hall_style_links,venue"},
-    )
-
-
-class ProductHallType(SQLModel, table=True):
-    __tablename__ = "product_hall_types"
-
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(...)
-
-    venue_type_links: list["ProductHallVenueTypeLink"] = Relationship(
-        back_populates="hall_type"
-    )
-    venues: list["ProductHallVenue"] = Relationship(
-        back_populates="hall_types",
-        link_model=ProductHallVenueTypeLink,
-        sa_relationship_kwargs={"overlaps": "venue_type_links,venue,hall_type"},
-    )
-
-
-class ProductHallFoodType(SQLModel, table=True):
-    __tablename__ = "product_hall_food_types"
-    # 뷔페, 코스, 한상
-
-    id: int = Field(default=None, primary_key=True)
-    name: str = Field(...)
-
-    venues: list["ProductHallVenue"] = Relationship(back_populates="food_type")
-
-
 class ProductHallVenue(SQLModel, table=True):
     __tablename__ = "product_hall_venues"
 
@@ -85,6 +21,8 @@ class ProductHallVenue(SQLModel, table=True):
     wedding_interval: int = Field(default=60)  # 60분
     wedding_times: str = Field(...)
     wedding_type: str = Field(max_length=10)  # 동시, 분리
+    hall_styles: str = Field(...)  # 밝음, 어두움
+    hall_types: str = Field(...)  # 호텔, 채플, 컨벤션
 
     # hall size
     guaranteed_min_count: int = Field(default=0)
@@ -108,7 +46,7 @@ class ProductHallVenue(SQLModel, table=True):
     bride_room_makeup_room: bool = Field(...)
 
     # banquetHall
-    food_type_id: int = Field(foreign_key="product_hall_food_types.id")
+    food_menu: str = Field(...)
     food_cost_per_adult: int = Field(...)
     food_cost_per_child: int = Field(...)
     banquet_hall_running_time: int = Field(...)
@@ -132,26 +70,3 @@ class ProductHallVenue(SQLModel, table=True):
 
     # Relationships
     product_hall: "ProductHall" = Relationship(back_populates="product_hall_venues")
-    hall_style_links: list["ProductHallStyleLink"] = Relationship(
-        back_populates="venue", sa_relationship_kwargs={"overlaps": "venues"}
-    )
-    hall_styles: list["ProductHallStyle"] = Relationship(
-        back_populates="venues",
-        link_model=ProductHallStyleLink,
-        sa_relationship_kwargs={
-            "overlaps": "hall_style_links,venue,hall_style,hall_style_links"
-        },
-    )
-
-    venue_type_links: list["ProductHallVenueTypeLink"] = Relationship(
-        back_populates="venue", sa_relationship_kwargs={"overlaps": "venues"}
-    )
-    hall_types: list["ProductHallType"] = Relationship(
-        back_populates="venues",
-        link_model=ProductHallVenueTypeLink,
-        sa_relationship_kwargs={
-            "overlaps": "venue,venue_type_links,hall_type,venue_type_links"
-        },
-    )
-
-    food_type: "ProductHallFoodType" = Relationship(back_populates="venues")

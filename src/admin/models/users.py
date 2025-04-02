@@ -100,6 +100,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
     }
 
     form_excluded_columns = [
+        User.is_deleted,
         User.joined_datetime,
         User.updated_datetime,
         User.deleted_datetime,

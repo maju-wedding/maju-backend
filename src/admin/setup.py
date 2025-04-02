@@ -10,6 +10,7 @@ from admin.models.product_ai_reviews import ProductAIReviewAdmin
 from admin.models.product_categories import ProductCategoryAdmin
 from admin.models.product_hall_venues import ProductHallVenueAdmin
 from admin.models.product_halls import ProductHallAdmin
+from admin.models.suggest_search_keywords import SuggestSearchKeywordAdmin
 from admin.models.users import UserAdmin
 from core.config import settings
 from core.db import get_session
@@ -56,4 +57,7 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
     admin.add_view(ProductAIReviewAdmin)
     admin.add_view(ProductHallAdmin)
     admin.add_view(ProductHallVenueAdmin)
+
+    # 검색
+    admin.add_view(SuggestSearchKeywordAdmin)
     return admin

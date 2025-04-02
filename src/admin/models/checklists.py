@@ -90,6 +90,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     }
 
     form_excluded_columns = [
+        Checklist.is_deleted,
         Checklist.created_datetime,
         Checklist.updated_datetime,
         Checklist.deleted_datetime,

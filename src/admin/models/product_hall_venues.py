@@ -123,11 +123,6 @@ class ProductHallVenueAdmin(BaseModelViewWithFilters, model=ProductHallVenue):
         ProductHallVenue.wedding_type,
     ]
 
-    column_formatters = {
-        "hall_styles": lambda m, a: ", ".join([style.name for style in m.hall_styles]),
-        "hall_types": lambda m, a: ", ".join([type.name for type in m.hall_types]),
-    }
-
     column_formatters_detail = {
         ProductHallVenue.created_datetime: lambda m, a: (
             m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")

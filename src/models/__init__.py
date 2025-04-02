@@ -3,7 +3,9 @@ from .checklists import Checklist
 from .product_ai_review import ProductAIReview
 from .product_categories import ProductCategory
 from .product_halls import ProductHall
+from .product_scores import ProductScore
 from .products import Product, ProductImage
+from .suggest_search_keywords import SuggestSearchKeyword
 from .user_wishlist import UserWishlist
 from .users import User
 
@@ -17,6 +19,8 @@ all_models = [
     ProductHall,
     ProductAIReview,
     UserWishlist,
+    SuggestSearchKeyword,
+    ProductScore,
 ]
 
 __all__ = [m.__name__ for m in all_models]

@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
+    from models.product_scores import ProductScore
     from models.product_ai_review import ProductAIReview
     from models.product_categories import ProductCategory
     from models.product_halls import ProductHall
@@ -25,7 +26,7 @@ class Product(SQLModel, table=True):
 
     direct_link: str = Field(max_length=500)
     # images
-    thumbnail: str = Field(max_length=500)
+    thumbnail_url: str = Field(max_length=500)
     logo_url: str = Field(max_length=500)
 
     # enterprise
@@ -78,6 +79,7 @@ class Product(SQLModel, table=True):
         back_populates="product"
     )
     ai_reviews: list["ProductAIReview"] = Relationship(back_populates="product")
+    scores: list["ProductScore"] = Relationship(back_populates="product")
 
     # studio_detail: Optional["StudioDetail"] = Relationship(back_populates="product")
     # dress_detail: Optional["DressDetail"] = Relationship(back_populates="product")

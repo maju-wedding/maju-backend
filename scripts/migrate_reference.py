@@ -26,7 +26,7 @@ PROD_PG_CONNECTION = {
 }
 target_env = "prod"
 target_database = (
-    settings.DATABASE_URI
+    settings.DATABASE_URI.replace("postgresql+asyncpg", "postgresql")
     if target_env == "prod"
     else "postgresql://reborn:reborn@postgres-container.orb.local:5432/reborn"
 )
@@ -693,7 +693,7 @@ def migrate_data():
                     direct_link=safe_truncate(
                         iw_hall.get("direct_link", "") or "", 500
                     ),
-                    thumbnail=safe_truncate(
+                    thumbnail_url=safe_truncate(
                         hall_info.get("thumbnail", "")
                         or iw_hall.get("thumbnail", "")
                         or "",

@@ -13,7 +13,7 @@ class ChecklistCategoryAdmin(BaseModelViewWithFilters, model=ChecklistCategory):
         ChecklistCategory.display_name,
         ChecklistCategory.is_system_category,
         # ChecklistCategory.user_id,
-        ChecklistCategory.created_datetime,
+        # ChecklistCategory.created_datetime,
         ChecklistCategory.is_deleted,
     ]
 
@@ -69,6 +69,7 @@ class ChecklistCategoryAdmin(BaseModelViewWithFilters, model=ChecklistCategory):
     }
 
     form_excluded_columns = [
+        ChecklistCategory.is_deleted,
         ChecklistCategory.created_datetime,
         ChecklistCategory.updated_datetime,
         ChecklistCategory.deleted_datetime,

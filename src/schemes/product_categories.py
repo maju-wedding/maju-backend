@@ -22,3 +22,7 @@ class ProductCategoryRead(SQLModel):
     type: CategoryTypeEnum
     is_ready: bool
     order: int
+
+
+class ProductCategoryResponse(ProductCategoryRead):
+    pass

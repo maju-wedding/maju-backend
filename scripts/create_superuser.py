@@ -21,7 +21,7 @@ async def create_superuser(email, password, nickname, phone_number):
     async with async_session() as session:
         # Check if user already exists
         stmt = select(User).where(User.email == email)
-        result = await session.execute(stmt)
+        result = await session.executeute(stmt)
         user = result.scalar_one_or_none()
 
         if user:

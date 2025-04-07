@@ -150,7 +150,6 @@ async def search_wedding_halls(
     offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_session),
 ):
-
     query = (
         select(
             Product.id,

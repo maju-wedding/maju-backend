@@ -641,7 +641,7 @@ def clean_wedding_hall_names(name: str):
 
 def get_or_create_entity(session, model_class, **kwargs):
     """주어진 조건에 맞는 엔티티를 조회하거나 없으면 생성하여 반환"""
-    instance = session.exec(select(model_class).filter_by(**kwargs)).first()
+    instance = session.execute(select(model_class).filter_by(**kwargs)).first()
     if instance:
         return instance
     else:
@@ -655,10 +655,26 @@ def migrate_data():
     """데이터 마이그레이션 실행"""
     hall_infos, iw_halls, wb_halls, hall_venues = fetch_source_data()
 
-    with open("./scripts/wedding_halls_data.json", "r") as f:
+    # AI 리뷰 데이터 로드
+    with open("./scripts/all_wedding_halls_data.json", "r", encoding="utf-8") as f:
         ai_reviews = json.load(f)
 
+    print(f"AI 리뷰 데이터 로드 완료: {len(ai_reviews)}개 웨딩홀")
+
     hall_mapping = create_hall_mapping(hall_infos, iw_halls, wb_halls, hall_venues)
+
+    # AI 리뷰 통계 변수
+    total_halls = 0
+    halls_with_reviews = 0
+    total_reviews = 0
+    review_type_counts = {
+        "분위기": 0,
+        "위치": 0,
+        "주차": 0,
+        "식사": 0,
+        "서비스": 0,
+        "비용": 0,
+    }
 
     with Session(target_engine) as session:
         product_category_id = 1  # 결혼식장 카테고리 ID (사전에 생성 필요)
@@ -666,11 +682,11 @@ def migrate_data():
         SQLModel.metadata.create_all(target_engine)
 
         # 기존 데이터 삭제
-        session.execute(text("TRUNCATE TABLE products CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_images CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_halls CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_hall_venues CASCADE"))
-        session.execute(text("TRUNCATE TABLE product_ai_reviews CASCADE"))
+        session.executeute(text("TRUNCATE TABLE products CASCADE"))
+        session.executeute(text("TRUNCATE TABLE product_images CASCADE"))
+        session.executeute(text("TRUNCATE TABLE product_halls CASCADE"))
+        session.executeute(text("TRUNCATE TABLE product_hall_venues CASCADE"))
+        session.executeute(text("TRUNCATE TABLE product_ai_reviews CASCADE"))
 
         # 각 결혼식장 데이터 처리
         for banquet_code, mapping in hall_mapping.items():
@@ -682,6 +698,43 @@ def migrate_data():
             clean_name = clean_wedding_hall_names(hall_info.get("name_new", ""))
 
             try:
+                # 웨딩홀 이름으로 AI 리뷰 데이터 찾기
+                hall_ai_review = None
+                matched_hall_name = None
+
+                # 정확한 이름으로 먼저 시도
+                hall_ai_review = ai_reviews.get(clean_name)
+                if hall_ai_review:
+                    matched_hall_name = clean_name
+
+                # 정확한 이름으로 찾지 못한 경우, 부분 일치로 시도
+                if not hall_ai_review:
+                    for hall_name, review_data in ai_reviews.items():
+                        # 웨딩홀 이름이 리뷰 데이터의 이름에 포함되어 있거나 그 반대인 경우
+                        if (clean_name in hall_name or hall_name in clean_name) and len(
+                            clean_name
+                        ) > 2:
+                            hall_ai_review = review_data
+                            matched_hall_name = hall_name
+                            print(
+                                f"부분 일치로 AI 리뷰 찾음: {clean_name} -> {hall_name}"
+                            )
+                            break
+
+                # 리뷰 데이터가 없는 경우 로깅
+                if not hall_ai_review:
+                    print(f"AI 리뷰 데이터 없음: {clean_name}")
+
+                # AI 리뷰에서 웹사이트 정보 가져오기
+                website_url = ""
+                if (
+                    hall_ai_review
+                    and "website" in hall_ai_review
+                    and hall_ai_review["website"] != "정보 없음"
+                ):
+                    website_url = hall_ai_review["website"]
+                    print(f"웹사이트 정보 추가: {clean_name} -> {website_url}")
+
                 # 기본 제품 정보 생성
                 product = Product(
                     product_category_id=product_category_id,
@@ -691,7 +744,7 @@ def migrate_data():
                     or "",
                     hashtag=safe_truncate(iw_hall.get("hashtag", "") or "", 100),
                     direct_link=safe_truncate(
-                        iw_hall.get("direct_link", "") or "", 500
+                        website_url or iw_hall.get("direct_link", "") or "", 500
                     ),
                     thumbnail_url=safe_truncate(
                         hall_info.get("thumbnail", "")
@@ -801,19 +854,52 @@ def migrate_data():
                             f"sell_point JSON 파싱 오류 (banquet_code: {banquet_code}): {str(e)}"
                         )
 
-                # AI 리뷰 추가 (예시 데이터)
+                # AI 리뷰 추가
                 review_types = ["분위기", "위치", "주차", "식사", "서비스", "비용"]
-                for i, review_type in enumerate(review_types):
-                    ai_review = ai_reviews.get(product_hall.name)
 
-                    if ai_review:
-                        review_content = ai_review.get(review_type) or ""
-                        ai_review = ProductAIReview(
-                            product_id=product.id,
-                            review_type=review_type,
-                            content=review_content,
-                        )
-                        session.add(ai_review)
+                # 리뷰 데이터가 있는 경우에만 처리
+                if hall_ai_review:
+                    halls_with_reviews += 1
+                    for review_type in review_types:
+                        try:
+                            # 리뷰 타입에 맞는 내용 가져오기
+                            review_content = ""
+                            if (
+                                review_type == "분위기"
+                                and "atmosphere" in hall_ai_review
+                            ):
+                                review_content = hall_ai_review["atmosphere"]
+                            elif review_type == "위치" and "location" in hall_ai_review:
+                                review_content = hall_ai_review["location"]
+                            elif review_type == "주차" and "parking" in hall_ai_review:
+                                review_content = hall_ai_review["parking"]
+                            elif review_type == "식사" and "food" in hall_ai_review:
+                                review_content = hall_ai_review["food"]
+                            elif (
+                                review_type == "서비스" and "service" in hall_ai_review
+                            ):
+                                review_content = hall_ai_review["service"]
+                            elif review_type == "비용" and "cost" in hall_ai_review:
+                                review_content = hall_ai_review["cost"]
+
+                            # 리뷰 내용이 있는 경우에만 추가
+                            if review_content:
+                                ai_review = ProductAIReview(
+                                    product_id=product.id,
+                                    review_type=review_type,
+                                    content=review_content,
+                                )
+                                session.add(ai_review)
+                                total_reviews += 1
+                                review_type_counts[review_type] += 1
+                        except Exception as e:
+                            print(
+                                f"AI 리뷰 처리 오류 (웨딩홀: {clean_name}, 리뷰 타입: {review_type}): {str(e)}"
+                            )
+                            # 오류가 발생해도 계속 진행
+                            continue
+
+                total_halls += 1
 
                 # venue 정보 추가
                 if venues:
@@ -836,24 +922,28 @@ def migrate_data():
                             max_capacity = venue_data.get("max_person") or 0
 
                             # 개선된 파서 사용
-                            wedding_interval, wedding_times = (
-                                parse_wedding_times_and_interval(venue_data, hall_info)
-                            )
+                            (
+                                wedding_interval,
+                                wedding_times,
+                            ) = parse_wedding_times_and_interval(venue_data, hall_info)
                             basic_price, peak_season_price = parse_hall_pricing(
                                 venue_data, hall_info, iw_hall
                             )
-                            ceiling_height, virgin_road_length = (
-                                parse_hall_physical_attributes(
-                                    venue_data, hall_info, iw_hall
-                                )
+                            (
+                                ceiling_height,
+                                virgin_road_length,
+                            ) = parse_hall_physical_attributes(
+                                venue_data, hall_info, iw_hall
                             )
                             bride_room_entry = parse_bride_room_info(
                                 hall_info, iw_hall, wb_hall
                             )
-                            food_type_name, min_food_cost, max_food_cost = (
-                                parse_food_type_and_cost(
-                                    hall_info, iw_hall, wb_hall, venue_data
-                                )
+                            (
+                                food_type_name,
+                                min_food_cost,
+                                max_food_cost,
+                            ) = parse_food_type_and_cost(
+                                hall_info, iw_hall, wb_hall, venue_data
                             )
 
                             # venue에 스타일 연결
@@ -921,6 +1011,17 @@ def migrate_data():
 
         session.commit()
         print("데이터 마이그레이션 완료")
+
+        # AI 리뷰 통계 출력
+        print("\n===== AI 리뷰 통계 =====")
+        print(f"총 웨딩홀 수: {total_halls}")
+        print(
+            f"리뷰가 있는 웨딩홀 수: {halls_with_reviews} ({halls_with_reviews/total_halls*100:.1f}%)"
+        )
+        print(f"총 리뷰 수: {total_reviews}")
+        print("\n리뷰 타입별 통계:")
+        for review_type, count in review_type_counts.items():
+            print(f"- {review_type}: {count}개 ({count/total_reviews*100:.1f}%)")
 
 
 if __name__ == "__main__":

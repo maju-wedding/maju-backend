@@ -83,16 +83,15 @@
           수정
         </a>
         {% endif %} {% if model_view.can_delete %}
-        <a
-          href="#"
-          data-name="{{ model_view.name }}"
-          data-pk="{{ get_object_identifier(model) }}"
+        <button
+          id="modal-delete-button"
           data-url="{{ model_view._url_for_delete(request, model) }}"
+          data-pk="{{ get_object_identifier(model) }}"
           @click.prevent="$dispatch('open-modal', 'delete-modal')"
           class="px-4 py-2 text-xs bg-red-600 text-white rounded-md hover:bg-red-700"
         >
           삭제
-        </a>
+        </button>
         {% endif %} {% for custom_action, label in
         model_view._custom_actions_in_detail.items() %} {% if custom_action in
         model_view._custom_actions_confirmation %}
@@ -166,21 +165,20 @@
             </h3>
             <div class="mt-2">
               <p class="text-xs text-gray-500">
-                Are you sure you want to delete this item? This action cannot be
-                undone.
+                정말로 이 항목을 삭제하시겠습니까?
               </p>
             </div>
           </div>
         </div>
       </div>
       <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-        <a
+        <button
           id="modal-delete-button"
-          href="{{ model_view._url_for_delete(request, model) }}"
+          @click="deleteItem()"
           class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-xs"
         >
           삭제
-        </a>
+        </button>
         <button
           @click="open = false"
           type="button"
@@ -192,6 +190,34 @@
     </div>
   </div>
 </div>
+
+<script>
+  function deleteItem() {
+    const deleteButton = document.getElementById('modal-delete-button');
+    const url = deleteButton.getAttribute('data-url');
+    const pk = deleteButton.getAttribute('data-pk');
+
+    fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pks: pk })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('삭제 요청 실패');
+      }
+      return response.text();
+    })
+    .then(result => {
+      window.location.href = result;
+    })
+    .catch(error => {
+      alert('삭제 중 오류가 발생했습니다: ' + error);
+    });
+  }
+</script>
 {% endif %} {% for custom_action in model_view._custom_actions_in_detail %} {%
 if custom_action in model_view._custom_actions_confirmation %}
 <!-- 커스텀 액션 모달 -->

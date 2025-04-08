@@ -5,6 +5,7 @@ from starlette.requests import Request
 from admin.models.base import BaseModelViewWithFilters
 from core.security import get_password_hash
 from models import User
+from utils.utils import utc_now
 
 
 class UserAdmin(BaseModelViewWithFilters, model=User):
@@ -155,4 +156,6 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
     async def delete_model(self, request: Request, pk: Any) -> None:
         obj = await self.get_object_for_details(pk)
         obj.is_deleted = True
+        obj.is_active = False
+        obj.deleted_datetime = utc_now()
         await self.update_model(request, pk, obj.dict())

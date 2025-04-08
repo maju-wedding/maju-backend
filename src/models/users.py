@@ -22,7 +22,7 @@ class User(SQLModel, table=True):
         nullable=False,
     )
     hashed_password: str | None = Field(default=None, max_length=255)
-    email: EmailStr | None = Field(default=None, max_length=255, unique=True)
+    email: EmailStr | None = Field(default=None, max_length=255)
     phone_number: str | None = Field(..., max_length=20)
     nickname: str = Field(..., max_length=20)
     gender: GenderEnum | None = Field(

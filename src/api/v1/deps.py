@@ -54,7 +54,11 @@ async def get_current_user(
     else:
         # 일반/소셜 사용자는 이메일로 조회
         user = await users_crud.get(
-            session, email=token_data.sub, schema_to_select=User, return_as_model=True
+            session,
+            email=token_data.sub,
+            is_deleted=False,
+            schema_to_select=User,
+            return_as_model=True,
         )
 
     if not user:

@@ -18,7 +18,6 @@ class ProductAIReview(SQLModel, table=True):
     review_type: str = Field(...)
     content: str = Field(sa_column=Column(Text))
 
-    # 누락된 필드 추가
     is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(
         default_factory=utc_now,

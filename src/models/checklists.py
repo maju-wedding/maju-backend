@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 
 
 class Checklist(SQLModel, table=True):
-    """사용자 체크리스트"""
-
     __tablename__ = "checklists"
 
     id: int | None = Field(default=None, primary_key=True)

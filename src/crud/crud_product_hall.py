@@ -1,0 +1,170 @@
+from typing import Any
+
+from sqlalchemy import and_, select, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager, with_loader_criteria
+
+from models.product_hall_venues import ProductHallVenue
+from models.product_halls import ProductHall
+from models.products import Product
+from utils.utils import parse_guest_count_range
+from .base import CRUDBase
+
+
+class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]):
+    async def get_by_product(
+        self, db: AsyncSession, *, product_id: int
+    ) -> ProductHall | None:
+        """Get product hall by product ID"""
+        query = select(ProductHall).where(
+            and_(
+                ProductHall.product_id == product_id,
+                ProductHall.is_deleted == False,
+            )
+        )
+        result = await db.stream(query)
+        return await result.scalar_one_or_none()
+
+    async def get_with_venues(
+        self, db: AsyncSession, *, hall_id: int
+    ) -> ProductHall | None:
+        """
+        Get product hall with venues loaded
+        Optimized using with_loader_criteria
+        """
+        query = (
+            select(ProductHall)
+            .where(
+                and_(
+                    ProductHall.id == hall_id,
+                    ProductHall.is_deleted == False,
+                )
+            )
+            .options(
+                with_loader_criteria(
+                    ProductHallVenue, ProductHallVenue.is_deleted == False
+                )
+            )
+            .options(contains_eager(ProductHall.product_hall_venues))
+            .outerjoin(ProductHallVenue)
+        )
+
+        result = await db.stream(query)
+        return await result.unique().scalar_one_or_none()
+
+    async def filter_halls(
+        self,
+        db: AsyncSession,
+        *,
+        sidos: list[str] = None,
+        guguns: list[str] = None,
+        guest_counts: list[str] = None,
+        wedding_types: list[str] = None,
+        food_menus: list[str] = None,
+        hall_types: list[str] = None,
+        hall_styles: list[str] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ProductHall]:
+        """
+        Filter product halls with various criteria
+        Optimized using explicit joins and efficient filtering
+        """
+        # 기본 쿼리 시작
+        query = (
+            select(ProductHall)
+            .join(
+                Product,
+                and_(Product.id == ProductHall.product_id, Product.is_deleted == False),
+            )
+            .where(ProductHall.is_deleted == False)
+        )
+
+        # 지역 필터 적용
+        if sidos:
+            query = query.where(Product.sido.in_(sidos))
+
+        if guguns:
+            query = query.where(Product.gugun.in_(guguns))
+
+        # 베뉴 관련 필터가 있는 경우 조인
+        if any([guest_counts, wedding_types, food_menus, hall_types, hall_styles]):
+            # ProductHallVenue를 조인
+            query = query.join(
+                ProductHallVenue,
+                and_(
+                    ProductHall.id == ProductHallVenue.product_hall_id,
+                    ProductHallVenue.is_deleted == False,
+                ),
+            )
+
+            # 하객 수 필터
+            if guest_counts:
+                guest_count_filters = []
+                for count_range in guest_counts:
+                    min_count, max_count = parse_guest_count_range(count_range)
+
+                    if min_count is not None and max_count is not None:
+                        guest_count_filters.append(
+                            and_(
+                                ProductHallVenue.guaranteed_min_count >= min_count,
+                                ProductHallVenue.guaranteed_min_count <= max_count,
+                            )
+                        )
+                    elif min_count is not None:
+                        guest_count_filters.append(
+                            ProductHallVenue.guaranteed_min_count >= min_count
+                        )
+                    elif max_count is not None:
+                        guest_count_filters.append(
+                            ProductHallVenue.guaranteed_min_count <= max_count
+                        )
+
+                if guest_count_filters:
+                    query = query.where(or_(*guest_count_filters))
+
+            # 웨딩 타입 필터
+            if wedding_types:
+                query = query.where(ProductHallVenue.wedding_type.in_(wedding_types))
+
+            # 음식 메뉴 필터
+            if food_menus:
+                query = query.where(ProductHallVenue.food_menu.in_(food_menus))
+
+            # 홀 타입 필터 (쉼표로 구분된 값을 LIKE로 검색)
+            if hall_types:
+                hall_type_filters = []
+                for hall_type in hall_types:
+                    # 홀 타입이 포함된 경우 - 쉼표로 구분된 문자열 내에 값이 있는지
+                    hall_type_filters.append(
+                        or_(
+                            ProductHallVenue.hall_types == hall_type,
+                            ProductHallVenue.hall_types.like(f"{hall_type},%"),
+                            ProductHallVenue.hall_types.like(f"%,{hall_type},%"),
+                            ProductHallVenue.hall_types.like(f"%,{hall_type}"),
+                        )
+                    )
+                if hall_type_filters:
+                    query = query.where(or_(*hall_type_filters))
+
+            # 홀 스타일 필터 (쉼표로 구분된 값을 LIKE로 검색)
+            if hall_styles:
+                hall_style_filters = []
+                for hall_style in hall_styles:
+                    hall_style_filters.append(
+                        or_(
+                            ProductHallVenue.hall_styles == hall_style,
+                            ProductHallVenue.hall_styles.like(f"{hall_style},%"),
+                            ProductHallVenue.hall_styles.like(f"%,{hall_style},%"),
+                            ProductHallVenue.hall_styles.like(f"%,{hall_style}"),
+                        )
+                    )
+                if hall_style_filters:
+                    query = query.where(or_(*hall_style_filters))
+
+        # 중복 제거, 페이지네이션 적용
+        query = query.distinct().offset(skip).limit(limit)
+
+        # 결과 조회
+        result = await db.stream(query)
+        return await result.scalars().all()

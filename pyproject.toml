@@ -68,6 +68,7 @@ ignore = [
     "W191", # indentation contains tabs
     "B904", # Allow raising exceptions without from e, for HTTPException
     "I001", # isort: imports are incorrectly sorted
+    "E712",
 ]
 
 [tool.ruff.lint.pyupgrade]

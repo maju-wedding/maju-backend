@@ -2,7 +2,7 @@ import datetime
 import json
 import re
 import traceback
-from typing import Any, List, Tuple
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -134,7 +134,7 @@ def create_hall_mapping(
     return hall_mapping
 
 
-def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> List[str]:
+def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> list[str]:
     """결혼식장 유형 파싱 (여러 타입 반환)"""
     # 허용된 hall_type 값들
     ALLOWED_HALL_TYPES = [
@@ -199,7 +199,7 @@ def parse_hall_types(hall_info: dict, iw_hall: dict, wb_hall: dict | None) -> Li
     return result_types
 
 
-def parse_hall_styles(wb_hall: dict, iw_hall: dict, hall_info: dict) -> List[str]:
+def parse_hall_styles(wb_hall: dict, iw_hall: dict, hall_info: dict) -> list[str]:
     """결혼식장 스타일 파싱 (여러 스타일 반환)"""
     result_styles = []
     # 스타일 매핑
@@ -298,7 +298,7 @@ def parse_food_type_and_cost(
 
 def parse_wedding_times_and_interval(
     venue_data: dict, hall_info: dict
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """웨딩 시간 및 간격 파싱"""
     time_display = venue_data.get("timeDisplay", "")
 
@@ -327,7 +327,7 @@ def parse_wedding_times_and_interval(
 
 def parse_hall_pricing(
     venue_data: dict, hall_info: dict, iw_hall: dict
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """홀 가격 정보 파싱"""
     # 기본값
     basic_price = 0
@@ -572,7 +572,7 @@ def sanitize_json(value):
         return None
 
     # 이미 리스트나 딕셔너리인 경우 그대로 반환
-    if isinstance(value, (list, dict)):
+    if isinstance(value, list | dict):
         return value
 
     if isinstance(value, str):
@@ -657,7 +657,7 @@ def migrate_data():
     hall_infos, iw_halls, wb_halls, hall_venues = fetch_source_data()
 
     # AI 리뷰 데이터 로드
-    with open("./scripts/all_wedding_halls_data.json", "r", encoding="utf-8") as f:
+    with open("./scripts/all_wedding_halls_data.json", encoding="utf-8") as f:
         ai_reviews = json.load(f)
 
     print(f"AI 리뷰 데이터 로드 완료: {len(ai_reviews)}개 웨딩홀")

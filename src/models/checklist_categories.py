@@ -12,8 +12,6 @@ if TYPE_CHECKING:
 
 
 class ChecklistCategory(SQLModel, table=True):
-    """체크리스트 카테고리"""
-
     __tablename__ = "checklist_categories"
 
     id: int | None = Field(default=None, primary_key=True)

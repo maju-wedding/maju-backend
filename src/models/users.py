@@ -11,8 +11,6 @@ from utils.utils import utc_now
 
 
 class User(SQLModel, table=True):
-    """데이터베이스 모델"""
-
     __tablename__ = "users"
 
     id: UUID = Field(

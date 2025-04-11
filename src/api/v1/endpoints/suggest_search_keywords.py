@@ -1,108 +1,82 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import get_session
-from models import SuggestSearchKeyword
+from crud import suggest_search_keyword as crud_keyword
+from schemes.suggest_search_keywords import SuggestSearchKeywordRead
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=list[SuggestSearchKeywordRead])
 async def list_suggest_search_keywords(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
     """검색어 추천 목록 조회"""
-    query = (
-        select(SuggestSearchKeyword)
-        .where(SuggestSearchKeyword.is_deleted == False)
-        .offset(skip)
-        .limit(limit)
-    )
-    result = await session.execute(query)
-    keywords = result.scalars().all()
-    return keywords
+    keywords = await crud_keyword.get_multi(db=session, skip=skip, limit=limit)
+    return [SuggestSearchKeywordRead(id=k.id, keyword=k.keyword) for k in keywords]
 
 
-@router.get("/{keyword_id}")
+@router.get("/{keyword_id}", response_model=SuggestSearchKeywordRead)
 async def get_suggest_search_keyword(
     keyword_id: int,
     session: AsyncSession = Depends(get_session),
 ):
     """검색어 추천 상세 조회"""
-    query = select(SuggestSearchKeyword).where(
-        SuggestSearchKeyword.id == keyword_id,
-        SuggestSearchKeyword.is_deleted == False,
-    )
-    result = await session.execute(query)
-    keyword = result.scalar_one_or_none()
+    keyword = await crud_keyword.get(db=session, id=keyword_id)
 
     if not keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
 
-    return keyword
+    return SuggestSearchKeywordRead(id=keyword.id, keyword=keyword.keyword)
 
 
-@router.post("")
+@router.post("", response_model=SuggestSearchKeywordRead)
 async def create_suggest_search_keyword(
     keyword: str,
     session: AsyncSession = Depends(get_session),
 ):
     """검색어 추천 생성"""
-    # Check if keyword already exists
-    query = select(SuggestSearchKeyword).where(
-        SuggestSearchKeyword.keyword == keyword,
-        SuggestSearchKeyword.is_deleted == False,
-    )
-    result = await session.execute(query)
-    existing_keyword = result.scalar_one_or_none()
+    # 이미 존재하는지 확인
+    existing_keyword = await crud_keyword.get_by_keyword(db=session, keyword=keyword)
 
     if existing_keyword:
         raise HTTPException(status_code=400, detail="Keyword already exists")
 
-    # Create keyword
-    suggest_keyword = SuggestSearchKeyword(keyword=keyword)
-    session.add(suggest_keyword)
-    await session.commit()
-    await session.refresh(suggest_keyword)
-    return suggest_keyword
+    # 키워드 생성
+    new_keyword = await crud_keyword.create(db=session, obj_in={"keyword": keyword})
+
+    return SuggestSearchKeywordRead(id=new_keyword.id, keyword=new_keyword.keyword)
 
 
-@router.put("/{keyword_id}")
+@router.put("/{keyword_id}", response_model=SuggestSearchKeywordRead)
 async def update_suggest_search_keyword(
     keyword_id: int,
     keyword: str,
     session: AsyncSession = Depends(get_session),
 ):
     """검색어 추천 수정"""
-    query = select(SuggestSearchKeyword).where(
-        SuggestSearchKeyword.id == keyword_id,
-        SuggestSearchKeyword.is_deleted == False,
-    )
-    result = await session.execute(query)
-    suggest_keyword = result.scalar_one_or_none()
+    existing_keyword = await crud_keyword.get(db=session, id=keyword_id)
 
-    if not suggest_keyword:
+    if not existing_keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
 
-    # Check if new keyword already exists
-    query = select(SuggestSearchKeyword).where(
-        SuggestSearchKeyword.keyword == keyword,
-        SuggestSearchKeyword.id != keyword_id,
-        SuggestSearchKeyword.is_deleted == False,
-    )
-    result = await session.execute(query)
-    existing_keyword = result.scalar_one_or_none()
+    # 중복 확인
+    duplicate = await crud_keyword.get_by_keyword(db=session, keyword=keyword)
 
-    if existing_keyword:
+    if duplicate and duplicate.id != keyword_id:
         raise HTTPException(status_code=400, detail="Keyword already exists")
 
-    suggest_keyword.keyword = keyword
-    await session.commit()
-    await session.refresh(suggest_keyword)
-    return suggest_keyword
+    # 업데이트
+    updated_keyword = await crud_keyword.update(
+        db=session, db_obj=existing_keyword, obj_in={"keyword": keyword}
+    )
+
+    return SuggestSearchKeywordRead(
+        id=updated_keyword.id, keyword=updated_keyword.keyword
+    )
 
 
 @router.delete("/{keyword_id}")
@@ -111,16 +85,11 @@ async def delete_suggest_search_keyword(
     session: AsyncSession = Depends(get_session),
 ):
     """검색어 추천 삭제"""
-    query = select(SuggestSearchKeyword).where(
-        SuggestSearchKeyword.id == keyword_id,
-        SuggestSearchKeyword.is_deleted == False,
-    )
-    result = await session.execute(query)
-    suggest_keyword = result.scalar_one_or_none()
+    keyword = await crud_keyword.get(db=session, id=keyword_id)
 
-    if not suggest_keyword:
+    if not keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
 
-    suggest_keyword.is_deleted = True
-    await session.commit()
+    await crud_keyword.soft_delete(db=session, id=keyword_id)
+
     return {"message": "Keyword deleted successfully"}

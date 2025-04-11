@@ -2,8 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime
-from sqlmodel import SQLModel, Field, Relationship
-
+from sqlmodel import Field, Relationship, SQLModel
 from utils.utils import utc_now
 
 if TYPE_CHECKING:

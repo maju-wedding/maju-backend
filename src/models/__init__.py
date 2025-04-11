@@ -3,8 +3,9 @@ from .checklists import Checklist
 from .product_ai_review import ProductAIReview
 from .product_categories import ProductCategory
 from .product_halls import ProductHall
+from .product_images import ProductImage
 from .product_scores import ProductScore
-from .products import Product, ProductImage
+from .products import Product
 from .suggest_search_keywords import SuggestSearchKeyword
 from .user_wishlist import UserWishlist
 from .users import User

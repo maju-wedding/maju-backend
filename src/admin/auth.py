@@ -1,8 +1,8 @@
 from fastapi import Request
 from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy import select
 
 from core.security import verify_password
-from cruds.users import users_crud
 from models import User
 
 
@@ -15,9 +15,9 @@ class AdminAuth(AuthenticationBackend):
         session = request.state.session
 
         # Find the user
-        user = await users_crud.get(
-            session, email=username, return_as_model=True, schema_to_select=User
-        )
+        query = select(User).where(User.email == username)
+        result = await session.execute(query)
+        user = result.scalar_one_or_none()
 
         if not user or not user.is_superuser:
             return False

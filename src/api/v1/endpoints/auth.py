@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -13,13 +14,9 @@ from core.db import get_session
 from core.enums import UserTypeEnum
 from core.exceptions import InvalidToken
 from core.oauth_client import extract_user_data
-from cruds.users import users_crud
 from models.users import SocialProviderEnum, User
 from schemes.auth import AuthToken, SocialLoginWithTokenData, SocialUserCheckResponse
-from schemes.users import (
-    UserCreate,
-    InternalUserCreate,
-)
+from schemes.users import UserCreate
 from utils.utils import generate_guest_nickname
 
 router = APIRouter()
@@ -37,16 +34,18 @@ async def register(
     - 회원가입 성공시 자동으로 로그인되어 토큰이 반환됩니다.
     """
     # 이메일 중복 체크
-    existing_user = await users_crud.get(session, email=user_data.email)
+    query = select(User).where(User.email == user_data.email)
+    result = await session.stream(query)
+    existing_user = await result.scalar_one_or_none()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    existing_phone_number = await users_crud.get(
-        session, phone_number=user_data.phone_number
-    )
+    query = select(User).where(User.phone_number == user_data.phone_number)
+    result = await session.stream(query)
+    existing_phone_number = await result.scalar_one_or_none()
     if existing_phone_number:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,16 +56,16 @@ async def register(
     hashed_password = security.get_password_hash(user_data.password.get_secret_value())
 
     # 사용자 생성
-    user = await users_crud.create(
-        session,
-        InternalUserCreate(
-            email=user_data.email,
-            phone_number=user_data.phone_number,
-            nickname=user_data.nickname,
-            hashed_password=hashed_password,
-            user_type=UserTypeEnum.local,
-        ),
+    user = User(
+        email=user_data.email,
+        phone_number=user_data.phone_number,
+        nickname=user_data.nickname,
+        hashed_password=hashed_password,
+        user_type=UserTypeEnum.local,
     )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
 
     # 로그인 토큰 생성
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -96,9 +95,9 @@ async def login(
     - **username**: 사용자 이메일
     - **password**: 사용자 비밀번호
     """
-    user = await users_crud.get(
-        session, email=form_data.username, schema_to_select=User, return_as_model=True
-    )
+    query = select(User).where(User.email == form_data.username)
+    result = await session.stream(query)
+    user = await result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
@@ -171,11 +170,14 @@ async def social_user_check(
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
     # 기존 사용자 확인
-    user = await users_crud.get(
-        session,
-        email=user_data["email"],
-        is_deleted=False,
+    query = select(User).where(
+        and_(
+            User.email == user_data["email"],
+            User.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    user = await result.scalar_one_or_none()
 
     return SocialUserCheckResponse(
         exists=user is not None,
@@ -212,13 +214,14 @@ async def social_login(
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
     # 기존 사용자 확인
-    user = await users_crud.get(
-        session,
-        email=user_data["email"],
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=User,
+    query = select(User).where(
+        and_(
+            User.email == user_data["email"],
+            User.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    user = await result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
@@ -273,11 +276,14 @@ async def social_register(
     user_data = extract_user_data(login_data.provider, raw_user_info)
 
     # 기존 사용자 확인
-    existing_user = await users_crud.get(
-        session,
-        email=user_data["email"],
-        is_deleted=False,
+    query = select(User).where(
+        and_(
+            User.email == user_data["email"],
+            User.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    existing_user = await result.scalar_one_or_none()
 
     if existing_user:
         raise HTTPException(
@@ -286,17 +292,17 @@ async def social_register(
         )
 
     # 신규 사용자 생성
-    user = await users_crud.create(
-        session,
-        InternalUserCreate(
-            email=user_data["email"],
-            phone_number=user_data["mobile"],
-            social_provider=login_data.provider,
-            nickname=user_data["name"],
-            user_type=UserTypeEnum.social,
-            gender=user_data["gender"],
-        ),
+    user = User(
+        email=user_data["email"],
+        phone_number=user_data["mobile"],
+        social_provider=login_data.provider,
+        nickname=user_data["name"],
+        user_type=UserTypeEnum.social,
+        gender=user_data["gender"],
     )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
 
     # JWT 토큰 생성 및 반환
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -315,18 +321,18 @@ async def social_register(
     )
 
 
-@router.post("/guest-login")
+@router.post("/guest-login", response_model=AuthToken)
 async def guest_login(
     session: AsyncSession = Depends(get_session),
 ):
     """게스트 로그인 (비회원)"""
-    user = await users_crud.create(
-        session,
-        InternalUserCreate(
-            nickname=generate_guest_nickname(),
-            user_type=UserTypeEnum.guest,
-        ),
+    user = User(
+        nickname=generate_guest_nickname(),
+        user_type=UserTypeEnum.guest,
     )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = security.create_access_token(

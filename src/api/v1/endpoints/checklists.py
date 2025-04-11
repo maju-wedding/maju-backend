@@ -1,24 +1,16 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, Query, Body, HTTPException, Path
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user, get_current_admin
 from core.db import get_session
-from cruds.checklists import (
-    checklists_crud,
-    checklist_categories_crud,
-)
-from models import User
-from models.checklist_categories import ChecklistCategory
-from models.checklists import Checklist
+from models import User, Checklist, ChecklistCategory
 from schemes.checklists import (
     ChecklistRead,
     ChecklistCreate,
     ChecklistOrderUpdate,
     ChecklistUpdate,
     SuggestChecklistRead,
-    InternalChecklistCreate,
 )
 from schemes.common import ResponseWithStatusMessage
 
@@ -27,28 +19,22 @@ router = APIRouter()
 
 @router.get("/system", response_model=list[SuggestChecklistRead])
 async def list_system_checklists(
-    checklist_category_id: int | None = Query(None),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
-    query = {"is_system_checklist": True, "is_deleted": False}
-
-    if checklist_category_id:
-        query["checklist_category_id"] = checklist_category_id
-
-    system_checklists = await checklists_crud.get_multi(
-        session,
-        offset=offset,
-        limit=limit,
-        schema_to_select=ChecklistRead,
-        return_as_model=True,
-        sort_columns="global_display_order",
-        sort_orders="asc",
-        **query,
+    """시스템 체크리스트 목록 조회"""
+    query = (
+        select(Checklist)
+        .where(
+            and_(Checklist.is_system_checklist == True, Checklist.is_deleted == False)
+        )
+        .offset(skip)
+        .limit(limit)
     )
-
-    return system_checklists.get("data")
+    result = await session.stream(query)
+    checklists = await result.scalars().all()
+    return [SuggestChecklistRead.model_validate(checklist) for checklist in checklists]
 
 
 @router.get("/system/{checklist_id}", response_model=SuggestChecklistRead)
@@ -57,19 +43,20 @@ async def get_system_checklist(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 제공 기본 체크리스트 항목 조회"""
-    system_checklist = await checklists_crud.get(
-        session,
-        id=checklist_id,
-        is_deleted=False,
-        is_system_checklist=True,
-        return_as_model=True,
-        schema_to_select=SuggestChecklistRead,
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_id,
+            Checklist.is_deleted == False,
+            Checklist.is_system_checklist == True,
+        )
     )
+    result = await session.stream(query)
+    system_checklist = await result.scalar_one_or_none()
 
     if not system_checklist:
         raise HTTPException(status_code=404, detail="Suggest checklist not found")
 
-    return system_checklist
+    return SuggestChecklistRead.model_validate(system_checklist)
 
 
 @router.post("/system", response_model=SuggestChecklistRead)
@@ -79,12 +66,15 @@ async def create_system_checklist(
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 생성"""
-    system_checklist_category = await checklist_categories_crud.get(
-        session,
-        id=system_checklist_create.checklist_category_id,
-        is_system_category=True,
-        is_deleted=False,
+    query = select(ChecklistCategory).where(
+        and_(
+            ChecklistCategory.id == system_checklist_create.checklist_category_id,
+            ChecklistCategory.is_system_category == True,
+            ChecklistCategory.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    system_checklist_category = await result.scalar_one_or_none()
 
     if not system_checklist_category:
         raise HTTPException(
@@ -92,15 +82,16 @@ async def create_system_checklist(
             detail="System checklist category not found",
         )
 
-    return await checklists_crud.create(
-        session,
-        InternalChecklistCreate(
-            title=system_checklist_create.title,
-            description=system_checklist_create.description,
-            checklist_category_id=system_checklist_create.checklist_category_id,
-            is_system_checklist=True,
-        ),
+    checklist = Checklist(
+        title=system_checklist_create.title,
+        description=system_checklist_create.description,
+        checklist_category_id=system_checklist_create.checklist_category_id,
+        is_system_checklist=True,
     )
+    session.add(checklist)
+    await session.commit()
+    await session.refresh(checklist)
+    return SuggestChecklistRead.model_validate(checklist)
 
 
 @router.put("/system/{checklist_id}", response_model=SuggestChecklistRead)
@@ -111,12 +102,15 @@ async def update_system_checklist(
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 업데이트"""
-    system_checklist = await checklists_crud.get(
-        session,
-        id=checklist_id,
-        is_deleted=False,
-        is_system_checklist=True,
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_id,
+            Checklist.is_deleted == False,
+            Checklist.is_system_checklist == True,
+        )
     )
+    result = await session.stream(query)
+    system_checklist = await result.scalar_one_or_none()
 
     if not system_checklist:
         raise HTTPException(
@@ -125,12 +119,15 @@ async def update_system_checklist(
         )
 
     if system_checklist_update.checklist_category_id:
-        system_checklist_category = await checklist_categories_crud.get(
-            session,
-            id=system_checklist_update.checklist_category_id,
-            is_system_category=True,
-            is_deleted=False,
+        query = select(ChecklistCategory).where(
+            and_(
+                ChecklistCategory.id == system_checklist_update.checklist_category_id,
+                ChecklistCategory.is_system_category == True,
+                ChecklistCategory.is_deleted == False,
+            )
         )
+        result = await session.stream(query)
+        system_checklist_category = await result.scalar_one_or_none()
 
         if not system_checklist_category:
             raise HTTPException(
@@ -138,15 +135,12 @@ async def update_system_checklist(
                 detail="System checklist category not found",
             )
 
-    return await checklists_crud.update(
-        session,
-        system_checklist_update,
-        id=checklist_id,
-        is_system_checklist=True,
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=SuggestChecklistRead,
-    )
+    for field, value in system_checklist_update.model_dump(exclude_unset=True).items():
+        setattr(system_checklist, field, value)
+
+    await session.commit()
+    await session.refresh(system_checklist)
+    return SuggestChecklistRead.model_validate(system_checklist)
 
 
 @router.delete("/system/{checklist_id}", response_model=ResponseWithStatusMessage)
@@ -156,12 +150,15 @@ async def delete_system_checklist(
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 제공 기본 체크리스트 항목 삭제"""
-    system_checklist = await checklists_crud.get(
-        session,
-        id=checklist_id,
-        is_deleted=False,
-        is_system_checklist=True,
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_id,
+            Checklist.is_deleted == False,
+            Checklist.is_system_checklist == True,
+        )
     )
+    result = await session.stream(query)
+    system_checklist = await result.scalar_one_or_none()
 
     if not system_checklist:
         raise HTTPException(
@@ -169,13 +166,8 @@ async def delete_system_checklist(
             detail="Suggest checklist not found",
         )
 
-    await checklists_crud.delete(
-        session,
-        id=checklist_id,
-        is_system_checklist=True,
-        is_deleted=False,
-    )
-
+    system_checklist.is_deleted = True
+    await session.commit()
     return ResponseWithStatusMessage(
         status="success", message="Suggest checklist deleted"
     )
@@ -183,111 +175,89 @@ async def delete_system_checklist(
 
 @router.get("", response_model=list[ChecklistRead])
 async def list_checklists(
-    checklist_category_id: int | None = Query(None),
-    contains_completed: bool = Query(True),
-    current_user: User = Depends(get_current_user),
+    category_id: int = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    """사용자 체크리스트 목록 조회 (카테고리별, 완료 상태별 필터링 가능)"""
-    query = {"user_id": current_user.id, "is_deleted": False}
-    sort_column = "global_display_order"
-
-    # 카테고리 필터링
-    if checklist_category_id is not None:
-        query["checklist_category_id"] = checklist_category_id
-        sort_column = "category_display_order"
-
-    # 완료된 항목만 조회
-    if not contains_completed:
-        query["is_completed"] = False
-
-    checklist = await checklists_crud.get_multi_joined(
-        session,
-        schema_to_select=ChecklistRead,
-        return_as_model=True,
-        join_model=ChecklistCategory,
-        join_prefix="checklist_category_",
-        sort_columns=sort_column,
-        sort_orders="asc",
-        **query,
+    """사용자 체크리스트 목록 조회"""
+    query = (
+        select(Checklist)
+        .join(
+            ChecklistCategory, Checklist.checklist_category_id == ChecklistCategory.id
+        )
+        .where(
+            and_(
+                Checklist.user_id == current_user.id,
+                Checklist.is_deleted == False,
+            )
+        )
     )
 
-    return checklist.get("data")
+    if category_id:
+        query = query.where(Checklist.checklist_category_id == category_id)
+
+    query = query.offset(skip).limit(limit)
+    result = await session.stream(query)
+    checklists = await result.scalars().all()
+    return [ChecklistRead.model_validate(checklist) for checklist in checklists]
 
 
 @router.post("", response_model=list[ChecklistRead])
 async def create_checklists(
-    system_checklist_ids: list[int] = Body(..., embed=True),
-    current_user: User = Depends(get_current_user),
+    checklist_create: ChecklistCreate,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    """시스템 제공 기본 체크리스트 항목들을 사용자 체크리스트로 생성"""
-    system_checklist_ids = list(set(system_checklist_ids))
-
-    # 선택된 기본 체크리스트 항목들 조회
-    results = await checklists_crud.get_multi(
-        session,
-        id__in=system_checklist_ids,
-        is_system_checklist=True,
-        is_deleted=False,
-        schema_to_select=Checklist,
-        return_as_model=True,
-    )
-
-    system_checklists = results.get("data")
-
-    if not system_checklists:
-        raise HTTPException(status_code=404, detail="System checklists not found")
-
-    # 선택한 항목들을 유저 체크리스트로 변환
-    last_global_display_order_checklist = await checklists_crud.get(
-        session,
-        user_id=current_user.id,
-        is_deleted=False,
-        sort_columns="global_display_order",
-        sort_orders="desc",
-        schema_to_select=Checklist,
-        return_as_model=True,
-    )
-
-    last_category_display_order_checklist = await checklists_crud.get(
-        session,
-        user_id=current_user.id,
-        is_deleted=False,
-        checklist_category_id=system_checklists[0].checklist_category_id,
-        sort_columns="category_display_order",
-        sort_orders="desc",
-        schema_to_select=Checklist,
-        return_as_model=True,
-    )
-
-    checklist_items = []
-    for system_checklist in system_checklists:
-        checklist_item = Checklist(
-            title=system_checklist.title,
-            description=system_checklist.description,
-            user_id=current_user.id,
-            checklist_category_id=system_checklist.checklist_category_id,
-            global_display_order=(
-                last_global_display_order_checklist.global_display_order + 1
-                if last_global_display_order_checklist
-                else 0
-            ),
-            category_display_order=(
-                last_category_display_order_checklist.category_display_order + 1
-                if last_category_display_order_checklist
-                else 0
-            ),
+    """체크리스트 생성"""
+    # Get system checklist
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_create.checklist_category_id,
+            Checklist.is_system_checklist == True,
+            Checklist.is_deleted == False,
         )
+    )
+    result = await session.stream(query)
+    system_checklist = await result.scalar_one_or_none()
 
-        checklist = await checklists_crud.create(
-            session,
-            checklist_item,
+    if not system_checklist:
+        raise HTTPException(status_code=404, detail="System checklist not found")
+
+    # Get last order
+    query = select(func.max(Checklist.global_display_order)).where(
+        and_(
+            Checklist.user_id == current_user.id,
+            Checklist.is_deleted == False,
         )
+    )
+    result = await session.stream(query)
+    last_global_order = await result.scalar_one_or_none() or 0
 
-        checklist_items.append(checklist)
+    query = select(func.max(Checklist.category_display_order)).where(
+        and_(
+            Checklist.user_id == current_user.id,
+            Checklist.checklist_category_id == checklist_create.checklist_category_id,
+            Checklist.is_deleted == False,
+        )
+    )
+    result = await session.stream(query)
+    last_category_order = await result.scalar_one_or_none() or 0
 
-    return checklist_items
+    # Create user checklist
+    checklist = Checklist(
+        user_id=current_user.id,
+        checklist_category_id=checklist_create.checklist_category_id,
+        title=system_checklist.title,
+        description=system_checklist.description,
+        global_display_order=last_global_order + 1,
+        category_display_order=last_category_order + 1,
+    )
+    session.add(checklist)
+    await session.commit()
+    await session.refresh(checklist)
+    return [ChecklistRead.model_validate(checklist)]
 
 
 @router.post("/custom", response_model=ChecklistRead)
@@ -297,13 +267,14 @@ async def create_custom_checklist(
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 정의 체크리스트 항목 생성 (추천에서 가져오지 않는 경우)"""
-    checklist_category = await checklist_categories_crud.get(
-        session,
-        id=checklist.checklist_category_id,
-        is_deleted=False,
-        schema_to_select=ChecklistCategory,
-        return_as_model=True,
+    query = select(ChecklistCategory).where(
+        and_(
+            ChecklistCategory.id == checklist.checklist_category_id,
+            ChecklistCategory.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    checklist_category = await result.scalar_one_or_none()
 
     if not checklist_category:
         raise HTTPException(
@@ -320,47 +291,59 @@ async def create_custom_checklist(
             detail="You don't have permission to create checklist in this category",
         )
 
-    last_global_display_order_checklist = await checklists_crud.get(
-        session,
-        user_id=current_user.id,
-        is_deleted=False,
-        sort_columns="global_display_order",
-        sort_orders="desc",
-        schema_to_select=Checklist,
-        return_as_model=True,
+    # Get last global display order
+    query = (
+        select(Checklist)
+        .where(
+            and_(
+                Checklist.user_id == current_user.id,
+                Checklist.is_deleted == False,
+            )
+        )
+        .order_by(Checklist.global_display_order.desc())
+        .limit(1)
     )
+    result = await session.stream(query)
+    last_global_display_order_checklist = await result.scalar_one_or_none()
 
-    last_category_display_order_checklist = await checklists_crud.get(
-        session,
-        user_id=current_user.id,
-        is_deleted=False,
+    # Get last category display order
+    query = (
+        select(Checklist)
+        .where(
+            and_(
+                Checklist.user_id == current_user.id,
+                Checklist.checklist_category_id == checklist.checklist_category_id,
+                Checklist.is_deleted == False,
+            )
+        )
+        .order_by(Checklist.category_display_order.desc())
+        .limit(1)
+    )
+    result = await session.stream(query)
+    last_category_display_order_checklist = await result.scalar_one_or_none()
+
+    # Create checklist
+    new_checklist = Checklist(
+        title=checklist.title,
+        description=checklist.description,
         checklist_category_id=checklist.checklist_category_id,
-        sort_columns="category_display_order",
-        sort_orders="desc",
-        schema_to_select=Checklist,
-        return_as_model=True,
-    )
-
-    return await checklists_crud.create(
-        session,
-        Checklist(
-            title=checklist.title,
-            description=checklist.description,
-            checklist_category_id=checklist.checklist_category_id,
-            user_id=current_user.id,
-            is_system_checklist=False,
-            global_display_order=(
-                last_global_display_order_checklist.global_display_order + 1
-                if last_global_display_order_checklist
-                else 0
-            ),
-            category_display_order=(
-                last_category_display_order_checklist.category_display_order + 1
-                if last_category_display_order_checklist
-                else 0
-            ),
+        user_id=current_user.id,
+        is_system_checklist=False,
+        global_display_order=(
+            last_global_display_order_checklist.global_display_order + 1
+            if last_global_display_order_checklist
+            else 0
+        ),
+        category_display_order=(
+            last_category_display_order_checklist.category_display_order + 1
+            if last_category_display_order_checklist
+            else 0
         ),
     )
+    session.add(new_checklist)
+    await session.commit()
+    await session.refresh(new_checklist)
+    return ChecklistRead.model_validate(new_checklist)
 
 
 @router.put("/reorder", response_model=list[ChecklistRead])
@@ -372,16 +355,15 @@ async def update_checklists_order(
 ):
     """사용자 체크리스트 항목 순서 업데이트"""
     checklist_ids = [item.id for item in checklist_order_data]
-    results = await checklists_crud.get_multi(
-        session,
-        id__in=checklist_ids,
-        user_id=current_user.id,
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=Checklist,
+    query = select(Checklist).where(
+        and_(
+            Checklist.id.in_(checklist_ids),
+            Checklist.user_id == current_user.id,
+            Checklist.is_deleted == False,
+        )
     )
-
-    checklists = results.get("data")
+    result = await session.stream(query)
+    checklists = await result.scalars().all()
 
     for checklist in checklists:
         if checklist.user_id != current_user.id:
@@ -390,101 +372,78 @@ async def update_checklists_order(
                 detail="Checklists are not owned by the user",
             )
 
-    # 각 체크리스트 항목의 순서 업데이트
+    # Update display orders
     results = []
     for item in checklist_order_data:
-        existing_item = await checklists_crud.get(session, id=item.id, is_deleted=False)
-        update_data = {
-            (
-                "global_display_order" if is_global_order else "category_display_order"
-            ): item.display_order
-        }
-        updated_item = await checklists_crud.update(
-            session,
-            id=existing_item.id,
-            **update_data,
-            return_as_model=True,
-            schema_to_select=Checklist,
+        query = select(Checklist).where(
+            and_(
+                Checklist.id == item.id,
+                Checklist.is_deleted == False,
+            )
         )
-        results.append(updated_item)
+        result = await session.stream(query)
+        existing_item = await result.scalar_one_or_none()
 
-    return results
+        if existing_item:
+            if is_global_order:
+                existing_item.global_display_order = item.display_order
+            else:
+                existing_item.category_display_order = item.display_order
+            results.append(existing_item)
+
+    await session.commit()
+    return [ChecklistRead.model_validate(checklist) for checklist in results]
 
 
 @router.put("/{checklist_id}", response_model=ChecklistRead)
 async def update_checklist(
     checklist_id: int = Path(...),
     checklist_update: ChecklistUpdate = Body(...),
-    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    """사용자 체크리스트 항목 업데이트 (완료/미완료 상태 포함)"""
-    existing_checklist = await checklists_crud.get(
-        session,
-        id=checklist_id,
-        user_id=current_user.id,
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=Checklist,
+    """체크리스트 수정"""
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_id,
+            Checklist.user_id == current_user.id,
+            Checklist.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    checklist = await result.scalar_one_or_none()
 
-    if not existing_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="Checklist not found",
-        )
+    if not checklist:
+        raise HTTPException(status_code=404, detail="Checklist not found")
 
-    if existing_checklist.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to update this checklist",
-        )
+    for field, value in checklist_update.model_dump(exclude_unset=True).items():
+        setattr(checklist, field, value)
 
-    update_data = checklist_update.model_dump(exclude_none=True)
-
-    if (
-        "is_completed" in update_data
-        and update_data["is_completed"] != existing_checklist.is_completed
-    ):
-        update_data["completed_datetime"] = (
-            datetime.now() if update_data["is_completed"] else None
-        )
-
-    return await checklists_crud.update(
-        session,
-        update_data,
-        id=existing_checklist.id,
-        return_as_model=True,
-        schema_to_select=Checklist,
-    )
+    await session.commit()
+    await session.refresh(checklist)
+    return ChecklistRead.model_validate(checklist)
 
 
 @router.delete("/{checklist_id}", response_model=ResponseWithStatusMessage)
 async def delete_checklist(
     checklist_id: int = Path(...),
-    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    existing_checklist = await checklists_crud.get(
-        session,
-        id=checklist_id,
-        user_id=current_user.id,
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=Checklist,
-    )
-
-    if not existing_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="해당 체크리스트를 찾을 수 없거나 사용자의 것이 아닙니다",
+    """체크리스트 삭제"""
+    query = select(Checklist).where(
+        and_(
+            Checklist.id == checklist_id,
+            Checklist.user_id == current_user.id,
+            Checklist.is_deleted == False,
         )
-
-    await checklists_crud.delete(
-        session,
-        id=existing_checklist.id,
-        user_id=current_user.id,
-        is_deleted=True,
     )
+    result = await session.stream(query)
+    checklist = await result.scalar_one_or_none()
 
-    return ResponseWithStatusMessage(status="success", message="Checklist deleted")
+    if not checklist:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+
+    checklist.is_deleted = True
+    await session.commit()
+    return ResponseWithStatusMessage(message="Checklist deleted successfully")

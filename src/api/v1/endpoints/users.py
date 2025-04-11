@@ -1,20 +1,17 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path
-from fastapi.params import Query
+from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import and_
 from starlette import status
 
 from api.v1.deps import get_current_user, get_current_admin
 from core.db import get_session
-from cruds.products import products_crud
-from cruds.user_wishlists import user_wishlists_crud
-from cruds.users import users_crud
-from models.user_wishlist import UserWishlist
-from models.users import User
+from models import User, Product, UserWishlist
 from schemes.common import ResponseWithStatusMessage
-from schemes.user_wishlist import WishlistCreate, WishlistCreateInternal
-from schemes.users import UserUpdate, UserRead
+from schemes.user_wishlist import WishlistCreate
+from schemes.users import UserUpdate, UserRead, UserCreate
 from utils.utils import utc_now
 
 router = APIRouter()
@@ -33,15 +30,26 @@ async def update_user_me(
     current_user: User = Depends(get_current_user),
 ):
     """내 정보 업데이트"""
-    updated_user = await users_crud.update(
-        session,
+    query = select(User).where(
+        and_(
+            User.id == current_user.id,
+            User.is_active == True,
+            User.is_deleted == False,
+        )
+    )
+    result = await session.stream(query)
+    db_user = await result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_user.sqlmodel_update(
         user_update.model_dump(exclude_unset=True),
-        id=current_user.id,
-        return_as_model=True,
-        schema_to_select=UserRead,
     )
 
-    return updated_user
+    await session.commit()
+    await session.refresh(db_user)
+    return db_user
 
 
 @router.delete(
@@ -52,19 +60,23 @@ async def delete_user_me(
     current_user: User = Depends(get_current_user),
 ):
     """내 계정 삭제"""
-    await users_crud.update(
-        session,
-        object={
-            "is_active": False,
-            "is_deleted": True,
-            "deleted_datetime": utc_now(),
-        },
-        id=current_user.id,
+    query = select(User).where(
+        User.id == current_user.id, User.is_active == True, User.is_deleted == False
     )
+    result = await session.execute(query)
+    db_user = result.scalar_one_or_none()
 
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_user.is_active = False
+    db_user.is_deleted = True
+    db_user.deleted_datetime = utc_now()
+
+    await session.commit()
     return ResponseWithStatusMessage(
         status="success",
-        message="User deleted",
+        message="User deleted successfully",
     )
 
 
@@ -78,13 +90,13 @@ async def list_wishlist(
     """
     내 위시리스트 조회
     """
-    results = await user_wishlists_crud.get_multi(
-        session,
-        user_id=current_user.id,
-        return_as_model=True,
-        schema_to_select=UserWishlist,
+    query = select(UserWishlist).where(
+        UserWishlist.user_id == current_user.id,
+        UserWishlist.is_deleted == False,
     )
-    return results.get("data", [])
+    result = await session.execute(query)
+    wishlists = result.scalars().all()
+    return wishlists
 
 
 @router.post(
@@ -96,28 +108,33 @@ async def add_to_wishlist(
     current_user: User = Depends(get_current_user),
 ):
     # Check if product exists
-    product = await products_crud.get(session, id=wishlist_create.product_id)
+    query = select(Product).where(
+        Product.id == wishlist_create.product_id, Product.is_deleted == False
+    )
+    result = await session.execute(query)
+    product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    existing_wishlist = await user_wishlists_crud.get(
-        session,
-        user_id=current_user.id,
-        product_id=wishlist_create.product_id,
+    query = select(UserWishlist).where(
+        UserWishlist.user_id == current_user.id,
+        UserWishlist.product_id == wishlist_create.product_id,
+        UserWishlist.is_deleted == False,
     )
+    result = await session.execute(query)
+    existing_wishlist = result.scalar_one_or_none()
 
     if existing_wishlist:
         raise HTTPException(status_code=400, detail="Product already in wishlist")
 
     # Create wishlist
-    wishlist = await user_wishlists_crud.create(
-        session,
-        WishlistCreateInternal(
-            user_id=current_user.id, product_id=wishlist_create.product_id
-        ),
-        return_as_model=True,
-        schema_to_select=UserWishlist,
+    wishlist = UserWishlist(
+        user_id=current_user.id,
+        product_id=wishlist_create.product_id,
     )
+    session.add(wishlist)
+    await session.commit()
+    await session.refresh(wishlist)
     return wishlist
 
 
@@ -131,71 +148,108 @@ async def remove_from_wishlist(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    wishlist = await user_wishlists_crud.get(
-        session,
-        user_id=current_user.id,
-        product_id=product_id,
-        return_as_model=True,
-        schema_to_select=UserWishlist,
+    query = select(UserWishlist).where(
+        UserWishlist.user_id == current_user.id,
+        UserWishlist.product_id == product_id,
+        UserWishlist.is_deleted == False,
     )
+    result = await session.execute(query)
+    wishlist = result.scalar_one_or_none()
 
     if not wishlist:
         raise HTTPException(status_code=404, detail="Product not in wishlist")
 
-    await user_wishlists_crud.delete(session, id=wishlist.id)
+    wishlist.is_deleted = True
+    await session.commit()
 
     return ResponseWithStatusMessage(
         status="success",
-        message="Product removed from wishlist",
+        message="Wishlist deleted successfully",
     )
 
 
 @router.get("", status_code=status.HTTP_200_OK, response_model=list[User])
 async def list_users(
+    skip: int = 0,
+    limit: int = 100,
     session: AsyncSession = Depends(get_session),
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_admin),
 ):
     """관리자용 사용자 목록 조회"""
-    results = await users_crud.get_multi(
-        session,
-        offset=offset,
-        limit=limit,
-        is_active=True,
-        is_deleted=False,
-        return_as_model=True,
-        schema_to_select=User,
+    query = (
+        select(User)
+        .where(User.is_active == True, User.is_deleted == False)
+        .offset(skip)
+        .limit(limit)
     )
+    result = await session.execute(query)
+    users = result.scalars().all()
+    return users
 
-    return results.get("data", [])
 
-
-@router.delete(
-    "/{user_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=ResponseWithStatusMessage,
-)
-async def delete_user(
-    user_id: UUID = Path(...),
+@router.get("/{user_id}", status_code=status.HTTP_200_OK, response_model=User)
+async def get_user(
+    user_id: UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
 ):
-    """사용자 삭제 (soft delete)"""
-    user = await users_crud.get(session, id=user_id)
+    """사용자 상세 정보 조회"""
+    query = select(User).where(
+        User.id == user_id, User.is_active == True, User.is_deleted == False
+    )
+    result = await session.execute(query)
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.is_superuser:
-        raise HTTPException(status_code=400, detail="Cannot delete superuser")
+    return user
 
-    await users_crud.update(
-        session,
-        object={"is_deleted": True, "is_active": False, "deleted_datetime": utc_now()},
-        id=user_id,
-    )
 
-    return ResponseWithStatusMessage(
-        status="success",
-        message="User deleted",
-    )
+@router.post("")
+async def create_user(
+    user: UserCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    db_user = User(**user.model_dump())
+    session.add(db_user)
+    await session.commit()
+    await session.refresh(db_user)
+    return db_user
+
+
+@router.put("/{user_id}")
+async def update_user(
+    user_id: int,
+    user_update: UserUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    query = select(User).where(User.id == user_id)
+    result = await session.execute(query)
+    db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    for field, value in user_update.model_dump(exclude_unset=True).items():
+        setattr(db_user, field, value)
+
+    await session.commit()
+    await session.refresh(db_user)
+    return db_user
+
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    query = select(User).where(User.id == user_id)
+    result = await session.execute(query)
+    db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    await session.delete(db_user)
+    await session.commit()
+    return {"message": "User deleted successfully"}

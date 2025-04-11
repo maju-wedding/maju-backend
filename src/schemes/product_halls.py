@@ -89,7 +89,7 @@ class ProductHallRead(SQLModel):
     name: str
     subway_line: str | None
     subway_name: str | None
-    way_text: str
+    way_text: str | None
     park_limit: int
     park_free_hours: int
     sido: str

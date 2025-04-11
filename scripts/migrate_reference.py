@@ -10,12 +10,13 @@ from sqlalchemy import text
 from sqlmodel import Session, select, create_engine, SQLModel
 
 from core.config import settings
+from models import ProductImage
 from models.product_ai_review import ProductAIReview
 from models.product_hall_venues import (
     ProductHallVenue,
 )
 from models.product_halls import ProductHall
-from models.products import Product, ProductImage
+from models.products import Product
 
 PROD_PG_CONNECTION = {
     "host": settings.POSTGRES_SERVER,
@@ -682,11 +683,11 @@ def migrate_data():
         SQLModel.metadata.create_all(target_engine)
 
         # 기존 데이터 삭제
-        session.executeute(text("TRUNCATE TABLE products CASCADE"))
-        session.executeute(text("TRUNCATE TABLE product_images CASCADE"))
-        session.executeute(text("TRUNCATE TABLE product_halls CASCADE"))
-        session.executeute(text("TRUNCATE TABLE product_hall_venues CASCADE"))
-        session.executeute(text("TRUNCATE TABLE product_ai_reviews CASCADE"))
+        session.execute(text("TRUNCATE TABLE products CASCADE"))
+        session.execute(text("TRUNCATE TABLE product_images CASCADE"))
+        session.execute(text("TRUNCATE TABLE product_halls CASCADE"))
+        session.execute(text("TRUNCATE TABLE product_hall_venues CASCADE"))
+        session.execute(text("TRUNCATE TABLE product_ai_reviews CASCADE"))
 
         # 각 결혼식장 데이터 처리
         for banquet_code, mapping in hall_mapping.items():

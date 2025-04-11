@@ -1,60 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.params import Query, Path, Body
-from sqlalchemy.exc import NoResultFound
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_admin
 from core.db import get_session
-from cruds.product_categories import product_categories_crud
-from models import User
-from schemes.common import ResponseWithStatusMessage
-from schemes.product_categories import (
-    ProductCategoryRead,
-    ProductCategoryCreate,
-    ProductCategoryUpdate,
-)
+from models import ProductCategory, Product
+from schemes.product_categories import ProductCategoryCreate, ProductCategoryUpdate
+from utils.utils import utc_now
 
 router = APIRouter()
 
 
-@router.get("", response_model=list[ProductCategoryRead])
-async def read_categories(
-    session: AsyncSession = Depends(get_session),
+@router.get("")
+async def list_categories(
+    skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
 ):
-    """
-    카테고리 목록 조회
-    """
-    categories = await product_categories_crud.get_multi(
-        session,
-        is_deleted=False,
-        limit=limit,
-        offset=offset,
-        return_as_model=True,
-        schema_to_select=ProductCategoryRead,
-        sort_columns=["order"],
-        sort_orders=["asc"],
+    """상품 카테고리 목록 조회"""
+    query = (
+        select(ProductCategory)
+        .where(ProductCategory.is_deleted == False)
+        .offset(skip)
+        .limit(limit)
     )
+    result = await session.stream(query)
+    categories = await result.scalars().all()
+    return categories
 
-    return categories.get("data", [])
 
-
-@router.get("/{category_id}", response_model=ProductCategoryRead)
-async def read_category(
+@router.get("/{category_id}")
+async def get_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    카테고리 상세 조회
-    """
-
-    category = await product_categories_crud.get(
-        session,
-        id=category_id,
-        return_as_model=True,
-        schema_to_select=ProductCategoryRead,
+    """상품 카테고리 상세 조회"""
+    query = select(ProductCategory).where(
+        and_(
+            ProductCategory.id == category_id,
+            ProductCategory.is_deleted == False,
+        )
     )
+    result = await session.stream(query)
+    category = await result.scalar_one_or_none()
 
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -62,73 +49,106 @@ async def read_category(
     return category
 
 
-@router.post("", response_model=ProductCategoryRead)
+@router.post("")
 async def create_category(
-    category_create: ProductCategoryCreate = Body(...),
+    category_create: ProductCategoryCreate,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
 ):
-    """
-    카테고리 생성
-    """
-    try:
-        category = await product_categories_crud.create(
-            session,
-            category_create,
-            return_as_model=True,
-            schema_to_select=ProductCategoryRead,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """상품 카테고리 생성"""
+    # Get last order
+    query = select(func.max(ProductCategory.order)).where(
+        ProductCategory.is_deleted == False,
+    )
+    result = await session.stream(query)
+    last_order = await result.scalar_one_or_none() or 0
 
+    # Create category
+    category = ProductCategory(
+        name=category_create.name,
+        display_name=category_create.display_name,
+        type=category_create.type,
+        order=last_order + 1,
+        created_datetime=utc_now(),
+        updated_datetime=utc_now(),
+    )
+    session.add(category)
+    await session.commit()
+    await session.refresh(category)
     return category
 
 
-@router.put("/{category_id}", response_model=ProductCategoryRead)
+@router.put("/{category_id}")
 async def update_category(
     category_id: int = Path(...),
-    category_update: ProductCategoryUpdate = Body(...),
+    category_update: ProductCategoryUpdate = None,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
 ):
-    """
-    카테고리 수정
-    """
-
-    try:
-        category = await product_categories_crud.update(
-            session,
-            category_update,
-            id=category_id,
-            return_as_model=True,
-            schema_to_select=ProductCategoryRead,
+    """상품 카테고리 수정"""
+    query = select(ProductCategory).where(
+        and_(
+            ProductCategory.id == category_id,
+            ProductCategory.is_deleted == False,
         )
-    except NoResultFound:
+    )
+    result = await session.stream(query)
+    category = await result.scalar_one_or_none()
+
+    if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
+    # 업데이트할 필드만 변경
+    update_data = category_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(category, field, value)
+
+    # 업데이트 시간 갱신
+    category.updated_datetime = utc_now()
+
+    await session.commit()
+    await session.refresh(category)
     return category
 
 
-@router.delete("/{category_id}", response_model=ResponseWithStatusMessage)
+@router.delete("/{category_id}")
 async def delete_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
 ):
-    """
-    카테고리 삭제
-    """
+    """상품 카테고리 삭제"""
+    # Get category
+    query = select(ProductCategory).where(
+        and_(
+            ProductCategory.id == category_id,
+            ProductCategory.is_deleted == False,
+        )
+    )
+    result = await session.stream(query)
+    category = await result.scalar_one_or_none()
 
-    try:
-        is_deleted = await product_categories_crud.delete(session, id=category_id)
-    except NoResultFound:
+    if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    return {
-        "status": "success" if is_deleted else "fail",
-        "message": (
-            "Category deleted successfully"
-            if is_deleted
-            else "Category deletion failed"
-        ),
-    }
+    # Get related products
+    query = select(Product).where(
+        and_(
+            Product.product_category_id == category_id,
+            Product.is_deleted == False,
+        )
+    )
+    result = await session.stream(query)
+    products = await result.scalars().all()
+
+    # Soft delete category and products
+    current_time = utc_now()
+
+    category.is_deleted = True
+    category.deleted_datetime = current_time
+    category.updated_datetime = current_time
+
+    for product in products:
+        product.is_deleted = True
+        product.deleted_datetime = current_time
+        product.updated_datetime = current_time
+
+    await session.commit()
+    return {"message": "Category and related products deleted successfully"}

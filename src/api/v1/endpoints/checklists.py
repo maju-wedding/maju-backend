@@ -12,6 +12,7 @@ from schemes.checklists import (
     ChecklistOrderUpdate,
     ChecklistUpdate,
     SuggestChecklistRead,
+    ChecklistCreateBySystem,
 )
 from schemes.common import ResponseWithStatusMessage
 
@@ -153,27 +154,30 @@ async def list_checklists(
     return [ChecklistRead.model_validate(c) for c in checklists]
 
 
-@router.post("", response_model=list[ChecklistRead])
-async def create_checklists(
-    checklist_create: ChecklistCreate,
+@router.post("/by-system", response_model=list[ChecklistRead])
+async def create_checklists_by_system(
+    checklist_create: ChecklistCreateBySystem,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
     """체크리스트 생성"""
-    user_checklist = await crud_checklist.create_from_system_checklist(
+    user_checklists = await crud_checklist.create_from_system_checklist(
         db=session,
-        system_checklist_id=checklist_create.checklist_category_id,
+        system_checklist_ids=checklist_create.system_checklist_ids,
         user_id=current_user.id,
     )
 
-    if not user_checklist:
+    if not user_checklists:
         raise HTTPException(status_code=404, detail="System checklist not found")
 
-    return [ChecklistRead.model_validate(user_checklist)]
+    return [
+        ChecklistRead.model_validate(user_checklist)
+        for user_checklist in user_checklists
+    ]
 
 
-@router.post("/custom", response_model=ChecklistRead)
-async def create_custom_checklist(
+@router.post("", response_model=ChecklistRead)
+async def create_checklist(
     checklist: ChecklistCreate = Body(...),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),

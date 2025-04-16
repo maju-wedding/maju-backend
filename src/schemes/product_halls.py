@@ -40,8 +40,8 @@ class ProductHallSearchRead(SQLModel):
 class HallRead(SQLModel):
     elevator_count: int
     atm_count: int
-    contain_family_waiting_room: bool
-    contain_pyebaek_room: bool
+    has_family_waiting_room: bool
+    has_pyebaek_room: bool
 
 
 class HallAIReviewRead(SQLModel):

@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from sqlalchemy import create_engine
+from sqlmodel import SQLModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
@@ -16,6 +18,8 @@ from utils.utils import custom_generate_unique_id
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    engine = create_engine(settings.DATABASE_URI.replace("+asyncpg", ""))
+    SQLModel.metadata.create_all(engine)
     yield
 
 

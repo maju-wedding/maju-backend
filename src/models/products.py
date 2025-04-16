@@ -8,6 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
+    from models.product_studios import ProductStudio
     from models.product_images import ProductImage
     from models.product_ai_review import ProductAIReview
     from models.product_categories import ProductCategory
@@ -42,7 +43,7 @@ class Product(SQLModel, table=True):
     sido: str = Field(max_length=30)
     gugun: str = Field(max_length=30)
     dong: str | None = Field(max_length=30, default=None)
-    address: str = Field(max_length=100)
+    address: str = Field(max_length=250)
     lat: float = Field(default=0.0)
     lng: float = Field(default=0.0)
 
@@ -81,6 +82,7 @@ class Product(SQLModel, table=True):
     images: list["ProductImage"] = Relationship(back_populates="product")
 
     product_hall: Optional["ProductHall"] = Relationship(back_populates="product")
+    product_studio: Optional["ProductStudio"] = Relationship(back_populates="product")
     # studio_detail: Optional["StudioDetail"] = Relationship(back_populates="product")
     # dress_detail: Optional["DressDetail"] = Relationship(back_populates="product")
     # makeup_detail: Optional["MakeupDetail"] = Relationship(back_populates="product")

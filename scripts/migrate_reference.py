@@ -803,8 +803,8 @@ def migrate_data():
                     # 편의시설 정보
                     elevator_count=0,
                     atm_count=0,
-                    contain_pyebaek_room=amenities["pyebaek_room"],
-                    contain_family_waiting_room=amenities["family_waiting_room"],
+                    has_pyebaek_room=amenities["pyebaek_room"],
+                    has_family_waiting_room=amenities["family_waiting_room"],
                     valet_parking=amenities["valet_parking"],
                     dress_room=amenities["dress_room"],
                     smoking_area=amenities["smoking_area"],

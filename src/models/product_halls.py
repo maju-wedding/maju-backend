@@ -18,8 +18,8 @@ class ProductHall(SQLModel, table=True):
     # amenities
     elevator_count: int = Field(default=0)
     atm_count: int = Field(default=0)
-    contain_family_waiting_room: bool = Field(default=False)
-    contain_pyebaek_room: bool = Field(default=False)
+    has_family_waiting_room: bool = Field(default=False)
+    has_pyebaek_room: bool = Field(default=False)
 
     valet_parking: bool = Field(default=False)
     dress_room: bool = Field(default=False)

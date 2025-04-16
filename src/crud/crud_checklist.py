@@ -24,6 +24,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
             )
             .offset(skip)
             .limit(limit)
+            .order_by(Checklist.global_display_order)
         )
         result = await db.stream(query)
         return await result.scalars().all()
@@ -48,7 +49,9 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         if user_id:
             query = query.where(Checklist.user_id == user_id)
 
-        query = query.offset(skip).limit(limit)
+        query = (
+            query.offset(skip).limit(limit).order_by(Checklist.category_display_order)
+        )
         result = await db.stream(query)
         return await result.scalars().all()
 
@@ -96,47 +99,67 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         return await result.scalar_one_or_none() or 0
 
     async def create_from_system_checklist(
-        self, db: AsyncSession, *, system_checklist_id: int, user_id: UUID
-    ) -> Checklist:
+        self, db: AsyncSession, *, system_checklist_ids: list[int], user_id: UUID
+    ) -> list[Checklist] | None:
         """Create a user checklist from a system checklist template"""
-        # Get system checklist
+        # Query all system checklists at once
         query = select(Checklist).where(
             and_(
-                Checklist.id == system_checklist_id,
+                Checklist.id.in_(system_checklist_ids),
                 Checklist.is_system_checklist == True,
                 Checklist.is_deleted == False,
             )
         )
-        result = await db.stream(query)
-        system_checklist = await result.scalar_one_or_none()
+        result = await db.execute(query)
+        system_checklists = result.scalars().all()
 
-        if not system_checklist:
+        # Return None if any system checklist is missing
+        if len(system_checklists) != len(system_checklist_ids):
             return None
 
-        # Get orders for new checklist
-        global_order = await self.get_last_global_order(db=db, user_id=user_id)
+        # Get initial order values
+        global_order_base = await self.get_last_global_order(db=db, user_id=user_id)
 
-        category_order = await self.get_last_category_order(
-            db=db, user_id=user_id, category_id=system_checklist.checklist_category_id
-        )
+        # Create mapping of category_id to order for efficiency
+        category_orders = {}
+        user_checklists = []
 
-        # Create user checklist
-        user_checklist = Checklist(
-            title=system_checklist.title,
-            description=system_checklist.description,
-            checklist_category_id=system_checklist.checklist_category_id,
-            is_system_checklist=False,
-            user_id=user_id,
-            global_display_order=global_order + 1,
-            category_display_order=category_order + 1,
-            created_datetime=utc_now(),
-            updated_datetime=utc_now(),
-        )
+        # Create all user checklists
+        for index, system_checklist in enumerate(system_checklists):
+            category_id = system_checklist.checklist_category_id
 
-        db.add(user_checklist)
+            # Only query category order once per category
+            if category_id not in category_orders:
+                category_orders[category_id] = await self.get_last_category_order(
+                    db=db,
+                    user_id=user_id,
+                    category_id=category_id,
+                )
+
+            # Create user checklist
+            user_checklist = Checklist(
+                title=system_checklist.title,
+                description=system_checklist.description,
+                checklist_category_id=category_id,
+                is_system_checklist=False,
+                user_id=user_id,
+                global_display_order=global_order_base + index + 1,
+                category_display_order=category_orders[category_id] + index + 1,
+                created_datetime=utc_now(),
+                updated_datetime=utc_now(),
+            )
+
+            user_checklists.append(user_checklist)
+            db.add(user_checklist)
+
+        # Bulk commit all changes
         await db.commit()
-        await db.refresh(user_checklist)
-        return user_checklist
+
+        # Refresh all newly created objects
+        for checklist in user_checklists:
+            await db.refresh(checklist)
+
+        return user_checklists
 
     async def update_completion_status(
         self, db: AsyncSession, *, checklist_id: int, is_completed: bool

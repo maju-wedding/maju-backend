@@ -70,7 +70,6 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
         Filter product halls with various criteria
         Optimized using explicit joins and efficient filtering
         """
-        # 기본 쿼리 시작
         query = (
             select(ProductHall)
             .join(
@@ -80,7 +79,6 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
             .where(ProductHall.is_deleted == False)
         )
 
-        # 지역 필터 적용
         if sidos:
             query = query.where(Product.sido.in_(sidos))
 
@@ -89,7 +87,6 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
 
         # 베뉴 관련 필터가 있는 경우 조인
         if any([guest_counts, wedding_types, food_menus, hall_types, hall_styles]):
-            # ProductHallVenue를 조인
             query = query.join(
                 ProductHallVenue,
                 and_(
@@ -98,7 +95,6 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
                 ),
             )
 
-            # 하객 수 필터
             if guest_counts:
                 guest_count_filters = []
                 for count_range in guest_counts:
@@ -123,19 +119,15 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
                 if guest_count_filters:
                     query = query.where(or_(*guest_count_filters))
 
-            # 웨딩 타입 필터
             if wedding_types:
                 query = query.where(ProductHallVenue.wedding_type.in_(wedding_types))
 
-            # 음식 메뉴 필터
             if food_menus:
                 query = query.where(ProductHallVenue.food_menu.in_(food_menus))
 
-            # 홀 타입 필터 (쉼표로 구분된 값을 LIKE로 검색)
             if hall_types:
                 hall_type_filters = []
                 for hall_type in hall_types:
-                    # 홀 타입이 포함된 경우 - 쉼표로 구분된 문자열 내에 값이 있는지
                     hall_type_filters.append(
                         or_(
                             ProductHallVenue.hall_types == hall_type,
@@ -147,7 +139,6 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
                 if hall_type_filters:
                     query = query.where(or_(*hall_type_filters))
 
-            # 홀 스타일 필터 (쉼표로 구분된 값을 LIKE로 검색)
             if hall_styles:
                 hall_style_filters = []
                 for hall_style in hall_styles:
@@ -162,9 +153,7 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
                 if hall_style_filters:
                     query = query.where(or_(*hall_style_filters))
 
-        # 중복 제거, 페이지네이션 적용
         query = query.distinct().offset(skip).limit(limit)
 
-        # 결과 조회
         result = await db.stream(query)
         return await result.scalars().all()

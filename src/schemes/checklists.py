@@ -54,6 +54,12 @@ class ChecklistCategoryReadWithChecklist(SQLModel):
     checklists: list["SuggestChecklistRead"] | None = None
 
 
+class ChecklistCreateBySystem(SQLModel):
+    """체크리스트 생성"""
+
+    system_checklist_ids: list[int]
+
+
 class ChecklistCreate(SQLModel):
     """사용자 정의 체크리스트 항목 생성 스키마"""
 

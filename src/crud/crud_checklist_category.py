@@ -177,7 +177,7 @@ class CRUDChecklistCategory(
             from crud import checklist as crud_checklist
 
             checklists = await crud_checklist.get_by_category(
-                db=db, category_id=category.id
+                db=db, category_id=category.id, system_only=True
             )
 
             # Format category with checklists

@@ -36,7 +36,8 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         category_id: int,
         user_id: UUID | None = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        system_only: bool = False,
     ) -> list[Checklist]:
         """Get checklists by category ID with optional user filter"""
         query = select(Checklist).where(
@@ -45,6 +46,9 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
                 Checklist.is_deleted == False,
             )
         )
+
+        if system_only:
+            query = query.where(Checklist.is_system_checklist == True)
 
         if user_id:
             query = query.where(Checklist.user_id == user_id)
@@ -188,7 +192,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         *,
         checklist_id: int,
         global_order: int | None = None,
-        category_order: int | None = None
+        category_order: int | None = None,
     ) -> Checklist | None:
         """Update display order of a checklist"""
         checklist = await self.get(db, id=checklist_id)

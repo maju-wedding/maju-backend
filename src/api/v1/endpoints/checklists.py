@@ -78,10 +78,61 @@ async def create_checklists_by_system(
     current_user: User = Depends(get_current_user),
 ):
     """체크리스트 생성"""
-    user_checklists = await crud_checklist.create_from_system_checklist(
-        db=session,
-        system_checklist_ids=checklist_create.system_checklist_ids,
-        user_id=current_user.id,
+    # 1. 시스템 체크리스트 목록 조회
+    system_checklists = await crud_checklist.get_system_checklists_by_ids(
+        db=session, ids=checklist_create.system_checklist_ids
+    )
+
+    if not system_checklists:
+        raise HTTPException(status_code=404, detail="System checklist not found")
+
+    # 2. 시스템 체크리스트의 카테고리 정보 수집
+    category_ids = {
+        checklist.checklist_category_id
+        for checklist in system_checklists
+        if checklist.checklist_category_id
+    }
+
+    # 3. 사용자의 카테고리 조회 (기존에 있는지 확인)
+    user_categories = await crud_category.get_user_categories(
+        db=session, user_id=current_user.id
+    )
+    user_category_map = {}
+
+    # 4. 사용자의 카테고리 중에서 시스템 카테고리에 대응되는 것이 있는지 확인
+    for system_category_id in category_ids:
+        # 시스템 카테고리 정보 조회
+        system_category = await crud_category.get(db=session, id=system_category_id)
+        if not system_category:
+            continue
+
+        # 같은 이름의 사용자 카테고리가 있는지 확인
+        matching_categories = [
+            category
+            for category in user_categories
+            if category.display_name == system_category.display_name
+        ]
+
+        if matching_categories:
+            # 이미 존재하는 카테고리 사용
+            user_category_map[system_category_id] = matching_categories[0].id
+        else:
+            # 새 카테고리 생성
+            new_category = await crud_category.create_user_category(
+                db=session,
+                display_name=system_category.display_name,
+                user_id=current_user.id,
+            )
+            user_category_map[system_category_id] = new_category.id
+
+    # 5. 체크리스트 생성 (기존 카테고리 ID를 사용자 카테고리 ID로 매핑)
+    user_checklists = (
+        await crud_checklist.create_from_system_checklist_with_category_mapping(
+            db=session,
+            system_checklist_ids=checklist_create.system_checklist_ids,
+            user_id=current_user.id,
+            category_mapping=user_category_map,
+        )
     )
 
     if not user_checklists:
@@ -100,20 +151,60 @@ async def create_checklist(
     session: AsyncSession = Depends(get_session),
 ):
     """사용자 정의 체크리스트 항목 생성 (추천에서 가져오지 않는 경우)"""
-    # 카테고리 검증
-    category = await crud_category.get(db=session, id=checklist.checklist_category_id)
+    # 입력된 카테고리 ID 확인
+    input_category_id = checklist.checklist_category_id
 
+    # 카테고리 검증 및 처리
+    system_category = None
+    user_category = None
+
+    # 먼저 카테고리가 존재하는지 확인
+    category = await crud_category.get(db=session, id=input_category_id)
     if not category:
         raise HTTPException(
             status_code=400,
             detail="Checklist category not found",
         )
 
-    if not category.is_system_category and category.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create checklist in this category",
+    # 카테고리 유형 확인 및 처리
+    if category.is_system_category:
+        # 시스템 카테고리인 경우, 사용자가 이미 동일한 이름의 카테고리를 가지고 있는지 확인
+        system_category = category
+        user_categories = await crud_category.get_user_categories(
+            db=session, user_id=current_user.id
         )
+
+        # 사용자의 카테고리 중 동일한 이름을 가진 카테고리 찾기
+        matching_categories = [
+            cat
+            for cat in user_categories
+            if cat.display_name == system_category.display_name
+        ]
+
+        if matching_categories:
+            # 이미 동일한 이름의 카테고리가 있으면 그것을 사용
+            user_category = matching_categories[0]
+        else:
+            # 없으면 새로 생성
+            user_category = await crud_category.create_user_category(
+                db=session,
+                display_name=system_category.display_name,
+                user_id=current_user.id,
+            )
+
+        # 사용자 체크리스트에 연결할 카테고리 ID 업데이트
+        actual_category_id = user_category.id
+    else:
+        # 이미 사용자 카테고리인 경우, 해당 카테고리가 현재 사용자의 것인지 확인
+        if category.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create checklist in this category",
+            )
+
+        # 사용자 카테고리 그대로 사용
+        user_category = category
+        actual_category_id = user_category.id
 
     # 마지막 표시 순서 가져오기
     global_order = await crud_checklist.get_last_global_order(
@@ -121,11 +212,13 @@ async def create_checklist(
     )
 
     category_order = await crud_checklist.get_last_category_order(
-        db=session, user_id=current_user.id, category_id=checklist.checklist_category_id
+        db=session, user_id=current_user.id, category_id=actual_category_id
     )
 
     # 데이터 준비
     checklist_data = checklist.model_dump()
+    # 카테고리 ID 업데이트
+    checklist_data["checklist_category_id"] = actual_category_id
     checklist_data.update(
         {
             "user_id": current_user.id,

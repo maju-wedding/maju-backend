@@ -219,3 +219,90 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         await db.commit()
         await db.refresh(checklist)
         return checklist
+
+    async def get_system_checklists_by_ids(
+        self, db: AsyncSession, *, ids: list[int]
+    ) -> Sequence[Checklist]:
+        """Get system checklists by IDs"""
+        query = select(Checklist).where(
+            and_(
+                Checklist.id.in_(ids),
+                Checklist.is_system_checklist == True,
+                Checklist.is_deleted == False,
+            )
+        )
+        result = await db.stream(query)
+        return await result.scalars().all()
+
+    async def create_from_system_checklist_with_category_mapping(
+        self,
+        db: AsyncSession,
+        *,
+        system_checklist_ids: list[int],
+        user_id: UUID,
+        category_mapping: dict[int, int],
+    ) -> list[Checklist] | None:
+        """Create user checklists from system checklists with category mapping"""
+        # Query all system checklists at once
+        query = select(Checklist).where(
+            and_(
+                Checklist.id.in_(system_checklist_ids),
+                Checklist.is_system_checklist == True,
+                Checklist.is_deleted == False,
+            )
+        )
+        result = await db.execute(query)
+        system_checklists = result.scalars().all()
+
+        # Return None if any system checklist is missing
+        if len(system_checklists) != len(system_checklist_ids):
+            return None
+
+        # Get initial order values
+        global_order_base = await self.get_last_global_order(db=db, user_id=user_id)
+
+        # Create mapping of category_id to order for efficiency
+        category_orders = {}
+        user_checklists = []
+
+        # Create all user checklists
+        for index, system_checklist in enumerate(system_checklists):
+            system_category_id = system_checklist.checklist_category_id
+
+            # Map system category to user category
+            user_category_id = category_mapping.get(system_category_id)
+            if not user_category_id:
+                continue  # Skip if no mapping found
+
+            # Only query category order once per category
+            if user_category_id not in category_orders:
+                category_orders[user_category_id] = await self.get_last_category_order(
+                    db=db,
+                    user_id=user_id,
+                    category_id=user_category_id,
+                )
+
+            # Create user checklist
+            user_checklist = Checklist(
+                title=system_checklist.title,
+                description=system_checklist.description,
+                checklist_category_id=user_category_id,  # Use the mapped category ID
+                is_system_checklist=False,
+                user_id=user_id,
+                global_display_order=global_order_base + index + 1,
+                category_display_order=category_orders[user_category_id] + index + 1,
+                created_datetime=utc_now(),
+                updated_datetime=utc_now(),
+            )
+
+            user_checklists.append(user_checklist)
+            db.add(user_checklist)
+
+        # Bulk commit all changes
+        await db.commit()
+
+        # Refresh all newly created objects
+        for checklist in user_checklists:
+            await db.refresh(checklist)
+
+        return user_checklists

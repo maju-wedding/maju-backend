@@ -1,13 +1,12 @@
 from fastapi import Depends, Path, HTTPException, Body, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_admin, get_current_user
+from api.v1.deps import get_current_user
 from core.db import get_session
 from crud import checklist_category as crud_category
 from models import User
 from schemes.checklists import (
     ChecklistCategoryRead,
-    ChecklistCategoryCreateBySystem,
     ChecklistCategoryUpdate,
     ChecklistCategoryCreate,
     ChecklistCategoryReadWithChecklist,
@@ -78,72 +77,6 @@ async def get_system_checklist_category(
         is_system_category=category.is_system_category,
         checklists_count=checklist_count,
     )
-
-
-@router.post("/system", response_model=ChecklistCategoryRead)
-async def create_system_checklist_category(
-    checklist_category_create: ChecklistCategoryCreateBySystem = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 체크리스트 카테고리 생성"""
-    category = await crud_category.create_system_category(
-        db=session, display_name=checklist_category_create.display_name
-    )
-
-    return ChecklistCategoryRead(
-        id=category.id,
-        display_name=category.display_name,
-        user_id=category.user_id,
-        is_system_category=category.is_system_category,
-        checklists_count=0,
-    )
-
-
-@router.put("/system/{category_id}", response_model=ChecklistCategoryRead)
-async def update_system_checklist_category(
-    category_id: int = Path(...),
-    checklist_category_update: ChecklistCategoryUpdate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 체크리스트 카테고리 업데이트"""
-    category = await crud_category.get(db=session, id=category_id)
-
-    if not category or not category.is_system_category:
-        raise HTTPException(status_code=404, detail="Checklist category not found")
-
-    updated_category = await crud_category.update(
-        db=session, db_obj=category, obj_in=checklist_category_update
-    )
-
-    return ChecklistCategoryRead(
-        id=updated_category.id,
-        display_name=updated_category.display_name,
-        user_id=updated_category.user_id,
-        is_system_category=updated_category.is_system_category,
-        checklists_count=0,  # 여기서는 개수를 다시 조회하지 않음
-    )
-
-
-@router.delete(
-    "/system/{category_id}",
-    response_model=ResponseWithStatusMessage,
-)
-async def delete_system_checklist_category(
-    category_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 체크리스트 카테고리 삭제"""
-    category = await crud_category.get(db=session, id=category_id)
-
-    if not category or not category.is_system_category:
-        raise HTTPException(status_code=404, detail="Checklist category not found")
-
-    await crud_category.soft_delete_with_checklists(db=session, category_id=category_id)
-
-    return ResponseWithStatusMessage(message="Checklist category deleted")
 
 
 @router.get("", response_model=list[ChecklistCategoryRead])

@@ -1,6 +1,7 @@
+from typing import Literal, Any, Sequence
 from uuid import UUID
 
-from sqlalchemy import and_, select, func
+from sqlalchemy import and_, select, func, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.checklists import Checklist
@@ -12,7 +13,7 @@ from .base import CRUDBase
 class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
     async def get_by_user(
         self, db: AsyncSession, *, user_id: UUID, skip: int = 0, limit: int = 100
-    ) -> list[Checklist]:
+    ) -> Sequence[Checklist]:
         """Get checklists by user ID"""
         query = (
             select(Checklist)
@@ -38,7 +39,8 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         skip: int = 0,
         limit: int = 100,
         system_only: bool = False,
-    ) -> list[Checklist]:
+        display_order: Literal["global", "category"] = "category",
+    ) -> Sequence[Row[Any] | RowMapping | Any]:
         """Get checklists by category ID with optional user filter"""
         query = select(Checklist).where(
             and_(
@@ -54,14 +56,20 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
             query = query.where(Checklist.user_id == user_id)
 
         query = (
-            query.offset(skip).limit(limit).order_by(Checklist.category_display_order)
+            query.offset(skip)
+            .limit(limit)
+            .order_by(
+                Checklist.category_display_order
+                if display_order == "category"
+                else Checklist.global_display_order
+            )
         )
         result = await db.stream(query)
         return await result.scalars().all()
 
     async def get_system_checklists(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> list[Checklist]:
+    ) -> Sequence[Checklist]:
         """Get system checklists (templates)"""
         query = (
             select(Checklist)

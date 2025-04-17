@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any, Sequence
 from uuid import UUID
 
-from sqlalchemy import and_, select, func
+from sqlalchemy import and_, select, func, Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.checklist_categories import ChecklistCategory
@@ -16,7 +16,7 @@ class CRUDChecklistCategory(
 ):
     async def get_system_categories(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> list[ChecklistCategory]:
+    ) -> Sequence[ChecklistCategory]:
         """Get system-provided checklist categories"""
         query = (
             select(ChecklistCategory)
@@ -34,7 +34,7 @@ class CRUDChecklistCategory(
 
     async def get_user_categories(
         self, db: AsyncSession, *, user_id: UUID, skip: int = 0, limit: int = 100
-    ) -> list[ChecklistCategory]:
+    ) -> Sequence[ChecklistCategory]:
         """Get user-created checklist categories"""
         query = (
             select(ChecklistCategory)
@@ -42,7 +42,7 @@ class CRUDChecklistCategory(
                 and_(
                     ChecklistCategory.user_id == user_id,
                     ChecklistCategory.is_deleted == False,
-                )
+                ),
             )
             .offset(skip)
             .limit(limit)
@@ -72,7 +72,7 @@ class CRUDChecklistCategory(
         system_only: bool = False,
         skip: int = 0,
         limit: int = 100
-    ) -> list[tuple[ChecklistCategory, int]]:
+    ) -> Sequence[Row[tuple[Any, ...] | Any]]:
         """Get categories with count of checklists in each"""
         query = (
             select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
@@ -97,7 +97,7 @@ class CRUDChecklistCategory(
                 )
             )
 
-        query = query.offset(skip).limit(limit)
+        query = query.offset(skip).limit(limit).order_by(ChecklistCategory.id)
         result = await db.stream(query)
         return await result.fetchall()
 
@@ -167,6 +167,8 @@ class CRUDChecklistCategory(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
     ) -> list[dict[str, Any]]:
         """Get system categories with their checklists"""
+        from crud import checklist as crud_checklist
+
         # 1. Get system categories
         categories = await self.get_system_categories(db=db, skip=skip, limit=limit)
 
@@ -174,10 +176,8 @@ class CRUDChecklistCategory(
         result = []
         for category in categories:
             # Get checklists for this category
-            from crud import checklist as crud_checklist
-
             checklists = await crud_checklist.get_by_category(
-                db=db, category_id=category.id, system_only=True
+                db=db, category_id=category.id, system_only=True, display_order="global"
             )
 
             # Format category with checklists
@@ -236,7 +236,7 @@ class CRUDChecklistCategory(
 
     async def soft_delete_with_checklists(
         self, db: AsyncSession, *, category_id: int
-    ) -> None:
+    ) -> ChecklistCategory | None:
         """Soft delete a category and all its checklists"""
         # Get the category
         category = await self.get(db, id=category_id)

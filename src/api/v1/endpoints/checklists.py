@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Body, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_user, get_current_admin
+from api.v1.deps import get_current_user
 from core.db import get_session
 from crud import checklist as crud_checklist
 from crud import checklist_category as crud_category
@@ -44,89 +44,6 @@ async def get_system_checklist(
         raise HTTPException(status_code=404, detail="Suggest checklist not found")
 
     return SuggestChecklistRead.model_validate(checklist)
-
-
-@router.post("/system", response_model=SuggestChecklistRead)
-async def create_system_checklist(
-    system_checklist_create: ChecklistCreate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 제공 기본 체크리스트 항목 생성"""
-    # 카테고리 검증
-    category = await crud_category.get(
-        db=session, id=system_checklist_create.checklist_category_id
-    )
-
-    if not category or not category.is_system_category:
-        raise HTTPException(
-            status_code=400,
-            detail="System checklist category not found",
-        )
-
-    # system_checklist_create에 is_system_checklist 필드 추가
-    checklist_data = system_checklist_create.model_dump()
-    checklist_data["is_system_checklist"] = True
-
-    checklist = await crud_checklist.create(db=session, obj_in=checklist_data)
-    return SuggestChecklistRead.model_validate(checklist)
-
-
-@router.put("/system/{checklist_id}", response_model=SuggestChecklistRead)
-async def update_system_checklist(
-    checklist_id: int = Path(...),
-    system_checklist_update: ChecklistUpdate = Body(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 제공 기본 체크리스트 항목 업데이트"""
-    # 체크리스트 조회
-    checklist = await crud_checklist.get(db=session, id=checklist_id)
-
-    if not checklist or not checklist.is_system_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="Suggest checklist not found",
-        )
-
-    # 카테고리 변경 시 검증
-    if system_checklist_update.checklist_category_id:
-        category = await crud_category.get(
-            db=session, id=system_checklist_update.checklist_category_id
-        )
-
-        if not category or not category.is_system_category:
-            raise HTTPException(
-                status_code=400,
-                detail="System checklist category not found",
-            )
-
-    # 업데이트
-    updated_checklist = await crud_checklist.update(
-        db=session, db_obj=checklist, obj_in=system_checklist_update
-    )
-    return SuggestChecklistRead.model_validate(updated_checklist)
-
-
-@router.delete("/system/{checklist_id}", response_model=ResponseWithStatusMessage)
-async def delete_system_checklist(
-    checklist_id: int = Path(...),
-    session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_admin),
-):
-    """시스템 제공 기본 체크리스트 항목 삭제"""
-    checklist = await crud_checklist.get(db=session, id=checklist_id)
-
-    if not checklist or not checklist.is_system_checklist:
-        raise HTTPException(
-            status_code=404,
-            detail="Suggest checklist not found",
-        )
-
-    await crud_checklist.soft_delete(db=session, id=checklist_id)
-    return ResponseWithStatusMessage(
-        status="success", message="Suggest checklist deleted"
-    )
 
 
 @router.get("", response_model=list[ChecklistRead])

@@ -8,6 +8,8 @@ from api.v1.endpoints import (
     checklist_categories,
     suggest_search_keywords,
     product_halls,
+    wishlists,
+    admin,
 )
 
 api_router = APIRouter()
@@ -28,3 +30,6 @@ api_router.include_router(
 api_router.include_router(
     suggest_search_keywords.router, prefix="/suggest-search-keywords", tags=["suggest"]
 )
+api_router.include_router(wishlists.router, prefix="/wishlists", tags=["wishlist"])
+
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

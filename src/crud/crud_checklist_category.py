@@ -50,6 +50,38 @@ class CRUDChecklistCategory(
         result = await db.stream(query)
         return await result.scalars().all()
 
+    async def get_user_categories_with_checklist_count(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ):
+        """Get categories with count of checklists in each"""
+        query = (
+            select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
+            .outerjoin(
+                Checklist,
+                and_(
+                    Checklist.checklist_category_id == ChecklistCategory.id,
+                    Checklist.user_id == user_id,
+                    Checklist.is_deleted == False,
+                ),
+            )
+            .where(
+                and_(
+                    ChecklistCategory.is_deleted == False,
+                    ChecklistCategory.user_id == user_id,
+                )
+            )
+            .group_by(ChecklistCategory.id)
+        )
+
+        query = query.offset(skip).limit(limit).order_by(ChecklistCategory.id)
+        result = await db.stream(query)
+        return await result.fetchall()
+
     async def get_user_category(
         self, db: AsyncSession, *, category_id: int, user_id: UUID
     ) -> ChecklistCategory | None:
@@ -71,7 +103,7 @@ class CRUDChecklistCategory(
         user_id: UUID | None = None,
         system_only: bool = False,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> Sequence[Row[tuple[Any, ...] | Any]]:
         """Get categories with count of checklists in each"""
         query = (

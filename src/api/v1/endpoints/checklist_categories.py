@@ -84,12 +84,25 @@ async def list_checklist_categories(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """체크리스트 카테고리 목록 조회"""
-    categories = await crud_category.get_user_categories(
-        db=session, user_id=current_user.id
+    """사용자 체크리스트 카테고리 목록 조회"""
+    categories_with_counts = (
+        await crud_category.get_user_categories_with_checklist_count(
+            db=session, user_id=current_user.id
+        )
     )
+    result = []
+    for category, count in categories_with_counts:
+        result.append(
+            ChecklistCategoryRead(
+                id=category.id,
+                display_name=category.display_name,
+                user_id=category.user_id,
+                is_system_category=category.is_system_category,
+                checklists_count=count,
+            )
+        )
 
-    return [ChecklistCategoryRead.model_validate(category) for category in categories]
+    return result
 
 
 @router.get("/{category_id}", response_model=ChecklistCategoryRead)

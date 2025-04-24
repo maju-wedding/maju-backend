@@ -97,6 +97,10 @@ class ProductHallRead(SQLModel):
     dong: str
     address: str
 
+    has_single_hall: bool
+    max_price: int
+    min_price: int
+
     hall: HallRead
     ai_reviews: list[HallAIReviewRead]
     venues: list[HallVenueRead]

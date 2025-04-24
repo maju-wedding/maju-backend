@@ -1,3 +1,5 @@
+import sys
+
 from fastapi import APIRouter, Query, Depends, Path, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -112,6 +114,19 @@ async def get_wedding_hall(
     # 점수 정보 가져오기
     scores = await crud_score.get_by_product(db=session, product_id=product_id)
 
+    max_price = 0
+    min_price = sys.maxsize
+    for venue in product.product_hall.product_hall_venues:
+        max_price = max(
+            venue.peak_season_price
+            + venue.guaranteed_min_count * venue.food_cost_per_adult,
+            max_price,
+        )
+        min_price = min(
+            venue.basic_price + venue.guaranteed_min_count * venue.food_cost_per_adult,
+            min_price,
+        )
+
     return ProductHallRead(
         id=product.id,
         name=product.name,
@@ -124,6 +139,9 @@ async def get_wedding_hall(
         gugun=product.gugun,
         dong=product.dong or "",
         address=product.address,
+        has_single_hall=len(product.product_hall.product_hall_venues) == 1,
+        max_price=max_price,
+        min_price=min_price,
         hall=product.product_hall,
         venues=product.product_hall.product_hall_venues,
         ai_reviews=ai_reviews,

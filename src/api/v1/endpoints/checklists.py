@@ -299,4 +299,6 @@ async def delete_checklist(
 
     await crud_checklist.soft_delete(db=session, id=checklist_id)
 
-    return ResponseWithStatusMessage(message="Checklist deleted successfully")
+    return ResponseWithStatusMessage(
+        status="success", message="Checklist deleted successfully"
+    )

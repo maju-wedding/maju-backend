@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, and_
 
 ModelType = TypeVar("ModelType", bound=SQLModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -24,7 +24,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType, IDType]):
         """
         Get a single record by ID.
         """
-        query = select(self.model).where(self.model.id == id)
+        query = select(self.model).where(
+            and_(self.model.id == id, self.model.is_deleted == False)
+        )
         result = await db.stream(query)
         return await result.scalar_one_or_none()
 

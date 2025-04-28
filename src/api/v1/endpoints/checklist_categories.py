@@ -182,4 +182,6 @@ async def delete_checklist_category(
 
     await crud_category.soft_delete_with_checklists(db=session, category_id=category_id)
 
-    return ResponseWithStatusMessage(message="Category deleted successfully")
+    return ResponseWithStatusMessage(
+        status="success", message="Category deleted successfully"
+    )

@@ -239,17 +239,19 @@ async def clear_user_checklist(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """사용자의 모든 체크리스트를 삭제 처리"""
-    # 사용자의 모든 체크리스트를 소프트 삭제
-    deleted_count = await crud_checklist.soft_delete_all_by_user(
-        db=session, user_id=current_user.id
+    """사용자의 모든 체크리스트와 카테고리를 삭제 처리"""
+    deleted_category_count, category_checklist_count = (
+        await crud_category.soft_delete_all_by_user(db=session, user_id=current_user.id)
     )
 
-    return ResponseWithStatusMessage(
-        status="success",
-        message=f"{deleted_count}개의 체크리스트가 삭제되었습니다.",
-        data={"deleted_count": deleted_count},
-    )
+    return {
+        "status": "success",
+        "message": f"{category_checklist_count}개의 체크리스트와 {deleted_category_count}개의 카테고리가 삭제되었습니다.",
+        "data": {
+            "deleted_checklist_count": category_checklist_count,
+            "deleted_category_count": deleted_category_count,
+        },
+    }
 
 
 @router.put("/reorder", response_model=list[ChecklistRead])

@@ -299,3 +299,63 @@ class CRUDChecklistCategory(
 
         await db.commit()
         return category
+
+    async def soft_delete_all_by_user(
+        self, db: AsyncSession, *, user_id: UUID
+    ) -> tuple[int, int]:
+        """Soft delete all checklist categories for a user and their checklists
+
+        Returns:
+            tuple[int, int]: Tuple of (number of categories deleted, number of checklists deleted)
+        """
+        # 1. Get all categories for the user that are not deleted
+        query = select(ChecklistCategory).where(
+            and_(
+                ChecklistCategory.user_id == user_id,
+                ChecklistCategory.is_deleted == False,
+            )
+        )
+        result = await db.execute(query)
+        categories = result.scalars().all()
+
+        # If no categories, return early
+        if not categories:
+            return 0, 0
+
+        # 2. Get category IDs
+        category_ids = [category.id for category in categories]
+
+        # 3. Find all checklists in these categories
+        checklist_query = select(Checklist).where(
+            and_(
+                Checklist.checklist_category_id.in_(category_ids),
+                Checklist.user_id == user_id,
+                Checklist.is_deleted == False,
+            )
+        )
+        checklist_result = await db.execute(checklist_query)
+        checklists = checklist_result.scalars().all()
+
+        # 4. Mark checklists as deleted
+        checklist_count = 0
+        current_time = utc_now()
+        for checklist in checklists:
+            checklist.is_deleted = True
+            checklist.deleted_datetime = current_time
+            checklist.updated_datetime = current_time
+            db.add(checklist)
+            checklist_count += 1
+
+        # 5. Mark categories as deleted
+        category_count = 0
+        for category in categories:
+            category.is_deleted = True
+            category.deleted_datetime = current_time
+            category.updated_datetime = current_time
+            db.add(category)
+            category_count += 1
+
+        # 6. Commit all changes at once
+        await db.commit()
+
+        return category_count, checklist_count

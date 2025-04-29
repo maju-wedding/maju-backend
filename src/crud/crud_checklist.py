@@ -306,3 +306,33 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
             await db.refresh(checklist)
 
         return user_checklists
+
+    async def soft_delete_all_by_user(self, db: AsyncSession, *, user_id: UUID) -> int:
+        """Soft delete all checklists for a user
+
+        Returns:
+            int: Number of checklists marked as deleted
+        """
+        # Update all non-deleted checklists for the user
+        query = select(Checklist).where(
+            and_(
+                Checklist.user_id == user_id,
+                Checklist.is_deleted == False,
+            )
+        )
+        result = await db.execute(query)
+        checklists = result.scalars().all()
+
+        count = 0
+        for checklist in checklists:
+            checklist.is_deleted = True
+            checklist.deleted_datetime = utc_now()
+            checklist.updated_datetime = utc_now()
+            db.add(checklist)
+            count += 1
+
+        # Commit all changes at once
+        if count > 0:
+            await db.commit()
+
+        return count

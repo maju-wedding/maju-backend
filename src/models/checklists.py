@@ -18,6 +18,7 @@ class Checklist(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     description: str | None = Field(default=None, sa_column=Column(Text))
+    memo: str | None = Field(default=None, sa_column=Column(Text))
     checklist_category_id: int | None = Field(
         default=None, foreign_key="checklist_categories.id"
     )

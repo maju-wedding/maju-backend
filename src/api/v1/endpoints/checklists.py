@@ -234,6 +234,24 @@ async def create_checklist(
     return ChecklistRead.model_validate(new_checklist)
 
 
+@router.post("/clear", response_model=ResponseWithStatusMessage)
+async def clear_user_checklist(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """사용자의 모든 체크리스트를 삭제 처리"""
+    # 사용자의 모든 체크리스트를 소프트 삭제
+    deleted_count = await crud_checklist.soft_delete_all_by_user(
+        db=session, user_id=current_user.id
+    )
+
+    return ResponseWithStatusMessage(
+        status="success",
+        message=f"{deleted_count}개의 체크리스트가 삭제되었습니다.",
+        data={"deleted_count": deleted_count},
+    )
+
+
 @router.put("/reorder", response_model=list[ChecklistRead])
 async def update_checklists_order(
     checklist_order_data: list[ChecklistOrderUpdate] = Body(...),

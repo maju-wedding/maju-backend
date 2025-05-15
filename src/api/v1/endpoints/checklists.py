@@ -293,13 +293,65 @@ async def update_checklist(
     current_user: User = Depends(get_current_user),
 ):
     """체크리스트 수정"""
+    # 기존 체크리스트 확인
     checklist = await crud_checklist.get(db=session, id=checklist_id)
 
     if not checklist or checklist.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Checklist not found")
 
+    update_data = checklist_update.model_dump(exclude_unset=True)
+
+    # 카테고리 ID가 업데이트되는 경우에만 처리
+    if "checklist_category_id" in update_data:
+        input_category_id = update_data["checklist_category_id"]
+
+        # 카테고리 정보 조회
+        category = await crud_category.get(db=session, id=input_category_id)
+        if not category:
+            raise HTTPException(
+                status_code=400,
+                detail="Checklist category not found",
+            )
+
+        # 시스템 카테고리인 경우 처리
+        if category.is_system_category:
+            system_category = category
+            # 사용자의 카테고리 목록 조회
+            user_categories = await crud_category.get_user_categories(
+                db=session, user_id=current_user.id
+            )
+
+            # 동일한 이름의 사용자 카테고리 찾기
+            matching_categories = [
+                cat
+                for cat in user_categories
+                if cat.display_name == system_category.display_name
+            ]
+
+            if matching_categories:
+                # 이미 존재하는 카테고리 사용
+                user_category = matching_categories[0]
+            else:
+                # 없으면 새로 생성
+                user_category = await crud_category.create_user_category(
+                    db=session,
+                    display_name=system_category.display_name,
+                    user_id=current_user.id,
+                )
+
+            # 업데이트 데이터의 카테고리 ID를 사용자 카테고리 ID로 변경
+            update_data["checklist_category_id"] = user_category.id
+        else:
+            # 사용자 카테고리인 경우, 본인의 카테고리인지 확인
+            if category.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You don't have permission to use this category",
+                )
+
+    # 체크리스트 업데이트
     updated_checklist = await crud_checklist.update(
-        db=session, db_obj=checklist, obj_in=checklist_update
+        db=session, db_obj=checklist, obj_in=update_data
     )
 
     return ChecklistRead.model_validate(updated_checklist)

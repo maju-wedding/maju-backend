@@ -59,6 +59,7 @@ class UserUpdate(SQLModel):
     privacy_policy_agreement: bool | None = Field(default=None)
     advertising_agreement: bool | None = Field(default=None)
     updated_datetime: datetime = Field(default_factory=utc_now)
+    budget: int | None = Field(default=None, ge=0)
 
 
 class UserRead(SQLModel):

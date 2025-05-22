@@ -4,9 +4,10 @@ from uuid import UUID, uuid4
 import sqlmodel
 from pydantic import EmailStr
 from sqlalchemy import Column, String, Boolean
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship
 
 from core.enums import SocialProviderEnum, UserTypeEnum, GenderEnum
+from models import UserSpent
 from utils.utils import utc_now
 
 
@@ -29,6 +30,7 @@ class User(SQLModel, table=True):
     wedding_datetime: datetime | None = Field(
         default=None, sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True))
     )
+    budget: int = Field(default=0)
 
     user_type: UserTypeEnum = Field(
         default=UserTypeEnum.guest,
@@ -63,3 +65,5 @@ class User(SQLModel, table=True):
     is_superuser: bool = Field(default=False, sa_column=Column(Boolean, default=False))
     is_active: bool = Field(default=True, sa_column=Column(Boolean, default=True))
     is_deleted: bool = Field(default=False, sa_column=Column(Boolean, default=False))
+
+    user_spents: list["UserSpent"] = Relationship(back_populates="user")

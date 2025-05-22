@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
+    from models.user_spents import UserSpent
     from models.checklists import Checklist
 
 
@@ -32,3 +33,4 @@ class ChecklistCategory(SQLModel, table=True):
     )
 
     checklists: list["Checklist"] = Relationship(back_populates="checklist_category")
+    user_spents: list["UserSpent"] = Relationship(back_populates="category")

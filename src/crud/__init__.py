@@ -6,6 +6,7 @@ from models.product_halls import ProductHall
 from models.product_scores import ProductScore
 from models.products import Product
 from models.suggest_search_keywords import SuggestSearchKeyword
+from models.user_spents import UserSpent
 from models.user_wishlist import UserWishlist
 from models.users import User
 
@@ -19,6 +20,7 @@ from .crud_product_hall import CRUDProductHall
 from .crud_product_score import CRUDProductScore
 from .crud_suggest_search_keyword import CRUDSuggestSearchKeyword
 from .crud_user import CRUDUser
+from .crud_user_spents import CRUDUserSpent
 from .crud_wishlist import CRUDUserWishlist
 
 
@@ -32,3 +34,4 @@ suggest_search_keyword = CRUDSuggestSearchKeyword(SuggestSearchKeyword)
 user_wishlist = CRUDUserWishlist(UserWishlist)
 product_ai_review = CRUDProductAIReview(ProductAIReview)
 product_score = CRUDProductScore(ProductScore)
+user_spent = CRUDUserSpent(UserSpent)

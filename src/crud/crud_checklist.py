@@ -44,7 +44,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         """Get checklists by category ID with optional user filter"""
         query = select(Checklist).where(
             and_(
-                Checklist.checklist_category_id == category_id,
+                Checklist.category_id == category_id,
                 Checklist.is_deleted == False,
             )
         )
@@ -103,7 +103,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
         query = select(func.max(Checklist.category_display_order)).where(
             and_(
                 Checklist.user_id == user_id,
-                Checklist.checklist_category_id == category_id,
+                Checklist.category_id == category_id,
                 Checklist.is_deleted == False,
             )
         )
@@ -138,7 +138,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
 
         # Create all user checklists
         for index, system_checklist in enumerate(system_checklists):
-            category_id = system_checklist.checklist_category_id
+            category_id = system_checklist.category_id
 
             # Only query category order once per category
             if category_id not in category_orders:
@@ -152,7 +152,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
             user_checklist = Checklist(
                 title=system_checklist.title,
                 description=system_checklist.description,
-                checklist_category_id=category_id,
+                category_id=category_id,
                 is_system_checklist=False,
                 user_id=user_id,
                 global_display_order=global_order_base + index + 1,
@@ -267,7 +267,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
 
         # Create all user checklists
         for index, system_checklist in enumerate(system_checklists):
-            system_category_id = system_checklist.checklist_category_id
+            system_category_id = system_checklist.category_id
 
             # Map system category to user category
             user_category_id = category_mapping.get(system_category_id)
@@ -286,7 +286,7 @@ class CRUDChecklist(CRUDBase[Checklist, ChecklistCreate, ChecklistUpdate, int]):
             user_checklist = Checklist(
                 title=system_checklist.title,
                 description=system_checklist.description,
-                checklist_category_id=user_category_id,  # Use the mapped category ID
+                category_id=user_category_id,  # Use the mapped category ID
                 is_system_checklist=False,
                 user_id=user_id,
                 global_display_order=global_order_base + index + 1,

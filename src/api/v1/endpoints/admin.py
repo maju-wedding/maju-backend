@@ -7,16 +7,16 @@ from starlette import status
 from api.v1.deps import get_current_admin
 from core.db import get_session
 from crud import (
-    checklist_category as crud_category,
+    category as crud_category,
     checklist as crud_checklist,
     suggest_search_keyword as crud_keyword,
     user as crud_user,
 )
 from models import User
 from schemes.checklists import (
-    ChecklistCategoryRead,
-    ChecklistCategoryCreateBySystem,
-    ChecklistCategoryUpdate,
+    CategoryRead,
+    CategoryCreateBySystem,
+    CategoryUpdate,
     SuggestChecklistRead,
     ChecklistCreate,
     ChecklistUpdate,
@@ -27,18 +27,18 @@ from schemes.suggest_search_keywords import SuggestSearchKeywordRead
 router = APIRouter()
 
 
-@router.post("/checklist_categories/system", response_model=ChecklistCategoryRead)
-async def create_system_checklist_category(
-    checklist_category_create: ChecklistCategoryCreateBySystem = Body(...),
+@router.post("/categories/system", response_model=CategoryRead)
+async def create_system_category(
+    category_create: CategoryCreateBySystem = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
     """시스템 체크리스트 카테고리 생성"""
     category = await crud_category.create_system_category(
-        db=session, display_name=checklist_category_create.display_name
+        db=session, display_name=category_create.display_name
     )
 
-    return ChecklistCategoryRead(
+    return CategoryRead(
         id=category.id,
         display_name=category.display_name,
         user_id=category.user_id,
@@ -47,12 +47,10 @@ async def create_system_checklist_category(
     )
 
 
-@router.put(
-    "/checklist_categories/system/{category_id}", response_model=ChecklistCategoryRead
-)
-async def update_system_checklist_category(
+@router.put("/categories/system/{category_id}", response_model=CategoryRead)
+async def update_system_category(
     category_id: int = Path(...),
-    checklist_category_update: ChecklistCategoryUpdate = Body(...),
+    category_update: CategoryUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ):
@@ -63,10 +61,10 @@ async def update_system_checklist_category(
         raise HTTPException(status_code=404, detail="Checklist category not found")
 
     updated_category = await crud_category.update(
-        db=session, db_obj=category, obj_in=checklist_category_update
+        db=session, db_obj=category, obj_in=category_update
     )
 
-    return ChecklistCategoryRead(
+    return CategoryRead(
         id=updated_category.id,
         display_name=updated_category.display_name,
         user_id=updated_category.user_id,
@@ -76,10 +74,10 @@ async def update_system_checklist_category(
 
 
 @router.delete(
-    "/checklist_categories/system/{category_id}",
+    "/categories/system/{category_id}",
     response_model=ResponseWithStatusMessage,
 )
-async def delete_system_checklist_category(
+async def delete_system_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
@@ -104,7 +102,7 @@ async def create_system_checklist(
     """시스템 제공 기본 체크리스트 항목 생성"""
     # 카테고리 검증
     category = await crud_category.get(
-        db=session, id=system_checklist_create.checklist_category_id
+        db=session, id=system_checklist_create.category_id
     )
 
     if not category or not category.is_system_category:
@@ -139,9 +137,9 @@ async def update_system_checklist(
         )
 
     # 카테고리 변경 시 검증
-    if system_checklist_update.checklist_category_id:
+    if system_checklist_update.category_id:
         category = await crud_category.get(
-            db=session, id=system_checklist_update.checklist_category_id
+            db=session, id=system_checklist_update.category_id
         )
 
         if not category or not category.is_system_category:

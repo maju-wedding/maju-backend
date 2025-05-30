@@ -5,21 +5,21 @@ from api.v1.endpoints import (
     auth,
     product_categories,
     checklists,
-    checklist_categories,
     suggest_search_keywords,
     product_halls,
     wishlists,
     admin,
     user_budgets,
+    categories,
 )
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(
-    checklist_categories.router,
+    categories.router,
     prefix="/checklist_categories",
-    tags=["checklist_categories"],
+    tags=["categories"],
 )
 api_router.include_router(checklists.router, prefix="/checklists", tags=["checklists"])
 api_router.include_router(

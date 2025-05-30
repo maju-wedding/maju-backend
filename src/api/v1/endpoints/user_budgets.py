@@ -4,10 +4,10 @@ from starlette import status
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from crud import checklist_category as crud_category
+from crud import category as crud_category
 from crud import user_spent as crud_spent
 from models import User
-from schemes.checklists import ChecklistCategoryRead
+from schemes.checklists import CategoryRead
 from schemes.user_spents import (
     UserSpentCreate,
     UserSpentWithCategory,
@@ -55,7 +55,7 @@ async def get_budget_dashboard(
     for item in category_spents:
         category_summaries.append(
             CategorySpentSummary(
-                category=ChecklistCategoryRead.model_validate(item["category"]),
+                category=CategoryRead.model_validate(item["category"]),
                 total_spent=item["total_spent"],
                 spent_count=item["spent_count"],
             )
@@ -108,9 +108,7 @@ async def create_user_spent(
 
     result = UserSpentWithCategory.model_validate(spent_with_category)
     if spent_with_category.category:
-        result.category = ChecklistCategoryRead.model_validate(
-            spent_with_category.category
-        )
+        result.category = CategoryRead.model_validate(spent_with_category.category)
 
     return result
 
@@ -136,9 +134,7 @@ async def list_user_spents(
     for spent in spents:
         spent_with_category = UserSpentWithCategory.model_validate(spent)
         if spent.category:
-            spent_with_category.category = ChecklistCategoryRead.model_validate(
-                spent.category
-            )
+            spent_with_category.category = CategoryRead.model_validate(spent.category)
         result.append(spent_with_category)
 
     return result

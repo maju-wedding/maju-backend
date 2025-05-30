@@ -4,26 +4,24 @@ from uuid import UUID
 from sqlalchemy import and_, select, func, Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.checklist_categories import ChecklistCategory
+from models.categories import Category
 from models.checklists import Checklist
-from schemes.checklists import ChecklistCategoryCreate, ChecklistCategoryUpdate
+from schemes.checklists import CategoryCreate, CategoryUpdate
 from utils.utils import utc_now
 from .base import CRUDBase
 
 
-class CRUDChecklistCategory(
-    CRUDBase[ChecklistCategory, ChecklistCategoryCreate, ChecklistCategoryUpdate, int]
-):
+class CRUDCategory(CRUDBase[Category, CategoryCreate, CategoryUpdate, int]):
     async def get_system_categories(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> Sequence[ChecklistCategory]:
+    ) -> Sequence[Category]:
         """Get system-provided checklist categories"""
         query = (
-            select(ChecklistCategory)
+            select(Category)
             .where(
                 and_(
-                    ChecklistCategory.is_system_category == True,
-                    ChecklistCategory.is_deleted == False,
+                    Category.is_system_category == True,
+                    Category.is_deleted == False,
                 )
             )
             .offset(skip)
@@ -34,14 +32,14 @@ class CRUDChecklistCategory(
 
     async def get_user_categories(
         self, db: AsyncSession, *, user_id: UUID, skip: int = 0, limit: int = 100
-    ) -> Sequence[ChecklistCategory]:
+    ) -> Sequence[Category]:
         """Get user-created checklist categories"""
         query = (
-            select(ChecklistCategory)
+            select(Category)
             .where(
                 and_(
-                    ChecklistCategory.user_id == user_id,
-                    ChecklistCategory.is_deleted == False,
+                    Category.user_id == user_id,
+                    Category.is_deleted == False,
                 ),
             )
             .offset(skip)
@@ -60,37 +58,37 @@ class CRUDChecklistCategory(
     ):
         """Get categories with count of checklists in each"""
         query = (
-            select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
+            select(Category, func.count(Checklist.id).label("checklist_count"))
             .outerjoin(
                 Checklist,
                 and_(
-                    Checklist.checklist_category_id == ChecklistCategory.id,
+                    Checklist.category_id == Category.id,
                     Checklist.user_id == user_id,
                     Checklist.is_deleted == False,
                 ),
             )
             .where(
                 and_(
-                    ChecklistCategory.is_deleted == False,
-                    ChecklistCategory.user_id == user_id,
+                    Category.is_deleted == False,
+                    Category.user_id == user_id,
                 )
             )
-            .group_by(ChecklistCategory.id)
+            .group_by(Category.id)
         )
 
-        query = query.offset(skip).limit(limit).order_by(ChecklistCategory.id)
+        query = query.offset(skip).limit(limit).order_by(Category.id)
         result = await db.stream(query)
         return await result.fetchall()
 
     async def get_user_category(
         self, db: AsyncSession, *, category_id: int, user_id: UUID
-    ) -> ChecklistCategory | None:
+    ) -> Category | None:
         """Get a user's category by ID"""
-        query = select(ChecklistCategory).where(
+        query = select(Category).where(
             and_(
-                ChecklistCategory.id == category_id,
-                ChecklistCategory.user_id == user_id,
-                ChecklistCategory.is_deleted == False,
+                Category.id == category_id,
+                Category.user_id == user_id,
+                Category.is_deleted == False,
             )
         )
         result = await db.stream(query)
@@ -107,52 +105,52 @@ class CRUDChecklistCategory(
     ) -> Sequence[Row[tuple[Any, ...] | Any]]:
         """Get categories with count of checklists in each"""
         query = (
-            select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
+            select(Category, func.count(Checklist.id).label("checklist_count"))
             .outerjoin(
                 Checklist,
                 and_(
-                    Checklist.checklist_category_id == ChecklistCategory.id,
+                    Checklist.category_id == Category.id,
                     Checklist.is_deleted == False,
                 ),
             )
-            .where(ChecklistCategory.is_deleted == False)
-            .group_by(ChecklistCategory.id)
+            .where(Category.is_deleted == False)
+            .group_by(Category.id)
         )
 
         if system_only:
-            query = query.where(ChecklistCategory.is_system_category == True)
+            query = query.where(Category.is_system_category == True)
         elif user_id:
             query = query.where(
                 and_(
-                    ChecklistCategory.is_system_category == True,
-                    ChecklistCategory.user_id == user_id,
+                    Category.is_system_category == True,
+                    Category.user_id == user_id,
                 )
             )
 
-        query = query.offset(skip).limit(limit).order_by(ChecklistCategory.id)
+        query = query.offset(skip).limit(limit).order_by(Category.id)
         result = await db.stream(query)
         return await result.fetchall()
 
     async def get_category_with_checklist_count(
         self, db: AsyncSession, *, category_id: int
-    ) -> tuple[ChecklistCategory | None, int]:
+    ) -> tuple[Category | None, int]:
         """Get a category with its checklist count"""
         query = (
-            select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
+            select(Category, func.count(Checklist.id).label("checklist_count"))
             .outerjoin(
                 Checklist,
                 and_(
-                    Checklist.checklist_category_id == ChecklistCategory.id,
+                    Checklist.category_id == Category.id,
                     Checklist.is_deleted == False,
                 ),
             )
             .where(
                 and_(
-                    ChecklistCategory.id == category_id,
-                    ChecklistCategory.is_deleted == False,
+                    Category.id == category_id,
+                    Category.is_deleted == False,
                 )
             )
-            .group_by(ChecklistCategory.id)
+            .group_by(Category.id)
         )
 
         result = await db.stream(query)
@@ -161,30 +159,30 @@ class CRUDChecklistCategory(
         if not row:
             return None, 0
 
-        return row.ChecklistCategory, row.checklist_count
+        return row.Category, row.checklist_count
 
     async def get_user_category_with_checklist_count(
         self, db: AsyncSession, *, category_id: int, user_id: UUID
-    ) -> tuple[ChecklistCategory | None, int]:
+    ) -> tuple[Category | None, int]:
         """Get a user's category with its checklist count"""
         query = (
-            select(ChecklistCategory, func.count(Checklist.id).label("checklist_count"))
+            select(Category, func.count(Checklist.id).label("checklist_count"))
             .outerjoin(
                 Checklist,
                 and_(
-                    Checklist.checklist_category_id == ChecklistCategory.id,
+                    Checklist.category_id == Category.id,
                     Checklist.is_deleted == False,
                     Checklist.user_id == user_id,
                 ),
             )
             .where(
                 and_(
-                    ChecklistCategory.id == category_id,
-                    ChecklistCategory.user_id == user_id,
-                    ChecklistCategory.is_deleted == False,
+                    Category.id == category_id,
+                    Category.user_id == user_id,
+                    Category.is_deleted == False,
                 )
             )
-            .group_by(ChecklistCategory.id)
+            .group_by(Category.id)
         )
 
         result = await db.stream(query)
@@ -193,7 +191,7 @@ class CRUDChecklistCategory(
         if not row:
             return None, 0
 
-        return row.ChecklistCategory, row.checklist_count
+        return row.Category, row.checklist_count
 
     async def get_system_categories_with_checklists(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
@@ -235,9 +233,9 @@ class CRUDChecklistCategory(
 
     async def create_system_category(
         self, db: AsyncSession, *, display_name: str
-    ) -> ChecklistCategory:
+    ) -> Category:
         """Create a system checklist category"""
-        category = ChecklistCategory(
+        category = Category(
             display_name=display_name,
             is_system_category=True,
             created_datetime=utc_now(),
@@ -250,11 +248,17 @@ class CRUDChecklistCategory(
         return category
 
     async def create_user_category(
-        self, db: AsyncSession, *, display_name: str, user_id: UUID
-    ) -> ChecklistCategory:
+        self,
+        db: AsyncSession,
+        *,
+        display_name: str,
+        user_id: UUID,
+        icon_url: str | None = None,
+    ) -> Category:
         """Create a user checklist category"""
-        category = ChecklistCategory(
+        category = Category(
             display_name=display_name,
+            icon_url=icon_url,
             is_system_category=False,
             user_id=user_id,
             created_datetime=utc_now(),
@@ -268,7 +272,7 @@ class CRUDChecklistCategory(
 
     async def soft_delete_with_checklists(
         self, db: AsyncSession, *, category_id: int
-    ) -> ChecklistCategory | None:
+    ) -> Category | None:
         """Soft delete a category and all its checklists"""
         # Get the category
         category = await self.get(db, id=category_id)
@@ -278,7 +282,7 @@ class CRUDChecklistCategory(
         # Get all checklists in this category
         query = select(Checklist).where(
             and_(
-                Checklist.checklist_category_id == category_id,
+                Checklist.category_id == category_id,
                 Checklist.is_deleted == False,
             )
         )
@@ -309,10 +313,10 @@ class CRUDChecklistCategory(
             tuple[int, int]: Tuple of (number of categories deleted, number of checklists deleted)
         """
         # 1. Get all categories for the user that are not deleted
-        query = select(ChecklistCategory).where(
+        query = select(Category).where(
             and_(
-                ChecklistCategory.user_id == user_id,
-                ChecklistCategory.is_deleted == False,
+                Category.user_id == user_id,
+                Category.is_deleted == False,
             )
         )
         result = await db.execute(query)
@@ -328,7 +332,7 @@ class CRUDChecklistCategory(
         # 3. Find all checklists in these categories
         checklist_query = select(Checklist).where(
             and_(
-                Checklist.checklist_category_id.in_(category_ids),
+                Checklist.category_id.in_(category_ids),
                 Checklist.user_id == user_id,
                 Checklist.is_deleted == False,
             )

@@ -10,7 +10,7 @@ from utils.utils import utc_now
 
 if TYPE_CHECKING:
     from models.users import User
-    from models.checklist_categories import ChecklistCategory
+    from models.categories import Category
 
 
 class UserSpent(SQLModel, table=True):
@@ -20,7 +20,7 @@ class UserSpent(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id")
-    category_id: int = Field(foreign_key="checklist_categories.id")
+    category_id: int = Field(foreign_key="categories.id")
     amount: int = Field(default=0)
     title: str = Field(default="")
     memo: str | None = Field(sa_column=Column(Text), default=None)
@@ -36,5 +36,5 @@ class UserSpent(SQLModel, table=True):
     )
 
     # Relationships
-    category: "ChecklistCategory" = Relationship(back_populates="user_spents")
+    category: "Category" = Relationship(back_populates="user_spents")
     user: "User" = Relationship(back_populates="user_spents")

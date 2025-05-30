@@ -1,4 +1,4 @@
-from models.checklist_categories import ChecklistCategory
+from models.categories import Category
 from models.checklists import Checklist
 from models.product_ai_review import ProductAIReview
 from models.product_categories import ProductCategory
@@ -9,10 +9,8 @@ from models.suggest_search_keywords import SuggestSearchKeyword
 from models.user_spents import UserSpent
 from models.user_wishlist import UserWishlist
 from models.users import User
-
-
+from .crud_categories import CRUDCategory
 from .crud_checklist import CRUDChecklist
-from .crud_checklist_category import CRUDChecklistCategory
 from .crud_product import CRUDProduct
 from .crud_product_ai_review import CRUDProductAIReview
 from .crud_product_category import CRUDProductCategory
@@ -23,11 +21,10 @@ from .crud_user import CRUDUser
 from .crud_user_spents import CRUDUserSpent
 from .crud_wishlist import CRUDUserWishlist
 
-
 user = CRUDUser(User)
 product = CRUDProduct(Product)
 checklist = CRUDChecklist(Checklist)
-checklist_category = CRUDChecklistCategory(ChecklistCategory)
+category = CRUDCategory(Category)
 product_hall = CRUDProductHall(ProductHall)
 product_category = CRUDProductCategory(ProductCategory)
 suggest_search_keyword = CRUDSuggestSearchKeyword(SuggestSearchKeyword)

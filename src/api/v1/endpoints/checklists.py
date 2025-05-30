@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user
 from core.db import get_session
+from crud import category as crud_category
 from crud import checklist as crud_checklist
-from crud import checklist_category as crud_category
 from models import User
 from schemes.checklists import (
     ChecklistRead,
@@ -88,9 +88,9 @@ async def create_checklists_by_system(
 
     # 2. 시스템 체크리스트의 카테고리 정보 수집
     category_ids = {
-        checklist.checklist_category_id
+        checklist.category_id
         for checklist in system_checklists
-        if checklist.checklist_category_id
+        if checklist.category_id
     }
 
     # 3. 사용자의 카테고리 조회 (기존에 있는지 확인)
@@ -122,6 +122,7 @@ async def create_checklists_by_system(
                 db=session,
                 display_name=system_category.display_name,
                 user_id=current_user.id,
+                icon_url=system_category.icon_url,
             )
             user_category_map[system_category_id] = new_category.id
 
@@ -152,7 +153,7 @@ async def create_checklist(
 ):
     """사용자 정의 체크리스트 항목 생성 (추천에서 가져오지 않는 경우)"""
     # 입력된 카테고리 ID 확인
-    input_category_id = checklist.checklist_category_id
+    input_category_id = checklist.category_id
 
     # 카테고리 검증 및 처리
     system_category = None
@@ -190,6 +191,7 @@ async def create_checklist(
                 db=session,
                 display_name=system_category.display_name,
                 user_id=current_user.id,
+                icon_url=system_category.icon_url,
             )
 
         # 사용자 체크리스트에 연결할 카테고리 ID 업데이트
@@ -218,7 +220,7 @@ async def create_checklist(
     # 데이터 준비
     checklist_data = checklist.model_dump()
     # 카테고리 ID 업데이트
-    checklist_data["checklist_category_id"] = actual_category_id
+    checklist_data["category_id"] = actual_category_id
     checklist_data.update(
         {
             "user_id": current_user.id,
@@ -302,8 +304,8 @@ async def update_checklist(
     update_data = checklist_update.model_dump(exclude_unset=True)
 
     # 카테고리 ID가 업데이트되는 경우에만 처리
-    if "checklist_category_id" in update_data:
-        input_category_id = update_data["checklist_category_id"]
+    if "category_id" in update_data:
+        input_category_id = update_data["category_id"]
 
         # 카테고리 정보 조회
         category = await crud_category.get(db=session, id=input_category_id)
@@ -337,10 +339,11 @@ async def update_checklist(
                     db=session,
                     display_name=system_category.display_name,
                     user_id=current_user.id,
+                    icon_url=system_category.icon_url,
                 )
 
             # 업데이트 데이터의 카테고리 ID를 사용자 카테고리 ID로 변경
-            update_data["checklist_category_id"] = user_category.id
+            update_data["category_id"] = user_category.id
         else:
             # 사용자 카테고리인 경우, 본인의 카테고리인지 확인
             if category.user_id != current_user.id:

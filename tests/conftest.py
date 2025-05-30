@@ -16,7 +16,7 @@ from core.enums import UserTypeEnum, CategoryTypeEnum, SocialProviderEnum
 from core.security import create_access_token, get_password_hash
 from main import app
 from models import ProductCategory
-from models.checklist_categories import ChecklistCategory
+from models.categories import Category
 from models.checklists import Checklist
 from models.users import User
 
@@ -273,10 +273,10 @@ async def categories(db_session: AsyncSession):
 # 추천 체크리스트 생성
 @pytest_asyncio.fixture(scope="function")
 async def suggest_checklists(
-    db_session: AsyncSession, categories: list[ChecklistCategory]
-) -> list[ChecklistCategory]:
+    db_session: AsyncSession, categories: list[Category]
+) -> list[Category]:
     checklists = [
-        ChecklistCategory(
+        Category(
             title=f"추천 체크리스트 {i}",
             description=f"추천 체크리스트 {i}에 대한 설명",
             category_id=i % 4 + 1,  # 4개의 카테고리에 맞춰 조정
@@ -301,7 +301,7 @@ async def suggest_checklists(
 async def user_checklists(
     db_session: AsyncSession,
     test_user: User,
-    suggest_checklists: list[ChecklistCategory],
+    suggest_checklists: list[Category],
 ) -> list[Checklist]:
     checklists = []
 
@@ -312,7 +312,7 @@ async def user_checklists(
             description=suggest.description,
             suggest_item_id=suggest.id,
             user_id=test_user.id,
-            category_id=suggest.checklist_category_id,
+            category_id=suggest.category_id,
             is_completed=False,  # 짝수 번째 항목은 완료 상태로
             order=i,
         )
@@ -347,7 +347,7 @@ async def user_checklists(
 async def guest_checklists(
     db_session: AsyncSession,
     test_guest_user: User,
-    suggest_checklists: list[ChecklistCategory],
+    suggest_checklists: list[Category],
 ) -> list[Checklist]:
     checklists = []
 
@@ -358,7 +358,7 @@ async def guest_checklists(
             description=suggest.description,
             suggest_item_id=suggest.id,
             user_id=test_guest_user.id,
-            category_id=suggest.checklist_category_id,
+            category_id=suggest.category_id,
             is_completed=False,
             order=i,
         )

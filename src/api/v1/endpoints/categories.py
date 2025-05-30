@@ -3,13 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user
 from core.db import get_session
-from crud import checklist_category as crud_category
+from crud import category as crud_category
 from models import User
 from schemes.checklists import (
-    ChecklistCategoryRead,
-    ChecklistCategoryUpdate,
-    ChecklistCategoryCreate,
-    ChecklistCategoryReadWithChecklist,
+    CategoryRead,
+    CategoryUpdate,
+    CategoryCreate,
+    CategoryReadWithChecklist,
 )
 from schemes.common import ResponseWithStatusMessage
 
@@ -18,9 +18,9 @@ router = APIRouter()
 
 @router.get(
     "/system/summary",
-    response_model=list[ChecklistCategoryReadWithChecklist],
+    response_model=list[CategoryReadWithChecklist],
 )
-async def list_system_checklist_categories_summary(
+async def list_system_categories_summary(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 체크리스트 카테고리 목록 조회 (체크리스트 포함)"""
@@ -32,9 +32,9 @@ async def list_system_checklist_categories_summary(
 
 @router.get(
     "/system",
-    response_model=list[ChecklistCategoryRead],
+    response_model=list[CategoryRead],
 )
-async def list_system_checklist_categories(
+async def list_system_categories(
     session: AsyncSession = Depends(get_session),
 ):
     """시스템 체크리스트 카테고리 목록 조회"""
@@ -45,7 +45,7 @@ async def list_system_checklist_categories(
     result = []
     for category, count in categories_with_counts:
         result.append(
-            ChecklistCategoryRead(
+            CategoryRead(
                 id=category.id,
                 display_name=category.display_name,
                 user_id=category.user_id,
@@ -57,8 +57,8 @@ async def list_system_checklist_categories(
     return result
 
 
-@router.get("/system/{category_id}", response_model=ChecklistCategoryRead)
-async def get_system_checklist_category(
+@router.get("/system/{category_id}", response_model=CategoryRead)
+async def get_system_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
 ):
@@ -70,7 +70,7 @@ async def get_system_checklist_category(
     if not category or not category.is_system_category:
         raise HTTPException(status_code=404, detail="Checklist category not found")
 
-    return ChecklistCategoryRead(
+    return CategoryRead(
         id=category.id,
         display_name=category.display_name,
         user_id=category.user_id,
@@ -79,8 +79,8 @@ async def get_system_checklist_category(
     )
 
 
-@router.get("", response_model=list[ChecklistCategoryRead])
-async def list_checklist_categories(
+@router.get("", response_model=list[CategoryRead])
+async def list_categories(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -93,7 +93,7 @@ async def list_checklist_categories(
     result = []
     for category, count in categories_with_counts:
         result.append(
-            ChecklistCategoryRead(
+            CategoryRead(
                 id=category.id,
                 display_name=category.display_name,
                 user_id=category.user_id,
@@ -105,8 +105,8 @@ async def list_checklist_categories(
     return result
 
 
-@router.get("/{category_id}", response_model=ChecklistCategoryRead)
-async def get_checklist_category(
+@router.get("/{category_id}", response_model=CategoryRead)
+async def get_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -121,7 +121,7 @@ async def get_checklist_category(
     if not category:
         raise HTTPException(status_code=404, detail="Checklist category not found")
 
-    return ChecklistCategoryRead(
+    return CategoryRead(
         id=category.id,
         display_name=category.display_name,
         user_id=category.user_id,
@@ -130,24 +130,27 @@ async def get_checklist_category(
     )
 
 
-@router.post("", response_model=ChecklistCategoryRead)
-async def create_checklist_category(
-    category_in: ChecklistCategoryCreate,
+@router.post("", response_model=CategoryRead)
+async def create_category(
+    category_in: CategoryCreate,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
     """체크리스트 카테고리 생성"""
     category = await crud_category.create_user_category(
-        db=session, display_name=category_in.display_name, user_id=current_user.id
+        db=session,
+        display_name=category_in.display_name,
+        user_id=current_user.id,
+        icon_url=category_in.icon_url,
     )
 
-    return ChecklistCategoryRead.model_validate(category)
+    return CategoryRead.model_validate(category)
 
 
-@router.put("/{category_id}", response_model=ChecklistCategoryRead)
-async def update_checklist_category(
+@router.put("/{category_id}", response_model=CategoryRead)
+async def update_category(
     category_id: int = Path(...),
-    category_in: ChecklistCategoryUpdate = Body(...),
+    category_in: CategoryUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -163,11 +166,11 @@ async def update_checklist_category(
         db=session, db_obj=category, obj_in=category_in
     )
 
-    return ChecklistCategoryRead.model_validate(updated_category)
+    return CategoryRead.model_validate(updated_category)
 
 
 @router.delete("/{category_id}", response_model=ResponseWithStatusMessage)
-async def delete_checklist_category(
+async def delete_category(
     category_id: int = Path(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.middleware.sessions import SessionMiddleware
 
 from admin.auth import AdminAuth
-from admin.models.checklist_categories import ChecklistCategoryAdmin
+from admin.models.categories import CategoryAdmin
 from admin.models.checklists import ChecklistAdmin
 from admin.models.product_ai_reviews import ProductAIReviewAdmin
 from admin.models.product_categories import ProductCategoryAdmin
@@ -49,7 +49,7 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
     # admin.add_view(UserWishlistAdmin)
 
     # 체크리스트
-    admin.add_view(ChecklistCategoryAdmin)
+    admin.add_view(CategoryAdmin)
     admin.add_view(ChecklistAdmin)
 
     # 상품

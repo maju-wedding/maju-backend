@@ -9,7 +9,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
-    from models.checklist_categories import ChecklistCategory
+    from models.categories import Category
 
 
 class Checklist(SQLModel, table=True):
@@ -19,9 +19,7 @@ class Checklist(SQLModel, table=True):
     title: str
     description: str | None = Field(default=None, sa_column=Column(Text))
     memo: str | None = Field(default=None, sa_column=Column(Text))
-    checklist_category_id: int | None = Field(
-        default=None, foreign_key="checklist_categories.id"
-    )
+    category_id: int | None = Field(default=None, foreign_key="categories.id")
     is_system_checklist: bool = Field(default=False)
     user_id: UUID | None = Field(foreign_key="users.id")
     global_display_order: int = Field(
@@ -49,4 +47,4 @@ class Checklist(SQLModel, table=True):
 
     is_deleted: bool = Field(default=False)
 
-    checklist_category: "ChecklistCategory" = Relationship(back_populates="checklists")
+    category: "Category" = Relationship(back_populates="checklists")

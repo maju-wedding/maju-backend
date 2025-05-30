@@ -1,4 +1,4 @@
-from .checklist_categories import ChecklistCategory
+from .categories import Category
 from .checklists import Checklist
 from .product_ai_review import ProductAIReview
 from .product_categories import ProductCategory
@@ -18,7 +18,7 @@ all_models = [
     UserWishlist,
     UserSpent,
     SuggestSearchKeyword,
-    ChecklistCategory,
+    Category,
     Checklist,
     Product,
     ProductCategory,

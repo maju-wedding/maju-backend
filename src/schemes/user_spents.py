@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlmodel import SQLModel
 
-from schemes.checklists import ChecklistCategoryRead
+from schemes.checklists import CategoryRead
 
 
 class UserSpentCreate(SQLModel):
@@ -41,7 +41,7 @@ class UserSpentRead(SQLModel):
 class UserSpentWithCategory(UserSpentRead):
     """카테고리 정보가 포함된 지출 항목 응답"""
 
-    category: ChecklistCategoryRead | None = None
+    category: CategoryRead | None = None
 
 
 class BudgetSummary(SQLModel):
@@ -56,7 +56,7 @@ class BudgetSummary(SQLModel):
 class CategorySpentSummary(SQLModel):
     """카테고리별 지출 요약"""
 
-    category: ChecklistCategoryRead
+    category: CategoryRead
     total_spent: int
     spent_count: int  # 지출 건수
 

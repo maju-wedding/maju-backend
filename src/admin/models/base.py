@@ -11,7 +11,7 @@ class BaseModelViewWithFilters(ModelView):
 
     relation_prefixes = {
         "product.": "product",
-        "checklist_category.": "checklist_category",
+        "category.": "category",
         "enterprise.": "enterprise",
         "user.": "user",
         # 필요한 다른 관계들 추가

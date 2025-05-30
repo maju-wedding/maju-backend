@@ -5,7 +5,7 @@ from sqlalchemy import and_, select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.checklist_categories import ChecklistCategory
+from models.categories import Category
 from models.user_spents import UserSpent
 from schemes.user_spents import UserSpentCreate, UserSpentUpdate
 from utils.utils import utc_now
@@ -17,7 +17,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
         self, db: AsyncSession, *, user_id: UUID, obj_in: UserSpentCreate
     ) -> UserSpent:
         """지출 내역 생성 - 시스템 카테고리 자동 변환"""
-        from crud import checklist_category as crud_category
+        from crud import category as crud_category
 
         spent_data = obj_in.model_dump()
         spent_data["user_id"] = user_id
@@ -45,6 +45,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
                     db=db,
                     display_name=category.display_name,
                     user_id=user_id,
+                    icon_url=category.icon_url,
                 )
                 spent_data["category_id"] = new_category.id
 
@@ -135,29 +136,29 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
         """카테고리별 지출 요약 조회"""
         query = (
             select(
-                ChecklistCategory,
+                Category,
                 func.sum(UserSpent.amount).label("total_spent"),
                 func.count(UserSpent.id).label("spent_count"),
             )
             .outerjoin(
                 UserSpent,
                 and_(
-                    UserSpent.category_id == ChecklistCategory.id,
+                    UserSpent.category_id == Category.id,
                     UserSpent.user_id == user_id,
                     UserSpent.is_deleted == False,
                 ),
             )
             .where(
                 and_(
-                    ChecklistCategory.is_deleted == False,
+                    Category.is_deleted == False,
                     # 사용자의 카테고리이거나 시스템 카테고리
                     (
-                        (ChecklistCategory.user_id == user_id)
-                        | (ChecklistCategory.is_system_category == True)
+                        (Category.user_id == user_id)
+                        | (Category.is_system_category == True)
                     ),
                 )
             )
-            .group_by(ChecklistCategory.id)
+            .group_by(Category.id)
             .order_by(desc("total_spent"))
         )
 
@@ -166,7 +167,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
 
         return [
             {
-                "category": row.ChecklistCategory,
+                "category": row.Category,
                 "total_spent": row.total_spent or 0,
                 "spent_count": row.spent_count or 0,
             }
@@ -177,7 +178,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
         self, db: AsyncSession, *, spent_id: int, user_id: UUID, obj_in: UserSpentUpdate
     ) -> UserSpent | None:
         """지출 내역 수정 - 시스템 카테고리 자동 변환"""
-        from crud import checklist_category as crud_category
+        from crud import category as crud_category
 
         spent = await self.get_user_spent_with_category(
             db=db, spent_id=spent_id, user_id=user_id
@@ -212,6 +213,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
                         db=db,
                         display_name=category.display_name,
                         user_id=user_id,
+                        icon_url=category.icon_url,
                     )
                     update_data["category_id"] = new_category.id
 

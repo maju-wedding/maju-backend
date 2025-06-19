@@ -657,7 +657,7 @@ def migrate_data():
     hall_infos, iw_halls, wb_halls, hall_venues = fetch_source_data()
 
     # AI 리뷰 데이터 로드
-    with open("./scripts/all_wedding_halls_data.json", encoding="utf-8") as f:
+    with open("./scripts/all_wedding_halls_data_3.json", encoding="utf-8") as f:
         ai_reviews = json.load(f)
 
     print(f"AI 리뷰 데이터 로드 완료: {len(ai_reviews)}개 웨딩홀")
@@ -815,45 +815,45 @@ def migrate_data():
                 session.flush()  # hall_id 생성을 위해 flush
 
                 # 이미지 추가
-                if hall_info.get("thumbnail"):
-                    product_image = ProductImage(
-                        product_id=product.id,
-                        image_url=safe_truncate(hall_info["thumbnail"], 500),
-                        order=0,
-                    )
-                    session.add(product_image)
-
-                # iw_hall의 fb_thumbnail 이미지가 있다면 추가
-                if iw_hall.get("fb_thumbnail"):
-                    product_image = ProductImage(
-                        product_id=product.id,
-                        image_url=safe_truncate(iw_hall["fb_thumbnail"], 500),
-                        order=1,
-                    )
-                    session.add(product_image)
-
-                # sell_point가 있으면 추가 처리
-                sanitized_sell_point = sanitize_json(hall_info.get("sell_point"))
-                if sanitized_sell_point:
-                    try:
-                        # sanitized_sell_point가 이미 리스트이므로 다시 json.loads()를 호출할 필요 없음
-                        sell_points = (
-                            sanitized_sell_point
-                            if isinstance(sanitized_sell_point, list)
-                            else [sanitized_sell_point]
-                        )
-                        for i, point in enumerate(sell_points):
-                            if isinstance(point, dict) and point.get("img"):
-                                product_image = ProductImage(
-                                    product_id=product.id,
-                                    image_url=safe_truncate(point["img"], 500),
-                                    order=i + 2,  # thumbnail과 fb_thumbnail 다음 순서
-                                )
-                                session.add(product_image)
-                    except Exception as e:
-                        print(
-                            f"sell_point JSON 파싱 오류 (banquet_code: {banquet_code}): {str(e)}"
-                        )
+                # if hall_info.get("thumbnail"):
+                #     product_image = ProductImage(
+                #         product_id=product.id,
+                #         image_url=safe_truncate(hall_info["thumbnail"], 500),
+                #         order=0,
+                #     )
+                #     session.add(product_image)
+                #
+                # # iw_hall의 fb_thumbnail 이미지가 있다면 추가
+                # if iw_hall.get("fb_thumbnail"):
+                #     product_image = ProductImage(
+                #         product_id=product.id,
+                #         image_url=safe_truncate(iw_hall["fb_thumbnail"], 500),
+                #         order=1,
+                #     )
+                #     session.add(product_image)
+                #
+                # # sell_point가 있으면 추가 처리
+                # sanitized_sell_point = sanitize_json(hall_info.get("sell_point"))
+                # if sanitized_sell_point:
+                #     try:
+                #         # sanitized_sell_point가 이미 리스트이므로 다시 json.loads()를 호출할 필요 없음
+                #         sell_points = (
+                #             sanitized_sell_point
+                #             if isinstance(sanitized_sell_point, list)
+                #             else [sanitized_sell_point]
+                #         )
+                #         for i, point in enumerate(sell_points):
+                #             if isinstance(point, dict) and point.get("img"):
+                #                 product_image = ProductImage(
+                #                     product_id=product.id,
+                #                     image_url=safe_truncate(point["img"], 500),
+                #                     order=i + 2,  # thumbnail과 fb_thumbnail 다음 순서
+                #                 )
+                #                 session.add(product_image)
+                #     except Exception as e:
+                #         print(
+                #             f"sell_point JSON 파싱 오류 (banquet_code: {banquet_code}): {str(e)}"
+                #         )
 
                 # AI 리뷰 추가
                 review_types = ["분위기", "위치", "주차", "식사", "서비스", "비용"]
@@ -914,7 +914,6 @@ def migrate_data():
                             )
 
                             # 홀 크기 정보
-
                             min_capacity = (
                                 iw_hall.get("min_person")
                                 or venue_data.get("min_person")
@@ -992,7 +991,39 @@ def migrate_data():
                             session.add(venue)
                             session.flush()  # venue_id 생성을 위해 flush
 
-                            session.flush()
+                            hall_image_group = venue_data["hallImage"][0]
+                            if "data" not in hall_image_group:
+                                continue
+
+                            for idx, image_data in enumerate(hall_image_group["data"]):
+                                venue_name = image_data.get(
+                                    "category", "기본홀"
+                                ).strip()
+
+                                # venue_id 조회
+                                venue_id = venue.id
+
+                                # 이미지 URL 생성
+                                image_url = (
+                                    "https://www.iwedding.co.kr"
+                                    + image_data.get("url", "")
+                                    + str(image_data.get("banquet_code", ""))
+                                    + "/"
+                                    + image_data.get("filename", "")
+                                )
+
+                                # 이미지 타입은 카테고리명 그대로 사용
+                                image_type = venue_name
+
+                                # 이미지 저장
+                                product_image = ProductImage(
+                                    product_id=product.id,
+                                    image_url=image_url,
+                                    order=idx,
+                                    product_venue_id=venue_id,
+                                    image_type=image_type,
+                                )
+                                session.add(product_image)
 
                         except Exception as e:
                             print(

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from sqlalchemy import and_, select, or_, BinaryExpression
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, selectinload, with_loader_criteria
+from sqlalchemy.orm import selectinload, with_loader_criteria
 from sqlalchemy.sql.expression import Select
 
 from models.product_hall_venues import ProductHallVenue
@@ -156,34 +156,23 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
         Get product with images and hall data using explicit joins
         This is the most optimized approach for complex queries
         """
-        # 제품 + 이미지 조인 쿼리
         query: Select[tuple[Product]] = (
             select(Product)
-            .outerjoin(
-                ProductImage,
-                and_(
-                    Product.id == ProductImage.product_id,
-                    ProductImage.is_deleted == False,
-                ),
-            )
-            .outerjoin(ProductHall, Product.id == ProductHall.product_id)
-            .outerjoin(
-                ProductHallVenue,
-                and_(
-                    ProductHall.id == ProductHallVenue.product_hall_id,
-                    ProductHallVenue.is_deleted == False,
-                ),
-            )
             .where(and_(Product.id == product_id, Product.is_deleted == False))
             .options(
-                # 조인된 테이블의 데이터를 미리 로드
-                contains_eager(Product.images),
-                contains_eager(Product.product_hall).contains_eager(
-                    ProductHall.product_hall_venues
+                # with_loader_criteria로 필터링 조건 지정
+                with_loader_criteria(ProductImage, ProductImage.is_deleted == False),
+                with_loader_criteria(
+                    ProductHallVenue, ProductHallVenue.is_deleted == False
                 ),
+                # Product 직접 이미지 로드
+                selectinload(Product.images),
+                # Hall과 Venue, 그리고 Venue 이미지까지 로드
+                selectinload(Product.product_hall)
+                .selectinload(ProductHall.product_hall_venues)
+                .selectinload(ProductHallVenue.images),
             )
         )
 
-        # 결과 조회
         result = await db.stream(query)
-        return await result.unique().scalar_one_or_none()
+        return await result.scalar_one_or_none()

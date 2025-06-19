@@ -49,6 +49,11 @@ class HallAIReviewRead(SQLModel):
     content: str
 
 
+class ProductHallImage(SQLModel):
+    image_type: str
+    image_url: str
+
+
 class HallVenueRead(SQLModel):
     id: int
     name: str
@@ -77,6 +82,8 @@ class HallVenueRead(SQLModel):
     banquet_hall_max_capacity: int
     additional_info: str
     special_notes: str
+    images: list[ProductHallImage] = []
+    # facility_images: list[str] = []
 
 
 class HallScoreRead(SQLModel):

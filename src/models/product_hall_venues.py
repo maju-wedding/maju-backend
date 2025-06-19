@@ -3,9 +3,11 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, Relationship, SQLModel
+
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
+    from models import ProductImage
     from models.product_halls import ProductHall
 
 
@@ -69,3 +71,4 @@ class ProductHallVenue(SQLModel, table=True):
 
     # Relationships
     product_hall: "ProductHall" = Relationship(back_populates="product_hall_venues")
+    images: list["ProductImage"] = Relationship(back_populates="venue")

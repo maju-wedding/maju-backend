@@ -68,6 +68,34 @@ async def list_wedding_halls(
     return response_data
 
 
+@router.get("/count", response_model=dict)
+async def get_wedding_halls_count(
+    sidos: list[str] = Query(None),
+    guguns: list[str] = Query(None),
+    guest_counts: list[str] = Query(None),
+    wedding_types: list[str] = Query(None),
+    food_menus: list[str] = Query(None),
+    hall_types: list[str] = Query(None),
+    hall_styles: list[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    """웨딩홀 개수 조회 (필터 적용)"""
+
+    # 동일한 필터링 로직을 사용하여 개수 조회
+    count = await crud_hall.count_filtered_halls(
+        db=session,
+        sidos=sidos,
+        guguns=guguns,
+        guest_counts=guest_counts,
+        wedding_types=wedding_types,
+        food_menus=food_menus,
+        hall_types=hall_types,
+        hall_styles=hall_styles,
+    )
+
+    return {"count": count}
+
+
 @router.get("/search", response_model=list[ProductHallSearchRead])
 async def search_wedding_halls(
     q: str = Query(...),

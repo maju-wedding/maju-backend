@@ -134,6 +134,7 @@ async def get_wedding_hall(
     return ProductHallRead(
         id=product.id,
         name=product.name,
+        hashtags=product.hashtag.split(",") if product.hashtag else [],
         subway_line=product.subway_line,
         subway_name=product.subway_name,
         way_text=product.way_text,

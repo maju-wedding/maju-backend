@@ -94,6 +94,7 @@ class HallScoreRead(SQLModel):
 class ProductHallRead(SQLModel):
     id: int
     name: str
+    hashtags: list[str]
     subway_line: str | None
     subway_name: str | None
     way_text: str | None

@@ -110,10 +110,6 @@ async def get_wedding_hall(
 
     # AI 리뷰 가져오기
     ai_reviews = await crud_review.get_by_product(db=session, product_id=product_id)
-    for ai_review in ai_reviews:
-        ai_review.content = "\n".join(
-            f"* {item}" for item in ai_review.content.split("|")
-        )
 
     # 점수 정보 가져오기
     scores = await crud_score.get_by_product(db=session, product_id=product_id)

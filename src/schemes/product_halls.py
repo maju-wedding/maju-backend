@@ -1,5 +1,7 @@
-from sqlmodel import SQLModel
+from pydantic import computed_field
+from sqlmodel import SQLModel, Field
 
+from models import ProductImage
 from schemes.products import ProductCreate
 
 
@@ -37,16 +39,25 @@ class ProductHallSearchRead(SQLModel):
     subway_name: str | None
 
 
-class HallRead(SQLModel):
+class HallAmenitiesRead(SQLModel):
     elevator_count: int
     atm_count: int
     has_family_waiting_room: bool
     has_pyebaek_room: bool
 
 
+class HallVenueAmenitiesRead(SQLModel):
+    has_bride_room: bool = False
+    has_pyebaek_room: bool = False
+    has_banquet_hall: bool = False
+    bride_room_image_urls: list[str] | None = None
+    pyebaek_room_image_urls: list[str] | None = None
+    banquet_hall_image_urls: list[str] | None = None
+
+
 class HallAIReviewRead(SQLModel):
     review_type: str
-    content: str
+    content: str | None
 
 
 class ProductHallImage(SQLModel):
@@ -82,13 +93,57 @@ class HallVenueRead(SQLModel):
     banquet_hall_max_capacity: int
     additional_info: str
     special_notes: str
-    images: list[ProductHallImage] = []
-    # facility_images: list[str] = []
+
+    # images 필드는 숨김
+    images: list["ProductImage"] = Field(default=[], exclude=True)
+
+    @computed_field
+    @property
+    def image_urls(self) -> list[str]:
+        return [img.image_url for img in self.images] if self.images else []
+
+    amenities_info: HallVenueAmenitiesRead = None
 
 
 class HallScoreRead(SQLModel):
     score_type: str
     value: float
+
+
+# 점수 통계 스키마
+class ScoreStatistics(SQLModel):
+    """점수 통계 정보"""
+
+    average: float
+    min_score: float
+    max_score: float
+    total_count: int
+
+
+# 점수 비교 정보
+class HallScoreComparison(SQLModel):
+    """웨딩홀 점수와 평균 비교"""
+
+    score_type: str
+    hall_score: float | None = None
+    average: float
+    difference: float  # 평균 대비 차이 (양수면 평균 이상, 음수면 평균 이하)
+
+
+# 전체 점수 요약
+class HallScoreSummary(SQLModel):
+    """웨딩홀 점수 요약"""
+
+    overall_score: float | None = 0  # 전체 평균 점수
+    overall_average: float  # 전체 평균
+    score_comparisons: list[HallScoreComparison]  # 카테고리별 점수 비교
+
+
+class HallBlogRead(SQLModel):
+    title: str
+    preview_content: str
+    link_url: str
+    thumbnail_url: str
 
 
 class ProductHallRead(SQLModel):
@@ -109,7 +164,10 @@ class ProductHallRead(SQLModel):
     max_price: int
     min_price: int
 
-    hall: HallRead
-    ai_reviews: list[HallAIReviewRead]
+    hall_amenities_info: HallAmenitiesRead
     venues: list[HallVenueRead]
-    scores: list[HallScoreRead]
+
+    ai_reviews: list[HallAIReviewRead]
+    ai_score_summary: HallScoreSummary
+
+    blogs: list[HallBlogRead] = []

@@ -160,17 +160,14 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
             select(Product)
             .where(and_(Product.id == product_id, Product.is_deleted == False))
             .options(
-                # with_loader_criteria로 필터링 조건 지정
                 with_loader_criteria(ProductImage, ProductImage.is_deleted == False),
                 with_loader_criteria(
                     ProductHallVenue, ProductHallVenue.is_deleted == False
                 ),
-                # Product 직접 이미지 로드
                 selectinload(Product.images),
-                # Hall과 Venue, 그리고 Venue 이미지까지 로드
                 selectinload(Product.product_hall)
                 .selectinload(ProductHall.product_hall_venues)
-                .selectinload(ProductHallVenue.images),
+                .selectinload(ProductHallVenue.images),  # 이제 작동함!
             )
         )
 

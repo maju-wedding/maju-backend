@@ -139,8 +139,10 @@ async def get_wedding_hall(
     # AI 리뷰 가져오기
     ai_reviews = await crud_review.get_by_product(db=session, product_id=product_id)
 
-    # 점수 정보 가져오기
-    scores = await crud_score.get_by_product(db=session, product_id=product_id)
+    # 점수 비교 정보 가져오기
+    score_summary = await crud_score.get_hall_score_comparison(
+        db=session, product_id=product_id
+    )
 
     max_price = 0
     min_price = sys.maxsize
@@ -171,8 +173,8 @@ async def get_wedding_hall(
         has_single_hall=len(product.product_hall.product_hall_venues) == 1,
         max_price=max_price,
         min_price=min_price,
-        hall=product.product_hall,
+        hall_amenities_info=product.product_hall,
         venues=product.product_hall.product_hall_venues,
         ai_reviews=ai_reviews,
-        scores=scores,
+        ai_score_summary=score_summary,
     )

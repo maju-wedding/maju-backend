@@ -71,4 +71,10 @@ class ProductHallVenue(SQLModel, table=True):
 
     # Relationships
     product_hall: "ProductHall" = Relationship(back_populates="product_hall_venues")
-    images: list["ProductImage"] = Relationship(back_populates="venue")
+    images: list["ProductImage"] = Relationship(
+        back_populates="venue",
+        sa_relationship_kwargs={
+            "primaryjoin": "and_(ProductHallVenue.id == ProductImage.product_venue_id, ProductImage.is_deleted == False)",
+            "order_by": "ProductImage.order",
+        },
+    )

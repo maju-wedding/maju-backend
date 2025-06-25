@@ -10,7 +10,6 @@ from models.product_halls import ProductHall
 from models.product_images import ProductImage
 from models.products import Product
 from schemes.products import ProductCreate, ProductUpdate
-from utils.utils import utc_now
 from .base import CRUDBase
 
 
@@ -25,35 +24,12 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
                 and_(
                     Product.product_category_id == category_id,
                     Product.is_deleted == False,
+                    Product.available == True,
                 )
             )
             .offset(skip)
             .limit(limit)
         )
-        result = await db.stream(query)
-        return await result.scalars().all()
-
-    async def get_by_location(
-        self,
-        db: AsyncSession,
-        *,
-        sidos: list[str] = None,
-        guguns: list[str] = None,
-        skip: int = 0,
-        limit: int = 100,
-    ) -> Sequence[Product]:
-        """Get products by location (sido/gugun)"""
-        query: Select[tuple[Product]] = select(Product).where(
-            Product.is_deleted == False
-        )
-
-        if sidos:
-            query = query.where(Product.sido.in_(sidos))
-
-        if guguns:
-            query = query.where(Product.gugun.in_(guguns))
-
-        query = query.offset(skip).limit(limit)
         result = await db.stream(query)
         return await result.scalars().all()
 
@@ -72,6 +48,7 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
                         Product.hashtag.ilike(f"%{search_term}%"),
                     ),
                     Product.is_deleted == False,
+                    Product.available == True,
                 )
             )
             .offset(skip)
@@ -97,6 +74,7 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
             and_(
                 Product.id == product_id,
                 Product.is_deleted == False,
+                Product.available == True,
             )
         )
 
@@ -126,29 +104,6 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
         result = await db.stream(query)
         return await result.scalar_one_or_none()
 
-    async def add_image(
-        self, db: AsyncSession, *, product_id: int, image_url: str, order: int = 0
-    ) -> ProductImage | None:
-        """Add an image to a product"""
-        # Check if product exists
-        product = await self.get(db, id=product_id)
-        if not product:
-            return None
-
-        # Create image
-        image = ProductImage(
-            product_id=product_id,
-            image_url=image_url,
-            order=order,
-            created_datetime=utc_now(),
-            updated_datetime=utc_now(),
-        )
-
-        db.add(image)
-        await db.commit()
-        await db.refresh(image)
-        return image
-
     async def get_with_images_and_hall_using_joins(
         self, db: AsyncSession, *, product_id: int
     ) -> Product | None:
@@ -158,7 +113,13 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
         """
         query: Select[tuple[Product]] = (
             select(Product)
-            .where(and_(Product.id == product_id, Product.is_deleted == False))
+            .where(
+                and_(
+                    Product.id == product_id,
+                    Product.is_deleted == False,
+                    Product.available == True,
+                )
+            )
             .options(
                 with_loader_criteria(ProductImage, ProductImage.is_deleted == False),
                 with_loader_criteria(
@@ -167,7 +128,7 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
                 selectinload(Product.images),
                 selectinload(Product.product_hall)
                 .selectinload(ProductHall.product_hall_venues)
-                .selectinload(ProductHallVenue.images),  # 이제 작동함!
+                .selectinload(ProductHallVenue.images),
             )
         )
 

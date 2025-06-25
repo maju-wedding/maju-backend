@@ -533,6 +533,7 @@ def parse_hall_physical_attributes(
 
 def parse_wedding_running_time(iw_hall: dict) -> int:
     """웨딩 진행 시간 파싱 (분 단위)"""
+
     return 120  # 기본값
 
 
@@ -813,47 +814,6 @@ def migrate_data():
 
                 session.add(product_hall)
                 session.flush()  # hall_id 생성을 위해 flush
-
-                # 이미지 추가
-                # if hall_info.get("thumbnail"):
-                #     product_image = ProductImage(
-                #         product_id=product.id,
-                #         image_url=safe_truncate(hall_info["thumbnail"], 500),
-                #         order=0,
-                #     )
-                #     session.add(product_image)
-                #
-                # # iw_hall의 fb_thumbnail 이미지가 있다면 추가
-                # if iw_hall.get("fb_thumbnail"):
-                #     product_image = ProductImage(
-                #         product_id=product.id,
-                #         image_url=safe_truncate(iw_hall["fb_thumbnail"], 500),
-                #         order=1,
-                #     )
-                #     session.add(product_image)
-                #
-                # # sell_point가 있으면 추가 처리
-                # sanitized_sell_point = sanitize_json(hall_info.get("sell_point"))
-                # if sanitized_sell_point:
-                #     try:
-                #         # sanitized_sell_point가 이미 리스트이므로 다시 json.loads()를 호출할 필요 없음
-                #         sell_points = (
-                #             sanitized_sell_point
-                #             if isinstance(sanitized_sell_point, list)
-                #             else [sanitized_sell_point]
-                #         )
-                #         for i, point in enumerate(sell_points):
-                #             if isinstance(point, dict) and point.get("img"):
-                #                 product_image = ProductImage(
-                #                     product_id=product.id,
-                #                     image_url=safe_truncate(point["img"], 500),
-                #                     order=i + 2,  # thumbnail과 fb_thumbnail 다음 순서
-                #                 )
-                #                 session.add(product_image)
-                #     except Exception as e:
-                #         print(
-                #             f"sell_point JSON 파싱 오류 (banquet_code: {banquet_code}): {str(e)}"
-                #         )
 
                 # AI 리뷰 추가
                 review_types = ["분위기", "위치", "주차", "식사", "서비스", "비용"]

@@ -1,3 +1,4 @@
+from models import ProductImage
 from models.categories import Category
 from models.checklists import Checklist
 from models.product_ai_review import ProductAIReview
@@ -15,6 +16,7 @@ from .crud_product import CRUDProduct
 from .crud_product_ai_review import CRUDProductAIReview
 from .crud_product_category import CRUDProductCategory
 from .crud_product_hall import CRUDProductHall
+from .crud_product_image import CRUDProductImage
 from .crud_product_score import CRUDProductScore
 from .crud_suggest_search_keyword import CRUDSuggestSearchKeyword
 from .crud_user import CRUDUser
@@ -32,3 +34,4 @@ user_wishlist = CRUDUserWishlist(UserWishlist)
 product_ai_review = CRUDProductAIReview(ProductAIReview)
 product_score = CRUDProductScore(ProductScore)
 user_spent = CRUDUserSpent(UserSpent)
+product_image = CRUDProductImage(ProductImage)

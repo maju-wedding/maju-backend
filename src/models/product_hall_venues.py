@@ -56,6 +56,10 @@ class ProductHallVenue(SQLModel, table=True):
     additional_info: str = Field(max_length=255)
     special_notes: str = Field(max_length=255)
 
+    has_bride_room: bool = Field(default=False)
+    has_pyebaek_room: bool = Field(default=False)
+    has_banquet_hall: bool = Field(default=False)
+
     is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(
         default_factory=utc_now,

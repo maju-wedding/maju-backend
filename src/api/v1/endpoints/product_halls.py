@@ -7,11 +7,14 @@ from core.db import get_session
 from crud import product as crud_product
 from crud import product_ai_review as crud_review
 from crud import product_hall as crud_hall
+from crud import product_image as crud_image
 from crud import product_score as crud_score
 from schemes.product_halls import (
     ProductHallListRead,
     ProductHallSearchRead,
     ProductHallRead,
+    HallVenueRead,
+    HallVenueAmenitiesRead,
 )
 
 router = APIRouter()
@@ -144,9 +147,18 @@ async def get_wedding_hall(
         db=session, product_id=product_id
     )
 
+    # venue 이미지 정보 가져오기
+    venue_ids = [venue.id for venue in product.product_hall.product_hall_venues]
+    venue_images_map = await crud_image.get_venue_amenities_images_for_venues(
+        db=session, product_id=product_id, venue_ids=venue_ids
+    )
+
     max_price = 0
     min_price = sys.maxsize
+    venues_data = []
+
     for venue in product.product_hall.product_hall_venues:
+        # 가격 계산
         max_price = max(
             venue.peak_season_price
             + venue.guaranteed_min_count * venue.food_cost_per_adult,
@@ -156,6 +168,64 @@ async def get_wedding_hall(
             venue.basic_price + venue.guaranteed_min_count * venue.food_cost_per_adult,
             min_price,
         )
+
+        # venue 이미지 정보 가져오기
+        venue_images = venue_images_map.get(venue.id, [])
+
+        # 이미지 타입별로 URL 분류
+        bride_room_images = [
+            img.image_url for img in venue_images if img.image_type == "신부대기실"
+        ]
+        pyebaek_room_images = [
+            img.image_url for img in venue_images if img.image_type == "폐백실"
+        ]
+        banquet_hall_images = [
+            img.image_url for img in venue_images if img.image_type == "연회장"
+        ]
+
+        # amenities 정보 구성
+        amenities_info = HallVenueAmenitiesRead(
+            has_bride_room=venue.has_bride_room,
+            has_pyebaek_room=venue.has_pyebaek_room,
+            has_banquet_hall=venue.has_banquet_hall,
+            bride_room_image_urls=bride_room_images,
+            pyebaek_room_image_urls=pyebaek_room_images,
+            banquet_hall_image_urls=banquet_hall_images,
+        )
+
+        # venue 데이터 구성
+        venue_data = HallVenueRead(
+            id=venue.id,
+            name=venue.name,
+            wedding_interval=venue.wedding_interval,
+            wedding_times=venue.wedding_times,
+            wedding_type=venue.wedding_type,
+            hall_styles=venue.hall_styles,
+            hall_types=venue.hall_types,
+            guaranteed_min_count=venue.guaranteed_min_count,
+            min_capacity=venue.min_capacity,
+            max_capacity=venue.max_capacity,
+            basic_price=venue.basic_price,
+            peak_season_price=venue.peak_season_price,
+            ceiling_height=venue.ceiling_height,
+            virgin_road_length=venue.virgin_road_length,
+            include_drink=venue.include_drink,
+            include_alcohol=venue.include_alcohol,
+            include_service_fee=venue.include_service_fee,
+            include_vat=venue.include_vat,
+            bride_room_entry_methods=venue.bride_room_entry_methods,
+            bride_room_makeup_room=venue.bride_room_makeup_room,
+            food_menu=venue.food_menu,
+            food_cost_per_adult=venue.food_cost_per_adult,
+            food_cost_per_child=venue.food_cost_per_child,
+            banquet_hall_running_time=venue.banquet_hall_running_time,
+            banquet_hall_max_capacity=venue.banquet_hall_max_capacity,
+            additional_info=venue.additional_info,
+            special_notes=venue.special_notes,
+            amenities_info=amenities_info,
+            images=venue.images,
+        )
+        venues_data.append(venue_data)
 
     return ProductHallRead(
         id=product.id,
@@ -174,7 +244,7 @@ async def get_wedding_hall(
         max_price=max_price,
         min_price=min_price,
         hall_amenities_info=product.product_hall,
-        venues=product.product_hall.product_hall_venues,
+        venues=venues_data,
         ai_reviews=ai_reviews,
         ai_score_summary=score_summary,
     )

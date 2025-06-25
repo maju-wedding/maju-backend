@@ -74,7 +74,11 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
             select(ProductHall)
             .join(
                 Product,
-                and_(Product.id == ProductHall.product_id, Product.is_deleted == False),
+                and_(
+                    Product.id == ProductHall.product_id,
+                    Product.is_deleted == False,
+                    Product.available == True,
+                ),
             )
             .where(ProductHall.is_deleted == False)
         )
@@ -180,7 +184,11 @@ class CRUDProductHall(CRUDBase[ProductHall, dict[str, Any], dict[str, Any], int]
             select(func.count(ProductHall.id.distinct()))
             .join(
                 Product,
-                and_(Product.id == ProductHall.product_id, Product.is_deleted == False),
+                and_(
+                    Product.id == ProductHall.product_id,
+                    Product.is_deleted == False,
+                    Product.available == True,
+                ),
             )
             .where(ProductHall.is_deleted == False)
         )

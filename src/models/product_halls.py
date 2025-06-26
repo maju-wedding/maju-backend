@@ -18,13 +18,13 @@ class ProductHall(SQLModel, table=True):
     # amenities
     elevator_count: int = Field(default=0)
     atm_count: int = Field(default=0)
+
     has_family_waiting_room: bool = Field(default=False)
     has_pyebaek_room: bool = Field(default=False)
-
-    valet_parking: bool = Field(default=False)
-    dress_room: bool = Field(default=False)
-    smoking_area: bool = Field(default=False)
-    photo_zone: bool = Field(default=False)
+    has_valet_parking: bool = Field(default=False)
+    has_dress_room: bool = Field(default=False)
+    has_smoking_area: bool = Field(default=False)
+    has_photo_zone: bool = Field(default=False)
 
     is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(

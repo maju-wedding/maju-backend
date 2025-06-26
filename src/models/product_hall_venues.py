@@ -59,6 +59,7 @@ class ProductHallVenue(SQLModel, table=True):
     has_bride_room: bool = Field(default=False)
     has_pyebaek_room: bool = Field(default=False)
     has_banquet_hall: bool = Field(default=False)
+    has_stage: bool = Field(default=False)
 
     is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(

@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy import create_engine
@@ -49,6 +50,14 @@ def custom_openapi():
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
+
+
+if settings.ENVIRONMENT != "production":
+    sentry_sdk.init(
+        dsn="https://a1a685906d17e8965e8b848f754d4cb1@o4509565448814592.ingest.us.sentry.io/4509565451304960",
+        send_default_pii=True,
+        environment=settings.ENVIRONMENT,
+    )
 
 
 app = FastAPI(

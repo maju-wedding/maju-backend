@@ -18,7 +18,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         "product.address",
         "product.sido",
         "product.gugun",
-        "product.ai_reviews",
+        # "product.ai_reviews",
         "product.park_limit",
         "product.park_free_hours",
         "product.subway_line",
@@ -28,10 +28,10 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         ProductHall.atm_count,
         ProductHall.has_pyebaek_room,
         ProductHall.has_family_waiting_room,
-        # ProductHall.valet_parking,
-        # ProductHall.dress_room,
-        # ProductHall.smoking_area,
-        # ProductHall.photo_zone,
+        # ProductHall.has_valet_parking,
+        # ProductHall.has_dress_room,
+        # ProductHall.has_smoking_area,
+        # ProductHall.has_photo_zone,
         ProductHall.is_deleted,
     ]
 
@@ -41,7 +41,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         "product.address": "주소",
         "product.sido": "시도",
         "product.gugun": "구군",
-        "product.ai_reviews": "AI 요약",
+        # "product.ai_reviews": "AI 요약",
         "product.park_limit": "주차 가능 대수",
         "product.park_free_hours": "주차 무료 시간",
         "product.subway_line": "지하철 호선",
@@ -60,10 +60,10 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
         ProductHall.has_pyebaek_room: "폐백실 여부",
         ProductHall.has_family_waiting_room: "혼주 대기실 여부",
         ProductHall.atm_count: "ATM 기기 여부",
-        # ProductHall.valet_parking: "발렛 파킹 여부",
-        # ProductHall.dress_room: "드레스룸 여부",
-        # ProductHall.smoking_area: "흡연실 여부",
-        # ProductHall.photo_zone: "포토존 여부",
+        # ProductHall.has_valet_parking: "발렛 파킹 여부",
+        # ProductHall.has_dress_room: "드레스룸 여부",
+        # ProductHall.has_smoking_area: "흡연실 여부",
+        # ProductHall.has_photo_zone: "포토존 여부",
         ProductHall.is_deleted: "삭제 여부",
         ProductHall.created_datetime: "생성일시",
         ProductHall.updated_datetime: "수정일시",
@@ -104,8 +104,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     ]
 
     column_searchable_list = [
-        "product.name",
-        "product.address",
+        ProductHall.name,
     ]
 
     column_sortable_list = [
@@ -115,9 +114,9 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     ]
 
     column_formatters = {
-        "product.ai_reviews": lambda m, a: [
-            ai_review.review_type for ai_review in m.product.ai_reviews
-        ],
+        # "product.ai_reviews": lambda m, a: [
+        #     ai_review.review_type for ai_review in m.product.ai_reviews
+        # ],
     }
 
     column_formatters_detail = {

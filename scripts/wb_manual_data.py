@@ -95,8 +95,8 @@ def find_matching_venue(
 
     # 1. 코드로 직접 매칭 시도
     if code:
-        # Product 테이블에서 banquet_code로 찾기
-        product_stmt = select(Product).where(Product.banquet_code == int(code))
+        # Product 테이블에서 enterprise_code 찾기
+        product_stmt = select(Product).where(Product.enterprise_code == code)
         product_result = session.exec(product_stmt).first()
 
         if product_result:
@@ -300,7 +300,7 @@ def validate_csv_data(csv_file_path: str = "MVP1 Wedding Hall Data.csv"):
 
                 # 천고 데이터 검증
                 ceiling_height = parse_height_measurement(row.get("천고", ""))
-                if ceiling_height < 0 or ceiling_height > 50:  # 0-50m 범위
+                if ceiling_height < 0 or ceiling_height > 100:  # 0-50m 범위
                     issues.append(
                         f"행 {total_rows} ({hall_name}): 천고 데이터 이상 - {row.get('천고', '')}"
                     )
@@ -342,8 +342,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MVP1 웨딩홀 데이터 업데이트")
     parser.add_argument(
         "--csv-file",
-        default="MVP1 Wedding Hall Data.csv",
-        help="CSV 파일 경로 (기본값: MVP1 Wedding Hall Data.csv)",
+        default="20250626_wb.csv",
+        help="CSV 파일 경로",
     )
     parser.add_argument(
         "--validate-only",

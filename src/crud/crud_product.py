@@ -126,6 +126,7 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate, int]):
                     ProductHallVenue, ProductHallVenue.is_deleted == False
                 ),
                 selectinload(Product.images),
+                selectinload(Product.blogs),
                 selectinload(Product.product_hall)
                 .selectinload(ProductHall.product_hall_venues)
                 .selectinload(ProductHallVenue.images),

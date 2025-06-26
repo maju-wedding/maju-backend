@@ -1,6 +1,7 @@
 from .categories import Category
 from .checklists import Checklist
 from .product_ai_review import ProductAIReview
+from .product_blogs import ProductBlog
 from .product_categories import ProductCategory
 from .product_halls import ProductHall
 from .product_images import ProductImage
@@ -28,6 +29,7 @@ all_models = [
     ProductHall,
     ProductStudio,
     ProductStudioPackage,
+    ProductBlog,
 ]
 
 __all__ = [m.__name__ for m in all_models]

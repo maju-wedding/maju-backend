@@ -141,7 +141,7 @@ class HallScoreSummary(SQLModel):
 
 class HallBlogRead(SQLModel):
     title: str
-    preview_content: str
+    description: str
     link_url: str
     thumbnail_url: str
 

@@ -247,4 +247,5 @@ async def get_wedding_hall(
         venues=venues_data,
         ai_reviews=ai_reviews,
         ai_score_summary=score_summary,
+        blogs=product.blogs,
     )

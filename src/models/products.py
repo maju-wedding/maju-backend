@@ -8,6 +8,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from utils.utils import utc_now
 
 if TYPE_CHECKING:
+    from models.product_blogs import ProductBlog
     from models.product_studios import ProductStudio
     from models.product_images import ProductImage
     from models.product_ai_review import ProductAIReview
@@ -80,6 +81,7 @@ class Product(SQLModel, table=True):
     ai_reviews: list["ProductAIReview"] = Relationship(back_populates="product")
     scores: list["ProductScore"] = Relationship(back_populates="product")
     images: list["ProductImage"] = Relationship(back_populates="product")
+    blogs: list["ProductBlog"] = Relationship(back_populates="product")
 
     product_hall: Optional["ProductHall"] = Relationship(back_populates="product")
     product_studio: Optional["ProductStudio"] = Relationship(back_populates="product")

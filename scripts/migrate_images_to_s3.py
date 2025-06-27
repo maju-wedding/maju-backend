@@ -1,4 +1,3 @@
-# scripts/migrate_images_to_s3.py
 import asyncio
 import io
 from datetime import datetime
@@ -94,7 +93,7 @@ class ImageMigrator:
         """이미지 다운로드"""
         try:
             # 타임아웃 설정 (연결 10초, 읽기 30초)
-            timeout = aiohttp.ClientTimeout(connect=10, total=30)
+            timeout = aiohttp.ClientTimeout(connect=10, total=60)
 
             async with session.get(url, timeout=timeout) as response:
                 if response.status == 200:
@@ -282,16 +281,20 @@ class ImageMigrator:
         cursor = conn.cursor()
 
         query = """
-            SELECT id, image_url, image_type, product_id, product_venue_id
-            FROM product_images 
-            WHERE is_deleted = false 
-            AND image_url IS NOT NULL 
-            AND image_url != ''
-            ORDER BY product_id, product_venue_id, image_type, id
-            LIMIT %s OFFSET %s
-        """
+                SELECT id, image_url, image_type, product_id, product_venue_id
+                FROM product_images 
+                WHERE is_deleted = false 
+                AND image_url IS NOT NULL 
+                AND image_url != ''
+                AND image_url NOT LIKE %(pattern)s
+                ORDER BY product_id, product_venue_id, image_type, id
+                LIMIT %(limit)s OFFSET %(offset)s
+            """
 
-        cursor.execute(query, (limit, offset))
+        cursor.execute(
+            query,
+            {"pattern": "https://serenade-prod%", "limit": limit, "offset": offset},
+        )
         records = cursor.fetchall()
 
         cursor.close()

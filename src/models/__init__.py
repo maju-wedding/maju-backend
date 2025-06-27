@@ -1,5 +1,7 @@
 from .categories import Category
 from .checklists import Checklist
+from .magazines import Magazine
+from .news import NewsItem, NewsCategory
 from .product_ai_review import ProductAIReview
 from .product_blogs import ProductBlog
 from .product_categories import ProductCategory
@@ -30,6 +32,9 @@ all_models = [
     ProductStudio,
     ProductStudioPackage,
     ProductBlog,
+    NewsItem,
+    NewsCategory,
+    Magazine,
 ]
 
 __all__ = [m.__name__ for m in all_models]

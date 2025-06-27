@@ -18,6 +18,7 @@ class ProductCategory(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True, max_length=20)
     display_name: str = Field(max_length=10)
+    icon_url: str
     type: CategoryTypeEnum = Field(sa_column=Column(String))
     is_ready: bool = Field(default=False)
     order: int = Field(default=0, ge=0)

@@ -1,4 +1,4 @@
-from models import ProductImage
+from models import ProductImage, Magazine, NewsItem, NewsCategory
 from models.categories import Category
 from models.checklists import Checklist
 from models.product_ai_review import ProductAIReview
@@ -12,6 +12,8 @@ from models.user_wishlist import UserWishlist
 from models.users import User
 from .crud_categories import CRUDCategory
 from .crud_checklist import CRUDChecklist
+from .crud_magazine import CRUDMagazine
+from .crud_news import CRUDNewsCategory, CRUDNewsItem
 from .crud_product import CRUDProduct
 from .crud_product_ai_review import CRUDProductAIReview
 from .crud_product_category import CRUDProductCategory
@@ -35,3 +37,6 @@ product_ai_review = CRUDProductAIReview(ProductAIReview)
 product_score = CRUDProductScore(ProductScore)
 user_spent = CRUDUserSpent(UserSpent)
 product_image = CRUDProductImage(ProductImage)
+magazine = CRUDMagazine(Magazine)
+news_category = CRUDNewsCategory(NewsCategory)
+news_item = CRUDNewsItem(NewsItem)

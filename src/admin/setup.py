@@ -6,6 +6,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from admin.auth import AdminAuth
 from admin.models.categories import CategoryAdmin
 from admin.models.checklists import ChecklistAdmin
+from admin.models.magazines import MagazineAdmin
+from admin.models.news import NewsCategoryAdmin, NewsItemAdmin
 from admin.models.product_ai_reviews import ProductAIReviewAdmin
 from admin.models.product_categories import ProductCategoryAdmin
 from admin.models.product_hall_venues import ProductHallVenueAdmin
@@ -60,4 +62,9 @@ def setup_admin(app: FastAPI, engine: AsyncEngine):
 
     # 검색
     admin.add_view(SuggestSearchKeywordAdmin)
+
+    # 콘텐츠 관리
+    admin.add_view(MagazineAdmin)
+    admin.add_view(NewsCategoryAdmin)
+    admin.add_view(NewsItemAdmin)
     return admin

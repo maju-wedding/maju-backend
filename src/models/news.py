@@ -39,6 +39,7 @@ class NewsCategory(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     display_name: str = Field(nullable=False)
 
+    is_deleted: bool = Field(default=False)
     created_datetime: datetime = Field(
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),

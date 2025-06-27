@@ -11,6 +11,8 @@ from api.v1.endpoints import (
     admin,
     user_budgets,
     categories,
+    magazines,
+    news,
 )
 
 api_router = APIRouter()
@@ -37,3 +39,6 @@ api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(
     user_budgets.router, prefix="/user_budgets", tags=["user_budget"]
 )
+
+api_router.include_router(magazines.router, prefix="/magazines", tags=["magazines"])
+api_router.include_router(news.router, prefix="/news", tags=["news"])

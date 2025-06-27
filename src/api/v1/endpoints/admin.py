@@ -12,6 +12,11 @@ from crud import (
     suggest_search_keyword as crud_keyword,
     user as crud_user,
 )
+from crud import (
+    magazine as crud_magazine,
+    news_category as crud_news_category,
+    news_item as crud_news_item,
+)
 from models import User
 from schemes.checklists import (
     CategoryRead,
@@ -22,6 +27,15 @@ from schemes.checklists import (
     ChecklistUpdate,
 )
 from schemes.common import ResponseWithStatusMessage
+from schemes.magazines import MagazineCreate, MagazineUpdate, MagazineRead
+from schemes.news import (
+    NewsCategoryCreate,
+    NewsCategoryUpdate,
+    NewsCategoryRead,
+    NewsItemCreate,
+    NewsItemUpdate,
+    NewsItemRead,
+)
 from schemes.suggest_search_keywords import SuggestSearchKeywordRead
 
 router = APIRouter()
@@ -268,3 +282,214 @@ async def get_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+# 매거진 관리 엔드포인트
+@router.post("/magazines", response_model=MagazineRead)
+async def create_magazine(
+    magazine_create: MagazineCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """매거진 생성"""
+    magazine = await crud_magazine.create(db=session, obj_in=magazine_create)
+    return magazine
+
+
+@router.put("/magazines/{magazine_id}", response_model=MagazineRead)
+async def update_magazine(
+    magazine_id: int = Path(...),
+    magazine_update: MagazineUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """매거진 수정"""
+    magazine = await crud_magazine.get(db=session, id=magazine_id)
+
+    if not magazine:
+        raise HTTPException(status_code=404, detail="Magazine not found")
+
+    updated_magazine = await crud_magazine.update(
+        db=session, db_obj=magazine, obj_in=magazine_update
+    )
+    return updated_magazine
+
+
+@router.delete("/magazines/{magazine_id}", response_model=ResponseWithStatusMessage)
+async def delete_magazine(
+    magazine_id: int = Path(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """매거진 삭제"""
+    magazine = await crud_magazine.get(db=session, id=magazine_id)
+
+    if not magazine:
+        raise HTTPException(status_code=404, detail="Magazine not found")
+
+    await crud_magazine.soft_delete(db=session, id=magazine_id)
+    return ResponseWithStatusMessage(
+        status="success", message="Magazine deleted successfully"
+    )
+
+
+# 뉴스 카테고리 관리 엔드포인트
+@router.post("/news-categories", response_model=NewsCategoryRead)
+async def create_news_category(
+    category_create: NewsCategoryCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """뉴스 카테고리 생성"""
+    category = await crud_news_category.create(db=session, obj_in=category_create)
+    return NewsCategoryRead(
+        id=category.id,
+        display_name=category.display_name,
+        created_datetime=category.created_datetime,
+        news_items_count=0,
+    )
+
+
+@router.put("/news-categories/{category_id}", response_model=NewsCategoryRead)
+async def update_news_category(
+    category_id: int = Path(...),
+    category_update: NewsCategoryUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """뉴스 카테고리 수정"""
+    category = await crud_news_category.get(db=session, id=category_id)
+
+    if not category:
+        raise HTTPException(status_code=404, detail="News category not found")
+
+    updated_category = await crud_news_category.update(
+        db=session, db_obj=category, obj_in=category_update
+    )
+    return NewsCategoryRead(
+        id=updated_category.id,
+        display_name=updated_category.display_name,
+        created_datetime=updated_category.created_datetime,
+        news_items_count=0,
+    )
+
+
+@router.delete(
+    "/news-categories/{category_id}", response_model=ResponseWithStatusMessage
+)
+async def delete_news_category(
+    category_id: int = Path(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """뉴스 카테고리 삭제"""
+    category = await crud_news_category.get(db=session, id=category_id)
+
+    if not category:
+        raise HTTPException(status_code=404, detail="News category not found")
+
+    await crud_news_category.soft_delete(db=session, id=category_id)
+    return ResponseWithStatusMessage(
+        status="success", message="News category deleted successfully"
+    )
+
+
+# 뉴스 아이템 관리 엔드포인트
+@router.post("/news-items", response_model=NewsItemRead)
+async def create_news_item(
+    news_create: NewsItemCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """뉴스 아이템 생성"""
+    # 카테고리 존재 확인
+    category = await crud_news_category.get(db=session, id=news_create.news_category_id)
+    if not category:
+        raise HTTPException(status_code=400, detail="News category not found")
+
+    news_item = await crud_news_item.create(db=session, obj_in=news_create)
+
+    return NewsItemRead(
+        id=news_item.id,
+        news_category_id=news_item.news_category_id,
+        title=news_item.title,
+        link_url=news_item.link_url,
+        post_date=news_item.post_date,
+        created_datetime=news_item.created_datetime,
+        news_category=NewsCategoryRead(
+            id=category.id,
+            display_name=category.display_name,
+            created_datetime=category.created_datetime,
+        ),
+    )
+
+
+@router.put("/news-items/{news_id}", response_model=NewsItemRead)
+async def update_news_item(
+    news_id: int = Path(...),
+    news_update: NewsItemUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """뉴스 아이템 수정"""
+    news_item = await crud_news_item.get(db=session, id=news_id)
+
+    if not news_item:
+        raise HTTPException(status_code=404, detail="News item not found")
+
+    # 카테고리 변경이 있는 경우 검증
+    if (
+        news_update.news_category_id
+        and news_update.news_category_id != news_item.news_category_id
+    ):
+        category = await crud_news_category.get(
+            db=session, id=news_update.news_category_id
+        )
+        if not category:
+            raise HTTPException(status_code=400, detail="News category not found")
+
+    updated_news = await crud_news_item.update(
+        db=session, db_obj=news_item, obj_in=news_update
+    )
+
+    # 업데이트된 카테고리 정보 로드
+    category = await crud_news_category.get(
+        db=session, id=updated_news.news_category_id
+    )
+
+    return NewsItemRead(
+        id=updated_news.id,
+        news_category_id=updated_news.news_category_id,
+        title=updated_news.title,
+        link_url=updated_news.link_url,
+        post_date=updated_news.post_date,
+        created_datetime=updated_news.created_datetime,
+        news_category=(
+            NewsCategoryRead(
+                id=category.id,
+                display_name=category.display_name,
+                created_datetime=category.created_datetime,
+            )
+            if category
+            else None
+        ),
+    )
+
+
+@router.delete("/news-items/{news_id}", response_model=ResponseWithStatusMessage)
+async def delete_news_item(
+    news_id: int = Path(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+    crud_news_item=None,
+):
+    """뉴스 아이템 삭제"""
+    news_item = await crud_news_item.get(db=session, id=news_id)
+
+    if not news_item:
+        raise HTTPException(status_code=404, detail="News item not found")
+
+    await crud_news_item.soft_delete(db=session, id=news_id)
+    return ResponseWithStatusMessage(
+        status="success", message="News item deleted successfully"
+    )

@@ -84,11 +84,11 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.mount("/static", StaticFiles(directory="statics"), name="static")
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def read_root():
     return {"message": "Hello! Why do you come here?"}
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok"}

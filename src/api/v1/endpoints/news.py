@@ -13,18 +13,15 @@ async def list_news_categories(
     session: AsyncSession = Depends(get_session),
 ):
     """뉴스 카테고리 목록 조회"""
-    categories_with_count = await crud_news_category.get_categories_with_count(
-        db=session
-    )
+    categories = await crud_news_category.get_categories(db=session)
 
     result = []
-    for category, count in categories_with_count:
+    for category in categories:
         result.append(
             NewsCategoryRead(
                 id=category.id,
                 display_name=category.display_name,
                 created_datetime=category.created_datetime,
-                news_items_count=count,
             )
         )
 
@@ -48,7 +45,6 @@ async def get_news_category(
         id=category.id,
         display_name=category.display_name,
         created_datetime=category.created_datetime,
-        news_items_count=0,  # 필요시 별도 쿼리로 계산
     )
 
 
@@ -56,7 +52,7 @@ async def get_news_category(
 async def list_news_items(
     category_id: int = Query(None, description="카테고리 ID로 필터링"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
     """뉴스 아이템 목록 조회"""

@@ -15,7 +15,6 @@ class NewsCategoryRead(SQLModel):
     id: int
     display_name: str
     created_datetime: datetime
-    news_items_count: int | None = Field(default=0)
 
 
 class NewsItemCreate(SQLModel):

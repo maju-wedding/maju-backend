@@ -1,6 +1,6 @@
-from typing import List
+from typing import Sequence, Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlmodel import and_
@@ -18,31 +18,23 @@ from .base import CRUDBase
 class CRUDNewsCategory(
     CRUDBase[NewsCategory, NewsCategoryCreate, NewsCategoryUpdate, int]
 ):
-    async def get_categories_with_count(
+    async def get_categories(
         self, db: AsyncSession
-    ) -> List[tuple[NewsCategory, int]]:
+    ) -> Sequence[Row[Any] | RowMapping | Any]:
         """뉴스 개수와 함께 카테고리 조회"""
         query = (
-            select(NewsCategory, func.count(NewsItem.id).label("news_count"))
-            .outerjoin(
-                NewsItem,
-                and_(
-                    NewsItem.news_category_id == NewsCategory.id,
-                    NewsItem.is_deleted == False,
-                ),
-            )
+            select(NewsCategory)
             .where(NewsCategory.is_deleted == False)
-            .group_by(NewsCategory.id)
             .order_by(NewsCategory.created_datetime.desc())
         )
-        result = await db.execute(query)
-        return result.all()
+        result = await db.stream(query)
+        return await result.scalars().all()
 
 
 class CRUDNewsItem(CRUDBase[NewsItem, NewsItemCreate, NewsItemUpdate, int]):
     async def get_by_category(
         self, db: AsyncSession, category_id: int, skip: int = 0, limit: int = 100
-    ) -> List[NewsItem]:
+    ) -> Sequence[NewsItem]:
         """카테고리별 뉴스 조회"""
         query = (
             select(self.model)
@@ -57,12 +49,12 @@ class CRUDNewsItem(CRUDBase[NewsItem, NewsItemCreate, NewsItemUpdate, int]):
             .offset(skip)
             .limit(limit)
         )
-        result = await db.execute(query)
-        return result.scalars().all()
+        result = await db.stream(query)
+        return await result.scalars().all()
 
     async def get_latest_news(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> List[NewsItem]:
+    ) -> Sequence[Row[Any] | RowMapping | Any]:
         """최신 뉴스 조회"""
         query = (
             select(self.model)
@@ -72,5 +64,5 @@ class CRUDNewsItem(CRUDBase[NewsItem, NewsItemCreate, NewsItemUpdate, int]):
             .offset(skip)
             .limit(limit)
         )
-        result = await db.execute(query)
-        return result.scalars().all()
+        result = await db.stream(query)
+        return await result.scalars().all()

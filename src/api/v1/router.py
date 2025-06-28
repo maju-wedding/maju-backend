@@ -5,7 +5,6 @@ from api.v1.endpoints import (
     auth,
     product_categories,
     checklists,
-    suggest_search_keywords,
     product_halls,
     wishlists,
     admin,
@@ -13,6 +12,7 @@ from api.v1.endpoints import (
     categories,
     magazines,
     news,
+    suggest,
 )
 
 api_router = APIRouter()
@@ -33,9 +33,7 @@ api_router.include_router(
 api_router.include_router(
     product_halls.router, prefix="/wedding-halls", tags=["wedding-halls"]
 )
-api_router.include_router(
-    suggest_search_keywords.router, prefix="/suggest-search-keywords", tags=["suggest"]
-)
+api_router.include_router(suggest.router, prefix="/suggest", tags=["suggest"])
 api_router.include_router(wishlists.router, prefix="/wishlists", tags=["wishlist"])
 
 api_router.include_router(

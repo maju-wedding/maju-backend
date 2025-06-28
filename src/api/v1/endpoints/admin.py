@@ -1,8 +1,9 @@
+from typing import List
 from uuid import UUID
 
-from fastapi import Body, Depends, Path, HTTPException, Query, APIRouter
+from fastapi import Body, Path, status
+from fastapi import Depends, HTTPException, Query, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status
 
 from api.v1.deps import get_current_admin
 from core.db import get_session
@@ -17,6 +18,7 @@ from crud import (
     news_category as crud_news_category,
     news_item as crud_news_item,
 )
+from crud import recommended_hall as crud_recommended_hall
 from models import User
 from schemes.checklists import (
     CategoryRead,
@@ -35,6 +37,12 @@ from schemes.news import (
     NewsItemCreate,
     NewsItemUpdate,
     NewsItemRead,
+)
+from schemes.suggest_halls import (
+    RecommendedHallRead,
+    RecommendedHallCreate,
+    RecommendedHallUpdate,
+    RecommendedHallOrderUpdate,
 )
 from schemes.suggest_search_keywords import SuggestSearchKeywordRead
 
@@ -492,4 +500,145 @@ async def delete_news_item(
     await crud_news_item.soft_delete(db=session, id=news_id)
     return ResponseWithStatusMessage(
         status="success", message="News item deleted successfully"
+    )
+
+
+# 추천 웨딩홀 관리 엔드포인트
+@router.get("/recommended-halls", response_model=list[RecommendedHallRead])
+async def get_all_recommended_halls(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """관리자용 추천 웨딩홀 목록 조회 (모든 상태 포함)"""
+    recommendations = await crud_recommended_hall.get_all_recommendations(
+        db=session, skip=skip, limit=limit
+    )
+
+    return [
+        RecommendedHallRead(
+            id=rec.id,
+            product_hall_id=rec.product_hall_id,
+            recommendation_order=rec.recommendation_order,
+            title=rec.title,
+            description=rec.description,
+            is_active=rec.is_active,
+            product_hall=rec.product_hall,
+        )
+        for rec in recommendations
+    ]
+
+
+@router.post(
+    "/recommended-halls",
+    response_model=RecommendedHallRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_recommended_hall(
+    recommendation_data: RecommendedHallCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """추천 웨딩홀 추가"""
+    # 중복 확인
+    existing = await crud_recommended_hall.get_by_product_hall_id(
+        db=session, product_hall_id=recommendation_data.product_hall_id
+    )
+    if existing:
+        raise HTTPException(
+            status_code=400, detail="This wedding hall is already in recommendations"
+        )
+
+    # 순서가 기본값인 경우 자동으로 마지막 순서 설정
+    if recommendation_data.recommendation_order == 1:  # 기본값
+        recommendation_data.recommendation_order = (
+            await crud_recommended_hall.get_next_order(db=session)
+        )
+
+    new_recommendation = await crud_recommended_hall.create(
+        db=session, obj_in=recommendation_data
+    )
+
+    return RecommendedHallRead(
+        id=new_recommendation.id,
+        product_hall_id=new_recommendation.product_hall_id,
+        recommendation_order=new_recommendation.recommendation_order,
+        title=new_recommendation.title,
+        description=new_recommendation.description,
+        is_active=new_recommendation.is_active,
+        product_hall=new_recommendation.product_hall,
+    )
+
+
+@router.put(
+    "/recommended-halls/{recommendation_id}", response_model=RecommendedHallRead
+)
+async def update_recommended_hall(
+    recommendation_id: int = Path(...),
+    recommendation_data: RecommendedHallUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """추천 웨딩홀 정보 수정"""
+    recommendation = await crud_recommended_hall.get(db=session, id=recommendation_id)
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+
+    updated_recommendation = await crud_recommended_hall.update(
+        db=session, db_obj=recommendation, obj_in=recommendation_data
+    )
+
+    return RecommendedHallRead(
+        id=updated_recommendation.id,
+        product_hall_id=updated_recommendation.product_hall_id,
+        recommendation_order=updated_recommendation.recommendation_order,
+        title=updated_recommendation.title,
+        description=updated_recommendation.description,
+        is_active=updated_recommendation.is_active,
+        product_hall=updated_recommendation.product_hall,
+    )
+
+
+@router.put("/recommended-halls/reorder", response_model=ResponseWithStatusMessage)
+async def reorder_recommended_halls(
+    order_updates: List[RecommendedHallOrderUpdate] = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """추천 웨딩홀 순서 변경"""
+    order_data = [
+        {"id": item.id, "recommendation_order": item.recommendation_order}
+        for item in order_updates
+    ]
+
+    success = await crud_recommended_hall.update_orders(
+        db=session, order_updates=order_data
+    )
+
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to update order")
+
+    return ResponseWithStatusMessage(
+        status="success", message="Recommendation order updated successfully"
+    )
+
+
+@router.delete(
+    "/recommended-halls/{recommendation_id}", response_model=ResponseWithStatusMessage
+)
+async def delete_recommended_hall(
+    recommendation_id: int = Path(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_admin),
+):
+    """추천 웨딩홀 제거 (소프트 삭제)"""
+    recommendation = await crud_recommended_hall.get(db=session, id=recommendation_id)
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+
+    await crud_recommended_hall.soft_delete(db=session, id=recommendation_id)
+
+    return ResponseWithStatusMessage(
+        status="success", message="Recommendation removed successfully"
     )

@@ -12,7 +12,6 @@ from .product_studio_packages import ProductStudioPackage
 from .product_studios import ProductStudio
 from .products import Product
 from .suggest_halls import RecommendedHall
-from .suggest_search_keywords import SuggestSearchKeyword
 from .user_spents import UserSpent
 from .user_wishlist import UserWishlist
 from .users import User
@@ -21,7 +20,6 @@ all_models = [
     User,
     UserWishlist,
     UserSpent,
-    SuggestSearchKeyword,
     Category,
     Checklist,
     Product,

@@ -3,15 +3,13 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
-from sqlalchemy import create_engine
-from sqlmodel import SQLModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from admin.setup import setup_admin
 from api.v1.router import api_router
 from core.config import settings
-from core.db import async_engine
+from core.db import async_engine, check_db_connection, close_db_connections
 from core.exceptions import exception_handlers
 from core.logging import setup_logging
 from middleswares.logging import LoggingMiddleware
@@ -22,9 +20,31 @@ logger = setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    engine = create_engine(settings.DATABASE_URI.replace("+asyncpg", ""))
-    SQLModel.metadata.create_all(engine)
-    yield
+    # engine = create_engine(settings.DATABASE_URI.replace("+asyncpg", ""))
+    # SQLModel.metadata.create_all(engine)
+
+    try:
+        connection_healthy = await check_db_connection()
+        if connection_healthy:
+            print("✅ Database connection pool warmed up")
+        else:
+            print("⚠️ Database connection test failed")
+    except Exception as e:
+        print(f"❌ Database warmup failed: {e}")
+
+    print("🎉 Application startup completed")
+
+    yield  # 애플리케이션 실행
+
+    # 종료 시 정리
+    print("🛑 Shutting down application...")
+    try:
+        await close_db_connections()
+        print("✅ Database connections closed")
+    except Exception as e:
+        print(f"❌ Error during shutdown: {e}")
+
+    print("👋 Application shutdown completed")
 
 
 def custom_openapi():

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlmodel
-from sqlalchemy import Column, Text
+from sqlalchemy import Column, Text, DateTime
 from sqlmodel import SQLModel, Field, Relationship
 
 from utils.utils import utc_now
@@ -33,6 +33,9 @@ class UserSpent(SQLModel, table=True):
     updated_datetime: datetime = Field(
         default_factory=utc_now,
         sa_column=sqlmodel.Column(sqlmodel.DateTime(timezone=True)),
+    )
+    deleted_datetime: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
     )
 
     # Relationships

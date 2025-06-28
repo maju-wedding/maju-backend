@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -14,6 +14,7 @@ from schemes.user_spents import (
     BudgetDashboard,
     BudgetSummary,
     CategorySpentSummary,
+    UserSpentUpdate,
 )
 
 router = APIRouter()
@@ -75,7 +76,7 @@ async def create_user_spent(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """지출 내역 생성 - 시스템 카테고리 자동 처리"""
+    """지출 내역 생성"""
     # 카테고리 존재 여부 확인
     category = await crud_category.get(db=session, id=spent_create.category_id)
     if not category:
@@ -111,6 +112,94 @@ async def create_user_spent(
         result.category = CategoryRead.model_validate(spent_with_category.category)
 
     return result
+
+
+@router.put("/spents/{spent_id}", response_model=UserSpentWithCategory)
+async def update_user_spent(
+    spent_id: int = Path(..., description="수정할 지출 ID"),
+    spent_update: UserSpentUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """지출 내역 수정"""
+
+    # 지출 내역이 존재하는지 확인
+    existing_spent = await crud_spent.get_user_spent_with_category(
+        db=session, spent_id=spent_id, user_id=current_user.id
+    )
+
+    if not existing_spent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Spent record not found"
+        )
+
+    # 카테고리 변경이 있는 경우 카테고리 유효성 검증
+    if spent_update.category_id is not None:
+        category = await crud_category.get(db=session, id=spent_update.category_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+            )
+
+        # 시스템 카테고리가 아닌 경우에만 권한 검증
+        if not category.is_system_category and category.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to use this category",
+            )
+
+    # 지출 금액 검증 (금액이 제공된 경우)
+    if spent_update.amount is not None and spent_update.amount < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Amount cannot be negative"
+        )
+
+    # 지출 내역 수정
+    updated_spent = await crud_spent.update_spent(
+        db=session, spent_id=spent_id, user_id=current_user.id, obj_in=spent_update
+    )
+
+    if not updated_spent:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update spent record",
+        )
+
+    # 카테고리 정보와 함께 반환
+    spent_with_category = await crud_spent.get_user_spent_with_category(
+        db=session, spent_id=updated_spent.id, user_id=current_user.id
+    )
+
+    result = UserSpentWithCategory.model_validate(spent_with_category)
+    if spent_with_category.category:
+        result.category = CategoryRead.model_validate(spent_with_category.category)
+
+    return result
+
+
+@router.delete("/spents/{spent_id}", response_model=dict)
+async def delete_user_spent(
+    spent_id: int = Path(..., description="삭제할 지출 ID"),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """지출 내역 삭제 (소프트 삭제)"""
+
+    # 지출 내역 소프트 삭제
+    deleted_spent = await crud_spent.soft_delete_spent(
+        db=session, spent_id=spent_id, user_id=current_user.id
+    )
+
+    if not deleted_spent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Spent record not found"
+        )
+
+    return {
+        "status": "success",
+        "message": "Spent record deleted successfully",
+        "deleted_id": spent_id,
+    }
 
 
 @router.get("/spents", response_model=list[UserSpentWithCategory])

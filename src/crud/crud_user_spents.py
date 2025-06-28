@@ -140,7 +140,7 @@ class CRUDUserSpent(CRUDBase[UserSpent, UserSpentCreate, UserSpentUpdate, int]):
                 func.sum(UserSpent.amount).label("total_spent"),
                 func.count(UserSpent.id).label("spent_count"),
             )
-            .outerjoin(
+            .join(
                 UserSpent,
                 and_(
                     UserSpent.category_id == Category.id,

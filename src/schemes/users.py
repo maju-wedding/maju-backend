@@ -72,6 +72,7 @@ class UserRead(SQLModel):
 
     user_type: UserTypeEnum
     social_provider: SocialProviderEnum | None
+    budget: int
 
     joined_datetime: datetime = Field(
         default_factory=utc_now,

@@ -13,8 +13,11 @@ from api.v1.router import api_router
 from core.config import settings
 from core.db import async_engine
 from core.exceptions import exception_handlers
+from core.logging import setup_logging
 from middleswares.logging import LoggingMiddleware
 from utils.utils import custom_generate_unique_id
+
+logger = setup_logging()
 
 
 @asynccontextmanager

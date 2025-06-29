@@ -1,8 +1,3 @@
-from typing import Any
-
-from sqlalchemy import select
-from starlette.requests import Request
-
 from admin.models.base import BaseModelViewWithFilters
 from models.magazines import Magazine
 
@@ -28,8 +23,8 @@ class MagazineAdmin(BaseModelViewWithFilters, model=Magazine):
     column_labels = {
         Magazine.id: "ID",
         Magazine.title: "제목",
-        Magazine.thumbnail_url: "썸네일 URL",
-        Magazine.content_image_urls: "콘텐츠 이미지",
+        Magazine.thumbnail_url: "썸네일",
+        Magazine.content_image_urls: "콘텐츠 이미지 개수",
         Magazine.created_datetime: "생성일시",
         Magazine.updated_datetime: "수정일시",
         Magazine.is_deleted: "삭제 여부",
@@ -70,19 +65,47 @@ class MagazineAdmin(BaseModelViewWithFilters, model=Magazine):
         Magazine.updated_datetime,
     ]
 
-    # 기본 정렬
-    column_default_sort = [(Magazine.created_datetime, True)]  # 최신순
+    column_formatters = {
+        Magazine.thumbnail_url: lambda m, a: (
+            f'<div class="flex items-center gap-2">'
+            f'<img src="{m.thumbnail_url}" alt="썸네일" class="w-12 h-12 object-cover rounded" '
+            f"onerror=\"this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA4VjE2TTE2IDEySDgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg=='\">"
+            f"</div>"
+            if m.thumbnail_url
+            else '<span class="text-gray-400">썸네일 없음</span>'
+        ),
+        Magazine.content_image_urls: lambda m, a: len(m.content_image_urls),
+        Magazine.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        Magazine.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        Magazine.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+    }
 
-    # 페이지당 아이템 수
-    page_size = 20
-
-    def list_query(self, request: Request) -> Any:
-        """목록 쿼리 커스터마이징"""
-        query = select(self.model).where(self.model.is_deleted == False)
-
-        # 페이징 처리
-        page = int(request.query_params.get("page", 1))
-        offset = (page - 1) * self.page_size
-        query = query.offset(offset).limit(self.page_size)
-
-        return query
+    column_formatters_detail = {
+        Magazine.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        Magazine.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        Magazine.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+    }

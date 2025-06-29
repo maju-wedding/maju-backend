@@ -15,6 +15,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     column_list = [
         ProductHall.id,
         ProductHall.name,
+        "product.thumbnail_url",
         "product.address",
         "product.sido",
         "product.gugun",
@@ -38,6 +39,7 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     column_labels = {
         ProductHall.id: "웨딩홀 ID",
         ProductHall.name: "웨딩홀명",
+        "product.thumbnail_url": "썸네일",
         "product.address": "주소",
         "product.sido": "시도",
         "product.gugun": "구군",
@@ -114,9 +116,14 @@ class ProductHallAdmin(BaseModelViewWithFilters, model=ProductHall):
     ]
 
     column_formatters = {
-        # "product.ai_reviews": lambda m, a: [
-        #     ai_review.review_type for ai_review in m.product.ai_reviews
-        # ],
+        "product.thumbnail_url": lambda m, a: (
+            f'<div class="flex items-center gap-2">'
+            f'<img src="{m.product.thumbnail_url}" alt="썸네일" class="w-12 h-12 object-cover rounded" '
+            f"onerror=\"this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA4VjE2TTE2IDEySDgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg=='\">"
+            f"</div>"
+            if m.product and m.product.thumbnail_url
+            else '<span class="text-gray-400">썸네일 없음</span>'
+        ),
     }
 
     column_formatters_detail = {

@@ -21,6 +21,7 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
         User.phone_number,
         User.user_type,
         User.wedding_datetime,
+        User.joined_datetime,
         User.is_active,
         User.is_superuser,
         User.is_deleted,
@@ -72,18 +73,28 @@ class UserAdmin(BaseModelViewWithFilters, model=User):
 
     column_sortable_list = [
         User.id,
+        User.email,
+        User.nickname,
         User.joined_datetime,
+        User.wedding_datetime,
     ]
 
     column_formatters = {
         User.wedding_datetime: lambda m, a: (
+            m.wedding_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.wedding_datetime
+            else ""
+        ),
+        User.joined_datetime: lambda m, a: (
             m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""
         ),
     }
 
     column_formatters_detail = {
         User.wedding_datetime: lambda m, a: (
-            m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""
+            m.wedding_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.wedding_datetime
+            else ""
         ),
         User.joined_datetime: lambda m, a: (
             m.joined_datetime.strftime("%Y-%m-%d %H:%M:%S") if m.joined_datetime else ""

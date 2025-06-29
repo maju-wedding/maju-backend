@@ -13,6 +13,8 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
         Category.display_name,
         Category.is_system_category,
         Category.icon_url,
+        Category.created_datetime,
+        Category.updated_datetime,
         Category.is_deleted,
     ]
 
@@ -20,7 +22,7 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
         Category.id: "카테고리 ID",
         Category.display_name: "표시 이름",
         Category.is_system_category: "기본 카테고리",
-        Category.icon_url: "아이콘 URL",
+        Category.icon_url: "아이콘",
         Category.created_datetime: "생성일시",
         Category.updated_datetime: "수정일시",
         Category.deleted_datetime: "삭제일시",
@@ -50,6 +52,32 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
     ]
 
     column_formatters = {
+        Category.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        Category.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        Category.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+        Category.icon_url: lambda m, a: (
+            f'<div class="flex items-center gap-2">'
+            f'<img src="{m.icon_url}" alt="아이콘" class="w-6 h-6 object-cover rounded" '
+            f"onerror=\"this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiA4VjE2TTE2IDEySDgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg=='\">"
+            f"</div>"
+            if m.icon_url
+            else '<span class="text-gray-400">이미지 없음</span>'
+        ),
+    }
+
+    column_formatters_detail = {
         Category.created_datetime: lambda m, a: (
             m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
             if m.created_datetime

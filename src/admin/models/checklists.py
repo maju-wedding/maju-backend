@@ -16,6 +16,8 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.is_completed,
         Checklist.is_system_checklist,
         Checklist.global_display_order,
+        Checklist.created_datetime,
+        Checklist.updated_datetime,
         Checklist.is_deleted,
     ]
 
@@ -80,6 +82,29 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     ]
 
     column_formatters = {
+        Checklist.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        Checklist.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        Checklist.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+        Checklist.completed_datetime: lambda m, a: (
+            m.completed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.completed_datetime
+            else ""
+        ),
+    }
+
+    column_formatters_detail = {
         Checklist.created_datetime: lambda m, a: (
             m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
             if m.created_datetime

@@ -52,12 +52,12 @@
               <a
                 href="{{ model_view._url_for_details_with_prop(request, model, name) }}"
                 class="text-primary-600 hover:text-primary-900"
-                >{{ formatted_value }}</a
+                >{{ formatted_value|safe }}</a
               >
             </td>
             {% endif %} {% else %}
             <td class="px-6 py-4 text-xs text-gray-500 break-all">
-              {{ formatted_value }}
+              {{ formatted_value|safe }}
             </td>
             {% endif %}
           </tr>

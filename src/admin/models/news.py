@@ -15,6 +15,7 @@ class NewsCategoryAdmin(BaseModelViewWithFilters, model=NewsCategory):
         NewsCategory.news_items,
         NewsCategory.created_datetime,
         NewsCategory.updated_datetime,
+        NewsCategory.is_deleted,
     ]
 
     # 컬럼 라벨 설정
@@ -24,6 +25,7 @@ class NewsCategoryAdmin(BaseModelViewWithFilters, model=NewsCategory):
         NewsCategory.news_items: "뉴스 개수",
         NewsCategory.created_datetime: "생성일시",
         NewsCategory.updated_datetime: "수정일시",
+        NewsCategory.is_deleted: "삭제 여부",
     }
 
     # 상세 페이지에서 보여줄 컬럼들
@@ -32,6 +34,7 @@ class NewsCategoryAdmin(BaseModelViewWithFilters, model=NewsCategory):
         NewsCategory.display_name,
         NewsCategory.created_datetime,
         NewsCategory.updated_datetime,
+        NewsCategory.is_deleted,
     ]
 
     # 생성/수정 폼에서 사용할 필드들
@@ -56,6 +59,39 @@ class NewsCategoryAdmin(BaseModelViewWithFilters, model=NewsCategory):
 
     column_formatters = {
         NewsCategory.news_items: lambda m, a: len(m.news_items),
+        NewsCategory.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        NewsCategory.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        NewsCategory.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+    }
+
+    column_formatters_detail = {
+        NewsCategory.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        NewsCategory.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        NewsCategory.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
     }
 
 
@@ -140,3 +176,51 @@ class NewsItemAdmin(BaseModelViewWithFilters, model=NewsItem):
         NewsItem.post_date,
         NewsItem.created_datetime,
     ]
+
+    column_formatters = {
+        NewsCategory.news_items: lambda m, a: len(m.news_items),
+        NewsItem.link_url: lambda m, a: (
+            f'<a href="{m.link_url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">'
+            f'{m.link_url[:50]}{"..." if len(m.link_url) > 50 else ""}</a>'
+            if m.link_url
+            else "-"
+        ),
+        NewsItem.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        NewsItem.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        NewsItem.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+    }
+
+    column_formatters_detail = {
+        NewsItem.created_datetime: lambda m, a: (
+            m.created_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.created_datetime
+            else ""
+        ),
+        NewsItem.updated_datetime: lambda m, a: (
+            m.updated_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.updated_datetime
+            else ""
+        ),
+        NewsItem.deleted_datetime: lambda m, a: (
+            m.deleted_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if m.deleted_datetime
+            else ""
+        ),
+    }
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+    can_view_details = True

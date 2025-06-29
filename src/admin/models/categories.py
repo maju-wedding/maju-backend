@@ -12,8 +12,7 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
         Category.id,
         Category.display_name,
         Category.is_system_category,
-        # Category.user_id,
-        # Category.created_datetime,
+        Category.icon_url,
         Category.is_deleted,
     ]
 
@@ -21,7 +20,7 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
         Category.id: "카테고리 ID",
         Category.display_name: "표시 이름",
         Category.is_system_category: "기본 카테고리",
-        # Category.user_id: "사용자 ID",
+        Category.icon_url: "아이콘 URL",
         Category.created_datetime: "생성일시",
         Category.updated_datetime: "수정일시",
         Category.deleted_datetime: "삭제일시",
@@ -68,12 +67,22 @@ class CategoryAdmin(BaseModelViewWithFilters, model=Category):
         ),
     }
 
-    form_excluded_columns = [
-        Category.is_deleted,
-        Category.created_datetime,
-        Category.updated_datetime,
-        Category.deleted_datetime,
+    form_columns = [
+        Category.display_name,
+        Category.icon_url,
+        Category.is_system_category,
     ]
+
+    def list_query(self, request):
+        query = super().list_query(request)
+
+        is_system_category = request.query_params.get("is_system_category")
+        if is_system_category == "true":
+            query = query.where(self.model.is_system_category == True)
+        elif is_system_category == "false":
+            query = query.where(self.model.is_system_category == False)
+
+        return query
 
     can_create = True
     can_edit = True

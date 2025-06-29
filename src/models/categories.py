@@ -35,3 +35,6 @@ class Category(SQLModel, table=True):
 
     checklists: list["Checklist"] = Relationship(back_populates="category")
     user_spents: list["UserSpent"] = Relationship(back_populates="category")
+
+    def __str__(self):
+        return f"[{self.id}] {self.display_name}"

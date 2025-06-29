@@ -72,6 +72,7 @@ class User(SQLModel, table=True):
 
     # Relationships
     user_spents: list["UserSpent"] = Relationship(back_populates="user")
-    checklists: list["Checklist"] = Relationship(
-        back_populates="user"
-    )  # Checklist 관계 추가
+    checklists: list["Checklist"] = Relationship(back_populates="user")
+
+    def __str__(self):
+        return f"[{self.id}] {self.nickname} ({self.email})"

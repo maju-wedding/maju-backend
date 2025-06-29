@@ -15,6 +15,7 @@ class ProductCategoryAdmin(BaseModelViewWithFilters, model=ProductCategory):
         ProductCategory.type,
         ProductCategory.is_ready,
         ProductCategory.order,
+        ProductCategory.icon_url,
     ]
 
     column_labels = {
@@ -24,6 +25,7 @@ class ProductCategoryAdmin(BaseModelViewWithFilters, model=ProductCategory):
         ProductCategory.type: "유형",
         ProductCategory.is_ready: "준비 여부",
         ProductCategory.order: "순서",
+        ProductCategory.icon_url: "아이콘 URL",
     }
 
     column_details_list = [

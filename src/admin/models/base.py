@@ -8,28 +8,28 @@ class BaseModelViewWithFilters(ModelView):
 
     page_size = 10
     page_size_options = [10, 20, 50, 100]
-
-    relation_prefixes = {
-        "product.": "product",
-        "category.": "category",
-        "enterprise.": "enterprise",
-        "user.": "user",
-        # 필요한 다른 관계들 추가
-    }
+    #
+    # relation_prefixes = {
+    #     "product.": "product",
+    #     "category.": "category",
+    #     "enterprise.": "enterprise",
+    #     "user.": "user",
+    #     # 필요한 다른 관계들 추가
+    # }
 
     def list_query(self, request):
         query = select(self.model)
 
-        used_relations = set()
-        for col in self.column_list:
-            if isinstance(col, str):
-                for prefix, attr in self.relation_prefixes.items():
-                    if col.startswith(prefix):
-                        used_relations.add(attr)
-                        break
-
-        for relation in used_relations:
-            query = query.options(joinedload(getattr(self.model, relation)))
+        # used_relations = set()
+        # for col in self.column_list:
+        #     if isinstance(col, str):
+        #         for prefix, attr in self.relation_prefixes.items():
+        #             if col.startswith(prefix):
+        #                 used_relations.add(attr)
+        #                 break
+        #
+        # for relation in used_relations:
+        #     query = query.options(joinedload(getattr(self.model, relation)))
 
         # Filter
         is_deleted_param = request.query_params.get("is_deleted")

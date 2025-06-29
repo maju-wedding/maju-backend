@@ -34,6 +34,8 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.created_datetime: "생성일시",
         Checklist.updated_datetime: "수정일시",
         Checklist.deleted_datetime: "삭제일시",
+        Checklist.category: "카테고리",
+        Checklist.user: "유저",
     }
 
     # form_columns 대신 form_excluded_columns만 사용
@@ -50,16 +52,15 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
     # AJAX를 사용한 외래키 참조
     form_ajax_refs = {
         "category": {
-            "fields": ("display_name",),
-            "order_by": "display_name",
-            "page_size": 10,
-            "placeholder": "카테고리를 선택하세요",
+            "fields": (
+                "id",
+                "display_name",
+            ),
+            "order_by": "id",
         },
         "user": {
-            "fields": ("email", "nickname"),
-            "order_by": "email",
-            "page_size": 10,
-            "placeholder": "사용자를 선택하세요",
+            "fields": ("id", "email", "nickname"),
+            "order_by": "id",
         },
     }
 
@@ -100,6 +101,23 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
             else ""
         ),
     }
+
+    def list_query(self, request):
+        query = super().list_query(request)
+
+        is_system_checklist = request.query_params.get("is_system_checklist")
+        if is_system_checklist == "true":
+            query = query.where(self.model.is_system_checklist == True)
+        elif is_system_checklist == "false":
+            query = query.where(self.model.is_system_checklist == False)
+
+        is_completed = request.query_params.get("is_completed")
+        if is_completed == "true":
+            query = query.where(self.model.is_completed == True)
+        elif is_completed == "false":
+            query = query.where(self.model.is_completed == False)
+
+        return query
 
     can_create = True
     can_edit = True

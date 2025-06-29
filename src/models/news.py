@@ -53,3 +53,6 @@ class NewsCategory(SQLModel, table=True):
     )
 
     news_items: list["NewsItem"] = Relationship(back_populates="news_category")
+
+    def __str__(self) -> str:
+        return f"[{self.id}] {self.display_name}"

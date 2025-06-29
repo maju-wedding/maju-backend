@@ -1,246 +1,152 @@
-// main.js - Tailwind CSS & Alpine.js 버전
+// Handle delete modal
+$(document).on('shown.bs.modal', '#modal-delete', function (event) {
+  var element = $(event.relatedTarget);
 
-document.addEventListener('alpine:init', () => {
-  // 글로벌 Alpine 상태 및 이벤트 설정
-  Alpine.data('adminApp', () => ({
-    // 삭제 모달 관련
-    deleteModal: {
-      open: false,
-      name: '',
-      pk: '',
-      url: '',
-      text: '',
+  var name = element.data("name");
+  var pk = element.data("pk");
+  $("#modal-delete-text").text("This will permanently delete " + name + " " + pk + " ?");
 
-      // 모달 열기
-      openModal(name, pk, url) {
-        this.name = name;
-        this.pk = pk;
-        this.url = url;
-        this.text = `This will permanently delete ${name} ${pk}?`;
-        this.open = true;
-      },
-
-      // 삭제 수행
-      confirmDelete() {
-        fetch(this.url, {
-          method: 'DELETE',
-        })
-        .then(response => response.text())
-        .then(result => {
-          window.location.href = result;
-        })
-        .catch(error => {
-          alert(error);
-        });
-      }
-    },
-
-    // 검색 관련
-    search: {
-      term: '',
-      timeout: null,
-
-      // 검색 수행
-      doSearch() {
-        const searchTerm = encodeURIComponent(this.term);
-        let newUrl = '';
-
-        if (window.location.search && window.location.search.indexOf('search=') != -1) {
-          newUrl = window.location.search.replace(/search=[^&]*/, "search=" + searchTerm);
-        } else if (window.location.search) {
-          newUrl = window.location.search + "&search=" + searchTerm;
-        } else {
-          newUrl = window.location.search + "?search=" + searchTerm;
-        }
-        window.location.href = newUrl;
-      },
-
-      // 자동 검색(타이핑 후 지연 시간 적용)
-      autoSearch() {
-        clearTimeout(this.timeout);
-        this.timeout = setTimeout(() => {
-          this.doSearch();
-        }, 1000);
-      },
-
-      // 검색 초기화
-      resetSearch() {
-        if (window.location.search && window.location.search.indexOf('search=') != -1) {
-          window.location.href = window.location.search.replace(/search=[^&]*/, "");
-        }
-      }
-    },
-
-    // 체크박스 선택 관련
-    selection: {
-      selectAll: false,
-      selectedItems: [],
-
-      // 전체 선택 토글
-      toggleSelectAll() {
-        document.querySelectorAll('.select-box').forEach(checkbox => {
-          checkbox.checked = this.selectAll;
-        });
-
-        this.updateSelectedItems();
-      },
-
-      // 선택된 항목 업데이트
-      updateSelectedItems() {
-        this.selectedItems = [];
-        document.querySelectorAll('.select-box:checked').forEach(checkbox => {
-          const pk = checkbox.closest('tr').querySelector('input[type=hidden]').value;
-          this.selectedItems.push(pk);
-        });
-      },
-
-      // 대량 삭제 액션
-      bulkDelete(url) {
-        if (this.selectedItems.length === 0) {
-          alert('Please select items to delete.');
-          return;
-        }
-
-        const deleteUrl = url + '?pks=' + this.selectedItems.join(',');
-        this.$dispatch('open-modal', {
-          name: 'delete-modal',
-          data: {
-            name: 'selected items',
-            pk: '',
-            url: deleteUrl,
-            text: `This will permanently delete ${this.selectedItems.length} selected items.`
-          }
-        });
-      },
-
-      // 커스텀 액션 수행
-      customAction(url) {
-        if (this.selectedItems.length === 0) {
-          alert('Please select items.');
-          return;
-        }
-
-        window.location.href = url + '?pks=' + this.selectedItems.join(',');
-      }
-    }
-  }));
+  $("#modal-delete-button").attr("data-url", element.data("url"));
 });
 
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', function() {
-  // 날짜 선택기 초기화 (Flatpickr)
-  initDatepickers();
-
-  // Select2 초기화
-  initSelect2();
-
-  // URL에서 검색어 가져와서 입력 필드에 설정
-  const urlParams = new URLSearchParams(window.location.search);
-  const searchTerm = urlParams.get('search');
-
-  if (searchTerm) {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.value = searchTerm;
+$(document).on('click', '#modal-delete-button', function () {
+  $.ajax({
+    url: $(this).attr('data-url'),
+    method: 'DELETE',
+    success: function (result) {
+      window.location.href = result;
+    },
+    error: function (request, status, error) {
+      alert(request.responseText);
     }
+  });
+});
+
+// Search
+$(document).on('click', '#search-button', function () {
+  var searchTerm = encodeURIComponent($("#search-input").val());
+
+  newUrl = "";
+  if (window.location.search && window.location.search.indexOf('search=') != -1) {
+    newUrl = window.location.search.replace(/search=[^&]*/, "search=" + searchTerm);
+  } else if (window.location.search) {
+    newUrl = window.location.search + "&search=" + searchTerm;
+  } else {
+    newUrl = window.location.search + "?search=" + searchTerm;
+  }
+  window.location.href = newUrl;
+});
+
+// Reset search
+$(document).on('click', '#search-reset', function () {
+  if (window.location.search && window.location.search.indexOf('search=') != -1) {
+    window.location.href = window.location.search.replace(/search=[^&]*/, "");
   }
 });
 
-// Flatpickr 날짜 선택기 초기화
-function initDatepickers() {
-  // 표준 날짜 선택기
-  document.querySelectorAll('input[data-role="datepicker"]:not([readonly])').forEach(element => {
-    flatpickr(element, {
-      enableTime: false,
-      allowInput: true,
-      dateFormat: "Y-m-d",
-    });
-  });
+// Press enter to search
+$(document).on('keypress', '#search-input', function (e) {
+  if (e.which === 13) {
+    $('#search-button').click();
+  }
+});
 
-  // 날짜시간 선택기
-  document.querySelectorAll('input[data-role="datetimepicker"]:not([readonly])').forEach(element => {
-    flatpickr(element, {
-      enableTime: true,
-      allowInput: true,
-      enableSeconds: true,
-      time_24hr: true,
-      dateFormat: "Y-m-d H:i:s",
-    });
-  });
-}
+// Init a timeout variable to be used below
+var timeout = null;
+// Search
+$(document).on('keyup', '#search-input', function (e) {
+  clearTimeout(timeout);
+  // Make a new timeout set to go off in 1000ms (1 second)
+  timeout = setTimeout(function () {
+    $('#search-button').click();
+  }, 1000);
+});
 
-// Select2 초기화
-function initSelect2() {
-  // Ajax 참조용 Select2
-  document.querySelectorAll('select[data-role="select2-ajax"]').forEach(element => {
-    $(element).select2({
-      minimumInputLength: 1,
-      ajax: {
-        url: element.dataset.url,
-        dataType: 'json',
-        data: function(params) {
-          return {
-            name: element.name,
-            term: params.term,
-          };
+// Date picker
+$(':input[data-role="datepicker"]:not([readonly])').each(function () {
+  $(this).flatpickr({
+    enableTime: false,
+    allowInput: true,
+    dateFormat: "Y-m-d",
+  });
+});
+
+// DateTime picker
+$(':input[data-role="datetimepicker"]:not([readonly])').each(function () {
+  $(this).flatpickr({
+    enableTime: true,
+    allowInput: true,
+    enableSeconds: true,
+    time_24hr: true,
+    dateFormat: "Y-m-d H:i:s",
+  });
+});
+
+// Ajax Refs
+$(':input[data-role="select2-ajax"]').each(function () {
+  $(this).select2({
+    minimumInputLength: 1,
+    ajax: {
+      url: $(this).data("url"),
+      dataType: 'json',
+      data: function (params) {
+        var query = {
+          name: $(this).attr("name"),
+          term: params.term,
         }
-      }
-    });
-
-    const existingData = JSON.parse(element.dataset.json || '[]');
-    existingData.forEach(data => {
-      const option = new Option(data.text, data.id, true, true);
-      $(element).append(option).trigger('change');
-    });
-  });
-
-  // Select2 태그
-  document.querySelectorAll('select[data-role="select2-tags"]').forEach(element => {
-    $(element).select2({
-      tags: true,
-      multiple: true,
-    });
-
-    const existingData = JSON.parse(element.dataset.json || '[]');
-    existingData.forEach(value => {
-      const option = new Option(value, value, true, true);
-      $(element).append(option).trigger('change');
-    });
-  });
-}
-
-// 삭제 모달 이벤트 핸들러 (Alpine.js를 사용하지 않는 경우를 위한 백업)
-document.addEventListener('click', function(event) {
-  // 삭제 버튼 클릭 처리
-  if (event.target.matches('[data-delete-button]') || event.target.closest('[data-delete-button]')) {
-    event.preventDefault();
-
-    const button = event.target.matches('[data-delete-button]')
-      ? event.target
-      : event.target.closest('[data-delete-button]');
-
-    const name = button.dataset.name;
-    const pk = button.dataset.pk;
-    const url = button.dataset.url;
-
-    // Alpine.js 컴포넌트가 있는지 확인
-    const alpineComponent = document.querySelector('[x-data]').__x;
-    if (alpineComponent) {
-      alpineComponent.$data.deleteModal.openModal(name, pk, url);
-    } else {
-      // 폴백: 기본 confirm 사용
-      if (confirm(`This will permanently delete ${name} ${pk}?`)) {
-        fetch(url, {
-          method: 'DELETE',
-        })
-        .then(response => response.text())
-        .then(result => {
-          window.location.href = result;
-        })
-        .catch(error => {
-          alert(error);
-        });
+        return query;
       }
     }
+  });
+
+  existing_data = $(this).data("json") || [];
+  for (var i = 0; i < existing_data.length; i++) {
+    data = existing_data[i];
+    var option = new Option(data.text, data.id, true, true);
+    $(this).append(option).trigger('change');
+  }
+});
+
+// Checkbox select
+$("#select-all").click(function () {
+  $('input.select-box:checkbox').prop('checked', this.checked);
+});
+
+// Bulk delete
+$("#action-delete").click(function () {
+  var pks = [];
+  $('.select-box').each(function () {
+    if ($(this).is(':checked')) {
+      pks.push($(this).siblings().get(0).value);
+    }
+  });
+
+  $('#action-delete').data("pk", pks);
+  $('#action-delete').data("url", $(this).data('url') + '?pks=' + pks.join(","));
+  $('#modal-delete').modal('show');
+});
+
+$("[id^='action-custom-']").click(function () {
+  var pks = [];
+  $('.select-box').each(function () {
+    if ($(this).is(':checked')) {
+      pks.push($(this).siblings().get(0).value);
+    }
+  });
+
+  window.location.href = $(this).attr('data-url') + '?pks=' + pks.join(",");
+});
+
+// Select2 Tags
+$(':input[data-role="select2-tags"]').each(function () {
+  $(this).select2({
+    tags: true,
+    multiple: true,
+  });
+
+  existing_data = $(this).data("json") || [];
+  for (var i = 0; i < existing_data.length; i++) {
+    var option = new Option(existing_data[i], existing_data[i], true, true);
+    $(this).append(option).trigger('change');
   }
 });

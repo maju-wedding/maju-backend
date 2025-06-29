@@ -24,6 +24,7 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.title: "제목",
         Checklist.description: "설명",
         "category.display_name": "체크리스트 카테고리",
+        Checklist.category_id: "카테고리",
         Checklist.is_system_checklist: "기본 체크리스트",
         Checklist.user_id: "사용자 ID",
         Checklist.is_completed: "완료 여부",
@@ -35,21 +36,32 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
         Checklist.deleted_datetime: "삭제일시",
     }
 
-    column_details_list = [
-        Checklist.id,
-        Checklist.title,
-        Checklist.description,
-        Checklist.category_id,
-        Checklist.is_system_checklist,
-        Checklist.user_id,
-        Checklist.is_completed,
-        Checklist.completed_datetime,
-        Checklist.global_display_order,
+    # form_columns 대신 form_excluded_columns만 사용
+    form_excluded_columns = [
         Checklist.is_deleted,
         Checklist.created_datetime,
         Checklist.updated_datetime,
         Checklist.deleted_datetime,
+        Checklist.completed_datetime,
+        Checklist.global_display_order,
+        Checklist.category_display_order,
     ]
+
+    # AJAX를 사용한 외래키 참조
+    form_ajax_refs = {
+        "category": {
+            "fields": ("display_name",),
+            "order_by": "display_name",
+            "page_size": 10,
+            "placeholder": "카테고리를 선택하세요",
+        },
+        "user": {
+            "fields": ("email", "nickname"),
+            "order_by": "email",
+            "page_size": 10,
+            "placeholder": "사용자를 선택하세요",
+        },
+    }
 
     column_searchable_list = [
         Checklist.title,
@@ -88,13 +100,6 @@ class ChecklistAdmin(BaseModelViewWithFilters, model=Checklist):
             else ""
         ),
     }
-
-    form_excluded_columns = [
-        Checklist.is_deleted,
-        Checklist.created_datetime,
-        Checklist.updated_datetime,
-        Checklist.deleted_datetime,
-    ]
 
     can_create = True
     can_edit = True

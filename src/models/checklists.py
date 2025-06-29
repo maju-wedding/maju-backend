@@ -10,6 +10,7 @@ from utils.utils import utc_now
 
 if TYPE_CHECKING:
     from models.categories import Category
+    from models.users import User
 
 
 class Checklist(SQLModel, table=True):
@@ -47,4 +48,6 @@ class Checklist(SQLModel, table=True):
 
     is_deleted: bool = Field(default=False)
 
+    # Relationships
     category: "Category" = Relationship(back_populates="checklists")
+    user: "User" = Relationship(back_populates="checklists")

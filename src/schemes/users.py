@@ -72,6 +72,7 @@ class UserRead(SQLModel):
 
     user_type: UserTypeEnum
     social_provider: SocialProviderEnum | None
+    is_superuser: bool
     budget: int
 
     joined_datetime: datetime = Field(

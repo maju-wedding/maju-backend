@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 import sqlmodel
@@ -7,8 +8,11 @@ from sqlalchemy import Column, String, Boolean
 from sqlmodel import Field, SQLModel, Relationship
 
 from core.enums import SocialProviderEnum, UserTypeEnum, GenderEnum
-from models import UserSpent
 from utils.utils import utc_now
+
+if TYPE_CHECKING:
+    from models import UserSpent
+    from models.checklists import Checklist
 
 
 class User(SQLModel, table=True):
@@ -66,4 +70,8 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True, sa_column=Column(Boolean, default=True))
     is_deleted: bool = Field(default=False, sa_column=Column(Boolean, default=False))
 
+    # Relationships
     user_spents: list["UserSpent"] = Relationship(back_populates="user")
+    checklists: list["Checklist"] = Relationship(
+        back_populates="user"
+    )  # Checklist 관계 추가

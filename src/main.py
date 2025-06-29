@@ -75,7 +75,7 @@ def custom_openapi():
     return app.openapi_schema
 
 
-if settings.ENVIRONMENT != "production":
+if settings.ENVIRONMENT == "production":
     sentry_sdk.init(
         dsn="https://a1a685906d17e8965e8b848f754d4cb1@o4509565448814592.ingest.us.sentry.io/4509565451304960",
         send_default_pii=True,
